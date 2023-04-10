@@ -29,9 +29,18 @@ public class AppTest {
         Method method = prepperClass.getDeclaredMethod("addExplicitConcat", arg);
         method.setAccessible(true);
 
-        assertEquals( "A.B",method.invoke(null, "AB"));
-        assertEquals( "A.B.C",method.invoke(null, "ABC"));
-        assertEquals("A.B+C", method.invoke(null, "AB+C"));
+        assertEquals("A.B", method.invoke(null, "AB"));
+        assertEquals("A.B.C", method.invoke(null, "ABC"));
+        assertEquals("A.B+.C", method.invoke(null, "AB+C"));
+    }
+
+    @Test public void TestPrep() throws ClassNotFoundException, NoSuchMethodException, SecurityException, IllegalAccessException, IllegalArgumentException, InvocationTargetException
+    {
+        Class<?> prepperClass = Class.forName("regexjava.RegexPrepper");
+        Class[] arg = {String.class};  
+        Method method = prepperClass.getDeclaredMethod("prep", arg);
+
+        assertEquals("AB+.C.", method.invoke(null, "AB+C"));
     }
 
 }

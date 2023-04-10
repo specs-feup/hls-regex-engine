@@ -3,12 +3,16 @@
  */
 package regexjava;
 
-import org.jgrapht.*;
-import org.jgrapht.graph.*;
+import java.util.Scanner;
 
 public class App {
-    public static void main(String[] args) {
-        System.out.println(RegexPrepper.prep("AB+C"));
+    public static void main(String[] args){
+        Scanner scanner = new Scanner(System.in);
+        String expr = scanner.nextLine();
+        String prepped_expr = RegexPrepper.prep(expr);
+        System.out.println("Preppared expr: " + prepped_expr);
+        NFA automata = new NFA(prepped_expr);
+        scanner.close();
     }
 
 }
