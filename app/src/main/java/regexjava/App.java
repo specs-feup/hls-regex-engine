@@ -4,14 +4,19 @@
 package regexjava;
 
 import java.util.Scanner;
+import org.jgrapht.*;
+import org.jgrapht.graph.*;
 
 public class App {
     public static void main(String[] args){
         Scanner scanner = new Scanner(System.in);
+        System.out.printf("Insert a regex: ");
         String expr = scanner.nextLine();
         String prepped_expr = RegexPrepper.prep(expr);
         System.out.println("Preppared expr: " + prepped_expr);
-        NFA automata = new NFA(prepped_expr);
+        EpsilonNFA enfa = new EpsilonNFA(prepped_expr);
+        NFA nfa = enfa.toRegularNFA();
+        nfa.print();
         scanner.close();
     }
 
