@@ -18,6 +18,7 @@ repositories {
 
 run {
     standardInput = System.in
+    classpath += files('./src/freeMarkerTemplates')
 }
 
 dependencies {

@@ -7,16 +7,20 @@ import java.util.Scanner;
 
 public class App {
     public static void main(String[] args){
-        Scanner scanner = new Scanner(System.in);
-        System.out.printf("Insert a regex: ");
-        String expr = scanner.nextLine();
-        Matcher matcher = new Matcher(expr);
-        while (true)
-        {
-            System.out.printf("Insert input: ");
-            String input = scanner.nextLine();
-            System.out.println(matcher.match(input) ? "\nIt's a match :)\n" : "\nIt's not a match :(\n");
-        }
+
+        CodeGenerator cg = new CodeGenerator("xd");
+        cg.generate();
+
+        // Scanner scanner = new Scanner(System.in);
+        // System.out.printf("Insert a regex: ");
+        // String expr = scanner.nextLine();
+        // Matcher matcher = new Matcher(expr);
+        // while (true)
+        // {
+        //     System.out.printf("Insert input: ");
+        //     String input = scanner.nextLine();
+        //     System.out.println(matcher.match(input) ? "\nIt's a match :)\n" : "\nIt's not a match :(\n");
+        // }
         // scanner.close();
     }
 
