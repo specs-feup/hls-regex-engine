@@ -6,22 +6,15 @@ package regexjava;
 import java.util.Scanner;
 
 public class App {
-    public static void main(String[] args){
-
-        CodeGenerator cg = new CodeGenerator("xd");
+    public static void main(String[] args)
+    {
+        Scanner scanner = new Scanner(System.in);
+        System.out.printf("Insert a regex: ");
+        String expr = scanner.nextLine();
+        CodeGenerator cg = new CodeGenerator(expr);
+        System.out.println("");
         cg.generate();
-
-        // Scanner scanner = new Scanner(System.in);
-        // System.out.printf("Insert a regex: ");
-        // String expr = scanner.nextLine();
-        // Matcher matcher = new Matcher(expr);
-        // while (true)
-        // {
-        //     System.out.printf("Insert input: ");
-        //     String input = scanner.nextLine();
-        //     System.out.println(matcher.match(input) ? "\nIt's a match :)\n" : "\nIt's not a match :(\n");
-        // }
-        // scanner.close();
+        scanner.close();
     }
 
 }

@@ -26,7 +26,6 @@ public enum FreeMarkerConfig {
         // Specify the source where the template files come from. Here I set a
         // plain directory for it, but non-file-system sources are possible too:
         URL template_url = getClass().getResource(template_name);
-        System.out.println(template_url);
         File templates_dir = new File(template_url.getPath()).getParentFile();
         try {
             cfg.setDirectoryForTemplateLoading(templates_dir);

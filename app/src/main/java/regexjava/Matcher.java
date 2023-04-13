@@ -20,6 +20,11 @@ public class Matcher {
         this.automata = new NFA(raw_regex);
     }
 
+    public NFA getNFA()
+    {
+        return this.automata;
+    }
+
     private String getNext(Set<RegularTransition> transitions, char token)
     {
         for (RegularTransition transition : transitions) 
