@@ -12,8 +12,8 @@ import org.jgrapht.graph.DefaultEdge;
 
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
-import regexjava.TemplateAtoms.State;
-import regexjava.TemplateAtoms.Transition;
+import regexjava.TemplateElements.State;
+import regexjava.TemplateElements.Transition;
 
 public class CodeGenerator {
     private NFA automata;

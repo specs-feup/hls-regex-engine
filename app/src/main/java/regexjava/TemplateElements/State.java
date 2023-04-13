@@ -1,4 +1,4 @@
-package regexjava.TemplateAtoms;
+package regexjava.TemplateElements;
 
 import java.util.HashSet;
 import java.util.Set;

@@ -1,4 +1,4 @@
-package regexjava.TemplateAtoms;
+package regexjava.TemplateElements;
 
 public class Transition {
     private State target;
