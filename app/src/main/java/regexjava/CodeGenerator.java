@@ -45,13 +45,13 @@ public class CodeGenerator {
     {
         Map<String, State> vertex_ids = new HashMap<>();
         Set<State> end_states = new HashSet<>();
-        for (String vertex : this.automata.graph.vertexSet())
+        for (String vertex : this.automata.getGraph().vertexSet())
         {
             State curr_state = getState(vertex, vertex_ids);
-            Set<DefaultEdge> outgoing = this.automata.graph.outgoingEdgesOf(vertex);
+            Set<DefaultEdge> outgoing = this.automata.getGraph().outgoingEdgesOf(vertex);
             for (DefaultEdge edge : outgoing) 
             {
-                String target = this.automata.graph.getEdgeTarget(edge);
+                String target = this.automata.getGraph().getEdgeTarget(edge);
                 State target_state = getState(target, vertex_ids);
                 Transition transition = new Transition();
                 transition.setTarget(target_state);
@@ -59,7 +59,7 @@ public class CodeGenerator {
                 curr_state.addTransition(transition);
             }
 
-            if (this.automata.ends.contains(vertex))
+            if (this.automata.getEnds().contains(vertex))
                 end_states.add(curr_state);
         }
         
@@ -69,10 +69,10 @@ public class CodeGenerator {
         root.put("total_states", states.size());
         root.put("states", states);
         root.put("end_states", end_states);
-        root.put("start_state", vertex_ids.get(this.automata.start));
+        root.put("start_state", vertex_ids.get(this.automata.getStart()));
 
         try {
-            Template template = FreeMarkerConfig.INSTANCE.getConfig().getTemplate(FreeMarkerConfig.INSTANCE.template_name);
+            Template template = FreeMarkerConfig.INSTANCE.getConfig().getTemplate(FreeMarkerConfig.INSTANCE.getTemplateName());
             Writer out = new OutputStreamWriter(System.out);
             template.process(root, out);
         } catch (IOException | TemplateException e) {

@@ -1,10 +1,7 @@
 package regexjava;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 public class Matcher {
@@ -30,7 +27,7 @@ public class Matcher {
         for (RegularTransition transition : transitions) 
         {
             if (transition.getSymbol() == token)
-                return this.automata.graph.getEdgeTarget(transition);
+                return this.automata.getGraph().getEdgeTarget(transition);
         }
 
         return null;
@@ -38,7 +35,7 @@ public class Matcher {
 
     public boolean match(String str)
     {
-        Set<String> current = new HashSet<>(Arrays.asList(automata.start));
+        Set<String> current = new HashSet<>(Arrays.asList(automata.getStart()));
         
         for (char token : str.toCharArray()) 
         {
@@ -55,7 +52,7 @@ public class Matcher {
         }
 
         Set<String> intersection = new HashSet<String>(current);
-        intersection.retainAll(this.automata.ends);
+        intersection.retainAll(this.automata.getEnds());
         return !intersection.isEmpty();
     }
 }

@@ -7,10 +7,9 @@ import org.jgrapht.*;
 import org.jgrapht.graph.*;
 
 public class NFA {
-
-    String start;
-    Set<String> ends;
-    Graph<String, DefaultEdge> graph = new DirectedPseudograph<>(LabeledEdge.class);
+    private String start;
+    private Set<String> ends;
+    private Graph<String, DefaultEdge> graph = new DirectedPseudograph<>(LabeledEdge.class);
 
     public NFA(Graph<String, DefaultEdge> graph, String start, Set<String> ends) 
     {
@@ -27,6 +26,21 @@ public class NFA {
         this.graph = nfa.graph;
         this.start = nfa.start;
         this.ends = nfa.ends;
+    }
+
+    public String getStart() 
+    {
+        return start;
+    }
+
+    public Set<String> getEnds() 
+    {
+        return ends;
+    }
+
+    public Graph<String, DefaultEdge> getGraph() 
+    {
+        return graph;
     }
 
     public Set<RegularTransition> getNextTransitions(String vertex)

@@ -1,7 +1,7 @@
 package regexjava;
 
 public enum VertexIDFactory {
-    INSTANCE;
+    INSTANCE();
     private static int counter = 0;
 
     public static String getNewVertexID()

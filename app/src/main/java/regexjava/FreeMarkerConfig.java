@@ -2,18 +2,14 @@ package regexjava;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URL;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import freemarker.template.Configuration;
 import freemarker.template.TemplateExceptionHandler;
 
 public enum FreeMarkerConfig {
     INSTANCE();
-    public String template_name = "/template.ftlh";
+    private String template_name = "/template.ftlh";
     private Configuration cfg;
   
     private FreeMarkerConfig()
@@ -58,5 +54,10 @@ public enum FreeMarkerConfig {
     public Configuration getConfig()
     {
         return this.cfg;
+    }
+
+    public String getTemplateName()
+    {
+        return this.template_name;
     }
 }

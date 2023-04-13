@@ -3,9 +3,8 @@ package regexjava;
 import java.util.Stack;
 import java.util.Map;
 
-//singleton
 public enum RegexPrepper {
-    INSTANCE;
+    INSTANCE();
 
     private static String toPostfix(String regex)
     {
