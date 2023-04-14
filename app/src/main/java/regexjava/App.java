@@ -5,9 +5,24 @@ package regexjava;
 
 import java.util.Scanner;
 
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.tree.ParseTree;
+
+import testgrammar.testLexer;
+import testgrammar.testParser;
+
 public class App {
     public static void main(String[] args)
     {
+        // String str = "hello there";
+        // CharStream cs = CharStreams.fromString(str);
+        // testLexer tl = new testLexer(cs);
+        // CommonTokenStream cts = new CommonTokenStream(tl);
+        // testParser parser = new testParser(cts);
+        // ParseTree tree = parser.str();
+        
         Scanner scanner = new Scanner(System.in);
         System.out.printf("Insert a regex: ");
         String expr = scanner.nextLine();
