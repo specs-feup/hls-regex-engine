@@ -39,6 +39,11 @@ dependencies {
     antlr 'org.antlr:antlr4:4.12.0'    
 }
 
+generateGrammarSource {
+    arguments += ['-package', 'regexgrammar']
+    outputDirectory = new File(buildDir.toString() + "/generated-src/antlr/main/regexgrammar/")
+}
+
 application {
     // Define the main class for the application.
     mainClass = 'regexjava.App'

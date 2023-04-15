@@ -10,26 +10,28 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import testgrammar.testLexer;
-import testgrammar.testParser;
+import regexgrammar.regexLexer;
+import regexgrammar.regexParser;
 
 public class App {
     public static void main(String[] args)
     {
-        // String str = "hello there";
-        // CharStream cs = CharStreams.fromString(str);
-        // testLexer tl = new testLexer(cs);
-        // CommonTokenStream cts = new CommonTokenStream(tl);
-        // testParser parser = new testParser(cts);
-        // ParseTree tree = parser.str();
+        String str = "a*";
+        CharStream stream = CharStreams.fromString(str);
+        regexLexer lexer = new regexLexer(stream);
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        regexParser parser = new regexParser(tokens);
+        ParseTree tree = parser.root();
+        System.out.println(TreeUtils.toPrettyTree(tree, parser));
         
-        Scanner scanner = new Scanner(System.in);
-        System.out.printf("Insert a regex: ");
-        String expr = scanner.nextLine();
-        CodeGenerator cg = new CodeGenerator(expr);
-        System.out.println("");
-        cg.generate();
-        scanner.close();
+        
+        // Scanner scanner = new Scanner(System.in);
+        // System.out.printf("Insert a regex: ");
+        // String expr = scanner.nextLine();
+        // CodeGenerator cg = new CodeGenerator(expr);
+        // System.out.println("");
+        // cg.generate();
+        // scanner.close();
     }
 
 }
