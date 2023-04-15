@@ -3,8 +3,10 @@ package regexjava;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
+
 
 public class NFA {
     private String start;
@@ -22,6 +24,15 @@ public class NFA {
     {
         String prepped_expr = RegexPrepper.prep(raw_regex);
         EpsilonNFA eNFA = new EpsilonNFA(prepped_expr);
+        NFA nfa = eNFA.toRegularNFA();
+        this.graph = nfa.graph;
+        this.start = nfa.start;
+        this.ends = nfa.ends;
+    }
+
+    public NFA(ParseTree root)
+    {
+        EpsilonNFA eNFA = new EpsilonNFA(root);
         NFA nfa = eNFA.toRegularNFA();
         this.graph = nfa.graph;
         this.start = nfa.start;

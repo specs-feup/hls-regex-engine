@@ -5,8 +5,11 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.Stack;
 
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
+
 
 public class EpsilonNFA {
 
@@ -57,7 +60,7 @@ public class EpsilonNFA {
                 stack.push(join(first, second));
             } else if (token == '*') {
                 EpsilonNFA top = stack.pop();
-                stack.push(closure(top));
+                stack.push(zeroOrMore(top));
             } else if (token == '+') {
                 EpsilonNFA top = stack.pop();
                 stack.push(oneOrMore(top));
@@ -74,7 +77,19 @@ public class EpsilonNFA {
         this.graph = top.graph;
     }
 
-    private EpsilonNFA concat(EpsilonNFA first, EpsilonNFA second) {
+    /* Creates EpsilonNFA from a regex parseTree */
+    public EpsilonNFA(ParseTree tree)
+    {
+        RegexListener listener = new RegexListener();
+        ParseTreeWalker walker = new ParseTreeWalker();
+        walker.walk(listener, tree);
+        EpsilonNFA nfa = listener.getEpsilonNFA();
+        this.start = nfa.start;
+        this.end = nfa.end;
+        this.graph = nfa.graph;
+    }
+
+    public static EpsilonNFA concat(EpsilonNFA first, EpsilonNFA second) {
         EpsilonNFA res = null;
         if (Graphs.addGraph(first.graph, second.graph)) {
             res = new EpsilonNFA(first.graph, first.start, second.end);
@@ -84,7 +99,7 @@ public class EpsilonNFA {
         return res;
     }
 
-    private EpsilonNFA join(EpsilonNFA first, EpsilonNFA second) {
+    public static EpsilonNFA join(EpsilonNFA first, EpsilonNFA second) {
         EpsilonNFA res = null;
         String new_start = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
@@ -104,7 +119,7 @@ public class EpsilonNFA {
         return res;
     }
 
-    private EpsilonNFA closure(EpsilonNFA automata) {
+    public static EpsilonNFA zeroOrMore(EpsilonNFA automata) {
         String new_start = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
         automata.graph.addVertex(new_start);
@@ -119,7 +134,7 @@ public class EpsilonNFA {
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
 
-    private EpsilonNFA oneOrMore(EpsilonNFA automata) {
+    public static EpsilonNFA oneOrMore(EpsilonNFA automata) {
         String new_start = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
         automata.graph.addVertex(new_start);
@@ -132,7 +147,7 @@ public class EpsilonNFA {
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
 
-    private EpsilonNFA zeroOrOne(EpsilonNFA automata) {
+    public static EpsilonNFA zeroOrOne(EpsilonNFA automata) {
         String new_start = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
         automata.graph.addVertex(new_start);

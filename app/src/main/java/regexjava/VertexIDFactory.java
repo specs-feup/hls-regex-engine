@@ -8,4 +8,9 @@ public enum VertexIDFactory {
     {
         return "v" + counter++;
     }
+
+    public static void reset()
+    {
+        counter = 0;
+    }
 }

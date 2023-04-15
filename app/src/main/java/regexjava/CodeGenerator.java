@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.jgrapht.graph.DefaultEdge;
 
 import freemarker.template.Template;
@@ -23,7 +24,17 @@ public class CodeGenerator {
     {
         this.raw_regex = raw_regex;
         this.automata = new NFA(raw_regex);
-        this.automata.print();
+    }
+
+    public CodeGenerator(String raw_regex, ParseTree root)
+    {
+        this.raw_regex = raw_regex;
+        this.automata = new NFA(root);
+    }
+
+    public NFA getAutomata()
+    {
+        return this.automata;
     }
 
     private State getState(String vertex, Map<String, State> vertices_mapping)
