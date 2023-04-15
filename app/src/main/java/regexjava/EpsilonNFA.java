@@ -51,38 +51,6 @@ public class EpsilonNFA {
         this.end = v2;
     }
 
-    /* Creates EpsilonNFA from a postfix expression [ such as 'ab|' for '(a|b)' ] */
-    public EpsilonNFA(String postfix_expr) {
-        Stack<EpsilonNFA> stack = new Stack<>();
-
-        for (final char token : postfix_expr.toCharArray()) {
-            if (token == '.') {
-                EpsilonNFA second = stack.pop();
-                EpsilonNFA first = stack.pop();
-                stack.push(concat(first, second));
-            } else if (token == '|') {
-                EpsilonNFA second = stack.pop();
-                EpsilonNFA first = stack.pop();
-                stack.push(join(first, second));
-            } else if (token == '*') {
-                EpsilonNFA top = stack.pop();
-                stack.push(zeroOrMore(top));
-            } else if (token == '+') {
-                EpsilonNFA top = stack.pop();
-                stack.push(oneOrMore(top));
-            } else if (token == '?') {
-                EpsilonNFA top = stack.pop();
-                stack.push(zeroOrOne(top));
-            } else
-                stack.push(new EpsilonNFA(token));
-        }
-
-        EpsilonNFA top = stack.peek();
-        this.start = top.start;
-        this.end = top.end;
-        this.graph = top.graph;
-    }
-
     /* Creates EpsilonNFA from a regex parseTree */
     public EpsilonNFA(ParseTree tree)
     {
@@ -241,65 +209,4 @@ public class EpsilonNFA {
         removeDeadStates(new_graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         return new NFA(new_graph, this.start, new_ends);
     }
-
-
-    // ============== CODE BELOW NOT 100% =============
-    // VVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVV
-
-    // private void addCorrectEdgeType(Graph<String, DefaultEdge> new_graph, String source, String dest, char symbol)
-    // {
-    //     DefaultEdge new_edge;
-    //     if (symbol == 0)
-    //         new_edge = new EpsilonTransition();
-    //     else 
-    //         new_edge = new RegularTransition(symbol);
-        
-    //     new_graph.addEdge(source, dest, new_edge);
-    // }
-
-    // private void bypassEpsilon(String base, String next, char base_crit, Graph<String, DefaultEdge> new_graph, Set<String> visited)
-    // {
-    //     if (visited.contains(next))
-    //     {
-    //         addCorrectEdgeType(new_graph, base, next, base_crit);
-    //         return;
-    //     }
-    //     visited.add(next);
-    //     for (DefaultEdge e : graph.outgoingEdgesOf(next)) 
-    //     {
-    //         String k = graph.getEdgeTarget(e);
-    //         if (e.getClass() == EpsilonTransition.class)
-    //             bypassEpsilon(base, k, base_crit, new_graph, visited);
-    //         else 
-    //             addCorrectEdgeType(new_graph, base, next, base_crit);
-    //     }
-    //     visited.remove(next);
-    //     return;
-    // }
-
-    // public NFA toRegularNFA()
-    // {
-    //     Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
-    //     Graphs.addGraph(new_graph, this.graph);
-
-    //     Set<String> visited = new HashSet<>();
-    //     for(String i : graph.vertexSet())
-    //         for(DefaultEdge e : graph.outgoingEdgesOf(i))
-    //         {
-    //             String j = graph.getEdgeTarget(e);
-    //             char symbol = 0;
-    //             if (e.getClass() == RegularTransition.class)
-    //                 symbol = ((RegularTransition)e).getSymbol();
-
-    //             bypassEpsilon(i, j, symbol, new_graph, visited);
-    //         }
-        
-    //     for (DefaultEdge edge : graph.edgeSet()) 
-    //     {
-    //         if (edge.getClass() == EpsilonTransition.class)
-    //             new_graph.removeEdge(edge);
-    //     }
-
-    //     return new NFA(new_graph, start, new HashSet<>(Arrays.asList(end)));
-    // }
 }

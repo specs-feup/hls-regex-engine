@@ -20,16 +20,6 @@ public class NFA {
         this.ends = ends;
     }
 
-    public NFA(String raw_regex)
-    {
-        String prepped_expr = RegexPrepper.prep(raw_regex);
-        EpsilonNFA eNFA = new EpsilonNFA(prepped_expr);
-        NFA nfa = eNFA.toRegularNFA();
-        this.graph = nfa.graph;
-        this.start = nfa.start;
-        this.ends = nfa.ends;
-    }
-
     public NFA(ParseTree root)
     {
         EpsilonNFA eNFA = new EpsilonNFA(root);
@@ -54,16 +44,6 @@ public class NFA {
         return graph;
     }
 
-    public Set<RegularTransition> getNextTransitions(String vertex)
-    {
-        Set<DefaultEdge> outgoing = this.graph.outgoingEdgesOf(vertex);
-        Set<RegularTransition> transitions = new HashSet<>();
-
-        for (DefaultEdge edge : outgoing) 
-            transitions.add(((RegularTransition)edge));
-
-        return transitions;
-    }
 
     public void print()
     {

@@ -21,12 +21,6 @@ public class CodeGenerator {
     private NFA automata;
     private String raw_regex;
 
-    public CodeGenerator(String raw_regex)
-    {
-        this.raw_regex = raw_regex;
-        this.automata = new NFA(raw_regex);
-    }
-
     public CodeGenerator(String raw_regex, ParseTree root)
     {
         this.raw_regex = raw_regex;
@@ -67,7 +61,7 @@ public class CodeGenerator {
                 State target_state = getState(target, vertex_ids);
                 Transition transition = new Transition();
                 transition.setTarget(target_state);
-                
+
                 if (edge.getClass() == RegularTransition.class)
                     transition.setToken(((RegularTransition)edge).getSymbol());
                 else

@@ -29,10 +29,7 @@ public class RegexListener extends regexParserBaseListener {
         else if (char_class != null)
         {
             if (char_class.WildcardEsc() != null)
-            {
-                System.out.print("xd");
                 stack.push(new EpsilonNFA(WildcardTransition.class));
-            }
         }
     }
 
