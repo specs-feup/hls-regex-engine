@@ -67,7 +67,12 @@ public class CodeGenerator {
                 State target_state = getState(target, vertex_ids);
                 Transition transition = new Transition();
                 transition.setTarget(target_state);
-                transition.setToken(((RegularTransition)edge).getSymbol());
+                
+                if (edge.getClass() == RegularTransition.class)
+                    transition.setToken(((RegularTransition)edge).getSymbol());
+                else
+                    transition.setWildcard(true);
+
                 curr_state.addTransition(transition);
             }
 

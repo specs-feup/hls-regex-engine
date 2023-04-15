@@ -23,13 +23,19 @@ public class EpsilonNFA {
         this.end = end;
     }
 
-    /* Creates Empty Transition EpsilonNFA */
-    public EpsilonNFA() {
+    /* Creates Empty/Wildcard Transition EpsilonNFA */
+    public <T> EpsilonNFA(Class<T> transition_type) {
         String v1 = VertexIDFactory.getNewVertexID();
         String v2 = VertexIDFactory.getNewVertexID();
         this.graph.addVertex(v1);
         this.graph.addVertex(v2);
-        this.graph.addEdge(v1, v2, new EpsilonTransition());
+        DefaultEdge new_edge;
+        if (transition_type == WildcardTransition.class)
+            new_edge = new WildcardTransition();
+        else
+            new_edge = new EpsilonTransition();
+
+        this.graph.addEdge(v1, v2, new_edge);
         this.start = v1;
         this.end = v2;
     }
@@ -211,9 +217,17 @@ public class EpsilonNFA {
                 {
                     if (edge.getClass() == EpsilonTransition.class)
                         continue;
+
+                    
                     String joinable = graph.getEdgeTarget(edge);
-                    char symbol = ((RegularTransition) edge).getSymbol();
-                    RegularTransition new_edge =  new RegularTransition(symbol);
+                    DefaultEdge new_edge;
+                    if (edge.getClass() == WildcardTransition.class)
+                        new_edge = new WildcardTransition();
+                    else 
+                    {
+                        char symbol = ((RegularTransition) edge).getSymbol();
+                        new_edge =  new RegularTransition(symbol);
+                    }
                     new_graph.addEdge(vertex, joinable, new_edge);
                 }
             }

@@ -16,7 +16,7 @@ void kernel(char stream[], int stream_size)
         char c = stream[i];
         <#list states as state>
         <#list state.transitions as transition>
-        if (c == '${transition.token}' && curr[${state.id}])
+        if (<#if !transition.wildcard>c == '${transition.token}' && </#if>curr[${state.id}])
             next[${transition.target.id}] = 1;
         </#list>
         </#list>
@@ -39,7 +39,9 @@ int main()
     {
         match = 0;
         printf("Insert a string: ");
-        scanf("%s", stream);
+        fgets(stream, 256, stdin);
+        if ((strlen(stream) > 0) && (stream[strlen (stream) - 1] == '\n'))
+            stream[strlen (stream) - 1] = '\0';
         kernel(stream, strlen(stream));
         match ? printf("\nIt's a match! :)\n\n") : printf("\nIt's not a match :(\n\n");
     }

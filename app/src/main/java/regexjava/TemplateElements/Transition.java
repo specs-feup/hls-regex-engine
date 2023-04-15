@@ -3,6 +3,7 @@ package regexjava.TemplateElements;
 public class Transition {
     private State target;
     private char token;
+    private boolean wildcard = false;
 
     public State getTarget() 
     {
@@ -24,5 +25,13 @@ public class Transition {
         this.token = token;
     }
 
-    
+    public boolean isWildcard() 
+    {
+        return wildcard;
+    }
+
+    public void setWildcard(boolean wildcard) 
+    {
+        this.wildcard = wildcard;
+    }
 }

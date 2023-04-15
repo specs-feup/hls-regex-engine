@@ -35,14 +35,14 @@ public class App {
         NFA automata1 = cg1.getAutomata();
         automata1.print();
         
-        System.out.println("\n== OLD ==");
-        VertexIDFactory.reset();
-        CodeGenerator cg2 = new CodeGenerator(expr);
-        NFA automata2 = cg2.getAutomata();
-        automata2.print();
+        // System.out.println("\n== OLD ==");
+        // VertexIDFactory.reset();
+        // CodeGenerator cg2 = new CodeGenerator(expr);
+        // NFA automata2 = cg2.getAutomata();
+        // automata2.print();
 
-        boolean same = automata1.getGraph().toString().equals(automata2.getGraph().toString());
-        System.out.println("\nARE THE SAME: " + same);
+        // boolean same = automata1.getGraph().toString().equals(automata2.getGraph().toString());
+        // System.out.println("\nARE THE SAME: " + same);
         
         String default_path = System.getProperty("user.home") + "\\Desktop\\generated.c";
         System.out.println("\nSucessfully generated a matcher for \\" + expr + "\\ in " + default_path);

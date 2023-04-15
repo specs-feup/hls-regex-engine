@@ -50,6 +50,14 @@ class LabeledEdge extends DefaultEdge
     }
 }
 
+class WildcardTransition extends LabeledEdge
+{
+    public WildcardTransition()
+    {
+        super("wildcard");
+    }
+} 
+
 class EpsilonTransition extends LabeledEdge
 {
     public EpsilonTransition()
