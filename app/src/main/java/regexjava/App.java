@@ -16,24 +16,25 @@ import regexgrammar.regexParser;
 public class App {
     public static void main(String[] args)
     {
+        
         Scanner scanner = new Scanner(System.in);
         System.out.printf("Insert a regex: ");
         String expr = scanner.nextLine();
-
+        
         CharStream stream = CharStreams.fromString(expr);
         regexLexer lexer = new regexLexer(stream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         regexParser parser = new regexParser(tokens);
         ParseTree tree = parser.root();
-
+        
         System.out.println("");
         System.out.println(TreeUtils.toPrettyTree(tree, parser));
-
+        
         System.out.println("\n== GRAMMAR ==");
         CodeGenerator cg1 = new CodeGenerator(expr, tree);
         NFA automata1 = cg1.getAutomata();
         automata1.print();
-
+        
         System.out.println("\n== OLD ==");
         VertexIDFactory.reset();
         CodeGenerator cg2 = new CodeGenerator(expr);
@@ -43,8 +44,9 @@ public class App {
         boolean same = automata1.getGraph().toString().equals(automata2.getGraph().toString());
         System.out.println("\nARE THE SAME: " + same);
         
-        System.out.println("");
-        // cg1.generate();
+        String default_path = System.getProperty("user.home") + "\\Desktop\\generated.c";
+        System.out.println("\nSucessfully generated a matcher for \\" + expr + "\\ in " + default_path);
+        cg1.generate(default_path);
         scanner.close();
     }
 

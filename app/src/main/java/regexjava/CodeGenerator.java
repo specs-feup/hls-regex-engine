@@ -1,5 +1,6 @@
 package regexjava;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -52,7 +53,7 @@ public class CodeGenerator {
         return state;
     }
 
-    public void generate()
+    public void generate(String path)
     {
         Map<String, State> vertex_ids = new HashMap<>();
         Set<State> end_states = new HashSet<>();
@@ -84,7 +85,8 @@ public class CodeGenerator {
 
         try {
             Template template = FreeMarkerConfig.INSTANCE.getConfig().getTemplate(FreeMarkerConfig.INSTANCE.getTemplateName());
-            Writer out = new OutputStreamWriter(System.out);
+            FileOutputStream file = new FileOutputStream(path);
+            Writer out = new OutputStreamWriter(file);
             template.process(root, out);
         } catch (IOException | TemplateException e) {
             // TODO Auto-generated catch block
