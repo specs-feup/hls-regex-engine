@@ -10,8 +10,8 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import regexgrammar.regexLexer;
-import regexgrammar.regexParser;
+import PCREgrammar.PCREgrammarLexer;
+import PCREgrammar.PCREgrammarParser;
 
 public class App {
     public static void main(String[] args)
@@ -21,10 +21,10 @@ public class App {
         String expr = scanner.nextLine();
         
         CharStream stream = CharStreams.fromString(expr);
-        regexLexer lexer = new regexLexer(stream);
+        PCREgrammarLexer lexer = new PCREgrammarLexer(stream);
         CommonTokenStream tokens = new CommonTokenStream(lexer);
-        regexParser parser = new regexParser(tokens);
-        ParseTree tree = parser.root();
+        PCREgrammarParser parser = new PCREgrammarParser(tokens);
+        ParseTree tree = parser.parse();
         
         System.out.println("\n=== Parse Tree ===");
         System.out.println(TreeUtils.toPrettyTree(tree, parser));

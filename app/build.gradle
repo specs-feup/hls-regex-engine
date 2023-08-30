@@ -40,8 +40,8 @@ dependencies {
 }
 
 generateGrammarSource {
-    arguments += ['-package', 'regexgrammar']
-    outputDirectory = new File(buildDir.toString() + "/generated-src/antlr/main/regexgrammar/")
+    arguments += ['-package', 'PCREgrammar']
+    outputDirectory = new File(buildDir.toString() + "/generated-src/antlr/main/PCREgrammar/")
 }
 
 application {

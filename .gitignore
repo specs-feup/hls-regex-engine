@@ -2,7 +2,8 @@
 .gradle
 
 # Ignore Gradle build/bin output directory
-build
+build/
 bin
+.antlr
 
 .vscode

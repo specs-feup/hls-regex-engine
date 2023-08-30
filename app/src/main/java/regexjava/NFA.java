@@ -1,6 +1,5 @@
 package regexjava;
 
-import java.util.HashSet;
 import java.util.Set;
 
 import org.antlr.v4.runtime.tree.ParseTree;
