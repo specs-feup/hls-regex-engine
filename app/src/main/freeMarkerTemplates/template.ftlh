@@ -3,9 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int match = 0;
-
-void kernel(char stream[], int stream_size)
+int kernel(char stream[], int stream_size)
 {
     int curr[${total_states}] = {0};
     int next[${total_states}] = {0};
@@ -25,11 +23,7 @@ void kernel(char stream[], int stream_size)
         memset(next, 0, ${total_states} * sizeof(int));
     }
 
-    if (curr[${end_states[0].id}]<#list end_states[1..] as end> || curr[${end.id}]</#list>)
-    {
-        match = 1;
-        return;
-    }
+    return (curr[${end_states[0].id}]<#list end_states[1..] as end> || curr[${end.id}]</#list>);
 }
 
 int main()
@@ -37,12 +31,11 @@ int main()
     char stream[256];
     while (1)
     {
-        match = 0;
         printf("Insert a string: ");
         fgets(stream, 256, stdin);
         if ((strlen(stream) > 0) && (stream[strlen (stream) - 1] == '\n'))
             stream[strlen (stream) - 1] = '\0';
-        kernel(stream, strlen(stream));
+        int match = kernel(stream, strlen(stream));
         match ? printf("\nIt's a match! :)\n\n") : printf("\nIt's not a match :(\n\n");
     }
 
