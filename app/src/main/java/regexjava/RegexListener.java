@@ -20,18 +20,23 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private Stack<EpsilonNFA> stack = new Stack<>();
 
-    public void enterShared_literal(Shared_literalContext ctx)
+    public void enterAtom(AtomContext ctx)
+    {
+        Shared_literalContext shared_literal = ctx.literal().shared_literal();
+        if (shared_literal != null)
+            proccessShared_literal(shared_literal);
+    }
+
+    private void proccessShared_literal(Shared_literalContext ctx)
     {
         System.out.println("Entered literal: " + ctx.getText());
         if (ctx.digit() != null || ctx.letter() != null)
-            stack.push(new EpsilonNFA(ctx.getText().charAt(0)));
-        
-        //TODO: DEAL WITH ESCAPED CHARS
+            stack.push(new EpsilonNFA(ctx.getText().charAt(0)));        
+    }
 
-            //         if (char_class.WildcardEsc() != null)
-    //             stack.push(new EpsilonNFA(WildcardTransition.class));
-    //     }
-        
+    public void enterCharacter_class(Character_classContext ctx)
+    {
+        System.out.println("Entered char class: " + ctx.getText());
     }
 
     public void exitExpr(ExprContext ctx)

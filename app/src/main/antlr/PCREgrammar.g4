@@ -50,7 +50,7 @@ expr // done
  : element*
  ;
 
-element // see atoms/quantifiers
+element // see atom/quantifier
  : atom quantifier?
  ;
 
@@ -119,7 +119,7 @@ character_class
  | '[' '^' cc_atom+ ']'
  | '[' CharacterClassEnd Hyphen cc_atom+ ']'
  | '[' CharacterClassEnd cc_atom* ']'
- | '[' cc_atom+ ']'
+ | '[' cc_atom+ ']' // done
  ;
 
 // BACKREFERENCES
