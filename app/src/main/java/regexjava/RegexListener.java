@@ -13,6 +13,7 @@ import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
 import PCREgrammar.PCREgrammarParser.Character_classContext;
 import PCREgrammar.PCREgrammarParser.ExprContext;
+import PCREgrammar.PCREgrammarParser.LiteralContext;
 import PCREgrammar.PCREgrammarParser.QuantifierContext;
 import PCREgrammar.PCREgrammarParser.Shared_literalContext;
 
@@ -22,16 +23,19 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterAtom(AtomContext ctx)
     {
-        Shared_literalContext shared_literal = ctx.literal().shared_literal();
-        if (shared_literal != null)
-            proccessShared_literal(shared_literal);
+        LiteralContext literal = ctx.literal();
+        if (literal != null)
+            proccessLiteral(literal);
     }
 
-    private void proccessShared_literal(Shared_literalContext ctx)
+    private void proccessLiteral(LiteralContext ctx)
     {
         System.out.println("Entered literal: " + ctx.getText());
-        if (ctx.digit() != null || ctx.letter() != null)
+        Shared_literalContext shared_literal = ctx.shared_literal();
+        if ((shared_literal != null && (shared_literal.digit() != null || shared_literal.letter() != null)) || ctx.CharacterClassEnd() != null)
             stack.push(new EpsilonNFA(ctx.getText().charAt(0)));        
+
+        // TODO: DEAL WITH ESCAPED CHARS
     }
 
     public void enterCharacter_class(Character_classContext ctx)

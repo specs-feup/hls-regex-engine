@@ -42,15 +42,15 @@ parse
 // ALTERNATION
 //
 //         expr|expr|expr...
-alternation // done
+alternation // DONE
  : expr ('|' expr)*
  ;
 
-expr // done
+expr // DONE
  : element*
  ;
 
-element // see atom/quantifier
+element // DONE
  : atom quantifier?
  ;
 
@@ -72,10 +72,10 @@ element // see atom/quantifier
 //         {n,}        n or more, greedy
 //         {n,}+       n or more, possessive
 //         {n,}?       n or more, lazy
-quantifier
- : '?' quantifier_type // done (NO TYPE)
- | '+' quantifier_type // done (NO TYPE)
- | '*' quantifier_type // done (NO TYPE)
+quantifier // WIP
+ : '?' quantifier_type // DONE (NO TYPE)
+ | '+' quantifier_type // DONE (NO TYPE)
+ | '*' quantifier_type // DONE (NO TYPE)
  | '{' number '}' quantifier_type
  | '{' number ',' '}' quantifier_type
  | '{' number ',' number '}' quantifier_type
@@ -373,10 +373,10 @@ callout
  | '(' '?' 'C' number ')'
  ;
 
-atom
+atom // WIP
  : subroutine_reference
  | shared_atom
- | literal //shared_literal done
+ | literal // WIP
  | character_class
  | capture
  | non_capture
@@ -430,9 +430,9 @@ shared_atom
  | Backslash . // will match "unfinished" escape sequences, like `\x`
  ;
 
-literal
- : shared_literal
- | CharacterClassEnd
+literal // WIP
+ : shared_literal // WIP
+ | CharacterClassEnd // DONE
  ;
 
 cc_literal
@@ -450,10 +450,10 @@ cc_literal
  | CloseParen
  ;
 
-shared_literal
+shared_literal // WIP
  : octal_char
- | letter
- | digit
+ | letter // DONE
+ | digit // DONE
  | BellChar
  | EscapeChar
  | FormFeed
