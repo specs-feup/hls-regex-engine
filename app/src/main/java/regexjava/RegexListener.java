@@ -9,8 +9,10 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import PCREgrammar.PCREgrammarBaseListener;
+import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
 import PCREgrammar.PCREgrammarParser.Character_classContext;
+import PCREgrammar.PCREgrammarParser.ExprContext;
 import PCREgrammar.PCREgrammarParser.QuantifierContext;
 import PCREgrammar.PCREgrammarParser.Shared_literalContext;
 
@@ -20,6 +22,7 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterShared_literal(Shared_literalContext ctx)
     {
+        System.out.println("Entered literal: " + ctx.getText());
         if (ctx.digit() != null || ctx.letter() != null)
             stack.push(new EpsilonNFA(ctx.getText().charAt(0)));
         
@@ -29,6 +32,28 @@ public class RegexListener extends PCREgrammarBaseListener {
     //             stack.push(new EpsilonNFA(WildcardTransition.class));
     //     }
         
+    }
+
+    public void exitExpr(ExprContext ctx)
+    {
+        System.out.println("Exited Expr: " + ctx.getText());
+        for(int i = 0; i < ctx.element().size() - 1; i++)
+        {
+            EpsilonNFA second = stack.pop();
+            EpsilonNFA first = stack.pop();
+            stack.push(EpsilonNFA.concat(first, second));
+        }
+    }
+
+    public void exitAlternation(AlternationContext ctx)
+    {
+        System.out.println("Exited Alternation: " + ctx.getText());
+        for(int i = 0; i < ctx.Pipe().size(); i++)
+        {
+            EpsilonNFA second = stack.pop();
+            EpsilonNFA first = stack.pop();
+            stack.push(EpsilonNFA.join(first, second));
+        }
     }
 
     public void enterQuantifier(QuantifierContext ctx)

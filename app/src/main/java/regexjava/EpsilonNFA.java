@@ -208,4 +208,12 @@ public class EpsilonNFA {
         removeDeadStates(new_graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         return new NFA(new_graph, this.start, new_ends);
     }
+
+    public void print()
+    {
+        System.out.println("Start: " + this.start);
+        System.out.println("Ends: " + this.end);
+        System.out.println("Graph:");
+        System.out.println(this.graph);
+    }
 }

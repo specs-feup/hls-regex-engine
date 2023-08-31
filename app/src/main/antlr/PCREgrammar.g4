@@ -42,15 +42,15 @@ parse
 // ALTERNATION
 //
 //         expr|expr|expr...
-alternation
+alternation // done
  : expr ('|' expr)*
  ;
 
-expr
+expr // done
  : element*
  ;
 
-element
+element // see atoms/quantifiers
  : atom quantifier?
  ;
 
@@ -73,9 +73,9 @@ element
 //         {n,}+       n or more, possessive
 //         {n,}?       n or more, lazy
 quantifier
- : '?' quantifier_type
- | '+' quantifier_type
- | '*' quantifier_type
+ : '?' quantifier_type // done (NO TYPE)
+ | '+' quantifier_type // done (NO TYPE)
+ | '*' quantifier_type // done (NO TYPE)
  | '{' number '}' quantifier_type
  | '{' number ',' '}' quantifier_type
  | '{' number ',' number '}' quantifier_type
@@ -376,7 +376,7 @@ callout
 atom
  : subroutine_reference
  | shared_atom
- | literal
+ | literal //shared_literal done
  | character_class
  | capture
  | non_capture
