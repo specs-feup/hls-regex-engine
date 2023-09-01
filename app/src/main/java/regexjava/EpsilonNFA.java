@@ -40,7 +40,7 @@ public class EpsilonNFA {
     }
 
     /* Creates Single Transition EpsilonNFA */
-    public EpsilonNFA(char symbol) {
+    public EpsilonNFA(int symbol) {
         String v1 = VertexIDFactory.getNewVertexID();
         String v2 = VertexIDFactory.getNewVertexID();
         this.graph.addVertex(v1);
@@ -192,7 +192,7 @@ public class EpsilonNFA {
                         new_edge = new WildcardTransition();
                     else 
                     {
-                        char symbol = ((RegularTransition) edge).getSymbol();
+                        int symbol = ((RegularTransition) edge).getCodePoint();
                         new_edge =  new RegularTransition(symbol);
                     }
                     new_graph.addEdge(vertex, joinable, new_edge);

@@ -4,14 +4,14 @@ import org.jgrapht.graph.DefaultEdge;
 
 class LabeledEdge extends DefaultEdge
 {
-    protected String label;
+    protected int label;
 
-    public LabeledEdge(String label)
+    public LabeledEdge(int label)
     {
         this.label = label;
     }
 
-    public String getLabel()
+    public int getLabel()
     {
         return label;
     }
@@ -20,9 +20,10 @@ class LabeledEdge extends DefaultEdge
     public int hashCode() 
     {
         int hash = 7;
-        int sum = 0;
-        for (char c : this.label.toCharArray()) 
-            sum += c;
+        int sum = this.label;
+        // int sum = 0;
+        // for (char c : this.label.toCharArray()) 
+        //     sum += c;
 
         hash = 71 * hash + sum;
         return hash;
@@ -39,14 +40,14 @@ class LabeledEdge extends DefaultEdge
             return false;
 
         LabeledEdge otherEdge = (LabeledEdge) other;
-        return otherEdge.label.equals(label) && otherEdge.getSource().equals(this.getSource()) 
+        return otherEdge.getLabel() == this.label && otherEdge.getSource().equals(this.getSource()) 
                && otherEdge.getTarget().equals(this.getTarget());
     }
 
     @Override
     public String toString()
     {
-        return "(" + getSource() + " -> " + getTarget() + " : " + label + ")";
+        return "(" + getSource() + " -> " + getTarget() + " : " + (char)label + ")";
     }
 }
 
@@ -54,7 +55,7 @@ class WildcardTransition extends LabeledEdge
 {
     public WildcardTransition()
     {
-        super("wildcard");
+        super(-1);
     }
 } 
 
@@ -62,19 +63,19 @@ class EpsilonTransition extends LabeledEdge
 {
     public EpsilonTransition()
     {
-        super("epsilon");
+        super(-2);
     }
 }
 
 class RegularTransition extends LabeledEdge
 {
-    public RegularTransition(char character)
+    public RegularTransition(int code_point)
     {
-        super(String.valueOf(character));
+        super(code_point);
     }
 
-    public char getSymbol()
+    public int getCodePoint()
     {
-        return this.label.charAt(0);
+        return this.label;
     }
 }

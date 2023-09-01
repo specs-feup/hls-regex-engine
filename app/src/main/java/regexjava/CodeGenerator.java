@@ -63,7 +63,7 @@ public class CodeGenerator {
                 transition.setTarget(target_state);
 
                 if (edge.getClass() == RegularTransition.class)
-                    transition.setToken(((RegularTransition)edge).getSymbol());
+                    transition.setToken(((RegularTransition)edge).getCodePoint());
                 else
                     transition.setWildcard(true);
 

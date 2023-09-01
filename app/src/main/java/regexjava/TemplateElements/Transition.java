@@ -2,7 +2,7 @@ package regexjava.TemplateElements;
 
 public class Transition {
     private State target;
-    private char token;
+    private int token;
     private boolean wildcard = false;
 
     public State getTarget() 
@@ -15,12 +15,12 @@ public class Transition {
         this.target = target;
     }
 
-    public char getToken() 
+    public int getToken() 
     {
         return token;
     }
 
-    public void setToken(char token) 
+    public void setToken(int token) 
     {
         this.token = token;
     }

@@ -14,7 +14,7 @@ int kernel(char stream[], int stream_size)
         char c = stream[i];
         <#list states as state>
         <#list state.transitions as transition>
-        if (<#if !transition.wildcard>c == '${transition.token}' && </#if>curr[${state.id}])
+        if (<#if !transition.wildcard>c == ${transition.token} && </#if>curr[${state.id}])
             next[${transition.target.id}] = 1;
         </#list>
         </#list>

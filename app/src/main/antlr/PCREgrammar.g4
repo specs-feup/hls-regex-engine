@@ -146,7 +146,7 @@ backreference
  ;
 
 backreference_or_octal
- : octal_char
+ : OctalChar
  | Backslash digit
  ;
 
@@ -376,7 +376,7 @@ callout
 atom // WIP
  : subroutine_reference
  | shared_atom
- | literal // WIP
+ | literal // DONE
  | character_class
  | capture
  | non_capture
@@ -426,17 +426,16 @@ shared_atom
  | VerticalWhiteSpace
  | NotVerticalWhiteSpace
  | WordChar
- | NotWordChar
- | Backslash . // will match "unfinished" escape sequences, like `\x`
- ;
+ | NotWordChar;
+//  | Backslash . // will match "unfinished" escape sequences, like `\x` <--- changed HexChar to deal with this
 
-literal // WIP
- : shared_literal // WIP
+literal // DONE
+ : shared_literal // DONE
  | CharacterClassEnd // DONE
  ;
 
 cc_literal
- : shared_literal
+ : shared_literal 
  | Dot
  | CharacterClassStart
  | Caret
@@ -450,48 +449,44 @@ cc_literal
  | CloseParen
  ;
 
-shared_literal // WIP
- : octal_char
+shared_literal // DONE
+ : OctalChar // DONE
+ | HexChar // DONE
  | letter // DONE
  | digit // DONE
- | BellChar
- | EscapeChar
- | FormFeed
- | NewLine
- | CarriageReturn
- | Tab
- | HexChar
- | Quoted
- | BlockQuoted
- | OpenBrace
- | CloseBrace
- | Comma
- | Hyphen
- | LessThan
- | GreaterThan
- | SingleQuote
- | Underscore
- | Colon
- | Hash
- | Equals
- | Exclamation
- | Ampersand
- | OtherChar
+ | BellChar // DONE
+ | EscapeChar // DONE
+ | FormFeed // DONE
+ | NewLine // DONE
+ | CarriageReturn // DONE
+ | Tab // DONE
+ | Quoted // DONE
+ | BlockQuoted // DONE
+ | OpenBrace // DONE
+ | CloseBrace // DONE
+ | Comma // DONE
+ | Hyphen // DONE
+ | LessThan // DONE
+ | GreaterThan // DONE
+ | SingleQuote // DONE
+ | Underscore // DONE
+ | Colon // DONE
+ | Hash // DONE
+ | Equals // DONE
+ | Exclamation // DONE
+ | Ampersand // DONE
+ | OtherChar  // DONE
  ;
 
 number
  : digits
  ;
 
-octal_char
- : ( Backslash (D0 | D1 | D2 | D3) octal_digit octal_digit
-   | Backslash octal_digit octal_digit
+OctalChar
+ : ( Backslash (D0 | D1 | D2 | D3) OctalDigit OctalDigit
+   | Backslash OctalDigit OctalDigit
    )
 
- ;
-
-octal_digit
- : D0 | D1 | D2 | D3 | D4 | D5 | D6 | D7
  ;
 
 digits
@@ -550,7 +545,7 @@ NewLine        : '\\n';
 CarriageReturn : '\\r';
 Tab            : '\\t';
 Backslash      : '\\';
-HexChar        : '\\x' ( HexDigit HexDigit
+HexChar        : '\\x' ( | HexDigit HexDigit
                        | '{' HexDigit HexDigit HexDigit+ '}'
                        )
                ;
@@ -752,5 +747,6 @@ fragment UnderscoreAlphaNumerics : ('_' | AlphaNumeric)+;
 fragment AlphaNumerics           : AlphaNumeric+;
 fragment AlphaNumeric            : [a-zA-Z0-9];
 fragment NonAlphaNumeric         : ~[a-zA-Z0-9];
+fragment OctalDigit              : [0-7];
 fragment HexDigit                : [0-9a-fA-F];
 fragment ASCII                   : [\u0000-\u007F];
