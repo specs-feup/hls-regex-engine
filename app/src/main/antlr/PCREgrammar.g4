@@ -388,7 +388,7 @@ atom // WIP
  | backtrack_control
  | newline_convention
  | callout
- | Dot
+ | Dot // DONE
  | Caret
  | StartOfSubject
  | WordBoundary

@@ -1,13 +1,9 @@
 // Generated from regexParser.g4 by ANTLR 4.12.0
 package regexjava;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Stack;
 
-import javax.annotation.Signed;
-
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import PCREgrammar.PCREgrammarBaseListener;
@@ -26,8 +22,11 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void enterAtom(AtomContext ctx)
     {
         LiteralContext literal = ctx.literal();
+        TerminalNode dot = ctx.Dot();
         if (literal != null)
             proccessLiteral(literal);
+        if (dot != null)
+            this.stack.push(new EpsilonNFA(WildcardTransition.class));
     }
 
     private boolean isEscapedChar(Shared_literalContext ctx)
