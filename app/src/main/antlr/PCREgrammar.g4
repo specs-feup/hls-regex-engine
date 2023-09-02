@@ -113,13 +113,13 @@ quantifier_type
 //       In PCRE, POSIX character set names recognize only ASCII  characters  by
 //       default,  but  some  of them use Unicode properties if PCRE_UCP is set.
 //       You can use \Q...\E inside a character class.
-character_class
+character_class // WIP
  : '[' '^' CharacterClassEnd Hyphen cc_atom+ ']'
  | '[' '^' CharacterClassEnd cc_atom* ']'
  | '[' '^' cc_atom+ ']'
- | '[' CharacterClassEnd Hyphen cc_atom+ ']'
+ | '[' CharacterClassEnd Hyphen cc_atom+ ']' 
  | '[' CharacterClassEnd cc_atom* ']'
- | '[' cc_atom+ ']'
+ | '[' cc_atom+ ']' // WIP
  ;
 
 // BACKREFERENCES
@@ -375,7 +375,7 @@ callout
 
 atom // WIP
  : subroutine_reference
- | shared_atom
+ | shared_atom // WIP
  | literal // DONE
  | character_class // WIP
  | capture
@@ -402,30 +402,30 @@ atom // WIP
  | ExtendedUnicodeChar
  ;
 
-cc_atom
- : cc_literal Hyphen cc_literal
- | shared_atom
- | cc_literal
+cc_atom // WIP
+ : cc_literal Hyphen cc_literal // DONE
+ | shared_atom // WIP
+ | cc_literal // DONE
  | backreference_or_octal // only octal is valid in a cc
  ;
 
-shared_atom
+shared_atom // WIP
  : POSIXNamedSet
  | POSIXNegatedNamedSet
- | ControlChar
- | DecimalDigit
+ | ControlChar 
+ | DecimalDigit // DONE
  | NotDecimalDigit
- | HorizontalWhiteSpace
+ | HorizontalWhiteSpace // DONE
  | NotHorizontalWhiteSpace
  | NotNewLine
  | CharWithProperty
  | CharWithoutProperty
  | NewLineSequence
- | WhiteSpace
+ | WhiteSpace // DONE
  | NotWhiteSpace
- | VerticalWhiteSpace
+ | VerticalWhiteSpace // DONE
  | NotVerticalWhiteSpace
- | WordChar
+ | WordChar // DONE
  | NotWordChar;
 //  | Backslash . // will match "unfinished" escape sequences, like `\x` (TWEAKED) changed HexChar to deal with this
 
@@ -434,19 +434,19 @@ literal // DONE
  | CharacterClassEnd // DONE
  ;
 
-cc_literal
- : shared_literal 
- | Dot
- | CharacterClassStart
- | Caret
- | QuestionMark
- | Plus
- | Star
- | WordBoundary
- | EndOfSubjectOrLine
- | Pipe
- | OpenParen
- | CloseParen
+cc_literal // DONE
+ : shared_literal // DONE
+ | Dot // DONE
+ | CharacterClassStart // DONE
+ | Caret // DONE
+ | QuestionMark // DONE
+ | Plus // DONE
+ | Star // DONE
+ | WordBoundary // DONE
+ | EndOfSubjectOrLine// DONE
+ | Pipe // DONE
+ | OpenParen // DONE
+ | CloseParen // DONE
  ;
 
 shared_literal // DONE

@@ -28,6 +28,7 @@ public enum FreeMarkerConfig {
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+            System.exit(-1);
         }
 
         // From here we will set the settings recommended for new projects. These

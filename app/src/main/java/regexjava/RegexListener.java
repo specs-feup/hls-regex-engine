@@ -2,6 +2,7 @@
 package regexjava;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -9,23 +10,43 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import PCREgrammar.PCREgrammarBaseListener;
 import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
+import PCREgrammar.PCREgrammarParser.Cc_atomContext;
+import PCREgrammar.PCREgrammarParser.Cc_literalContext;
 import PCREgrammar.PCREgrammarParser.Character_classContext;
 import PCREgrammar.PCREgrammarParser.ExprContext;
 import PCREgrammar.PCREgrammarParser.LiteralContext;
 import PCREgrammar.PCREgrammarParser.QuantifierContext;
+import PCREgrammar.PCREgrammarParser.Shared_atomContext;
 import PCREgrammar.PCREgrammarParser.Shared_literalContext;
 
 public class RegexListener extends PCREgrammarBaseListener {
 
     private Stack<EpsilonNFA> stack = new Stack<>();
 
+    private void alternate()
+    {
+        EpsilonNFA second = stack.pop();
+        EpsilonNFA first = stack.pop();
+        stack.push(EpsilonNFA.join(first, second));
+    }
+
+    private void concat()
+    {
+        EpsilonNFA second = stack.pop();
+        EpsilonNFA first = stack.pop();
+        stack.push(EpsilonNFA.concat(first, second));
+    }
+
     public void enterAtom(AtomContext ctx)
     {
         LiteralContext literal = ctx.literal();
+        Character_classContext character_class = ctx.character_class();
         TerminalNode dot = ctx.Dot();
         if (literal != null)
             proccessLiteral(literal);
-        if (dot != null)
+        else if (character_class != null)
+            processCharacter_class(character_class);
+        else if (dot != null)
             this.stack.push(new EpsilonNFA(WildcardTransition.class));
     }
 
@@ -64,16 +85,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (shared_literal != null)
         {
             int[] code_points = getShared_literalCodePoints(shared_literal);
-            for (int i = 0; i < code_points.length; i++) 
-            {
-                stack.push(new EpsilonNFA(code_points[i]));
-                if (i != 0) 
-                {
-                    EpsilonNFA second = stack.pop();
-                    EpsilonNFA first = stack.pop();
-                    stack.push(EpsilonNFA.concat(first, second));
-                }
-            }
+            concatCodePoints(code_points);
         }
         else 
             stack.push(new EpsilonNFA(']'));
@@ -92,7 +104,7 @@ public class RegexListener extends PCREgrammarBaseListener {
                 unescaped_char = "\u001B";
                 break;
             case 'f':
-                unescaped_char = "\u000C";
+                unescaped_char = "\f";
                 break;
             case 'n':
                 unescaped_char = "\n";
@@ -139,38 +151,132 @@ public class RegexListener extends PCREgrammarBaseListener {
         return unescaped_literal.codePoints().toArray();
     }
 
-    public void enterCharacter_class(Character_classContext ctx)
+    private void concatCodePoints(int[] code_points)
     {
-        if (ctx.getText().charAt(1) != '^') //non-negation
+        for (int i = 0; i < code_points.length; i++) 
         {
-            
+            stack.push(new EpsilonNFA(code_points[i]));
+            if (i != 0) 
+                concat();
         }
-        else // negation 
+    }
+
+    private void alternateCodePoints(int[] code_points)
+    {
+        for (int i = 0; i < code_points.length; i++) 
+        {
+            stack.push(new EpsilonNFA(code_points[i]));
+            if (i != 0) 
+                alternate();
+        }
+    }
+
+    
+    private void alternateCodePointRangeInclusive(int start, int end) 
+    {
+        try {
+            if (start > end)
+            throw new Exception("Invalid code point range");
+        } catch (Exception e) { 
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        
+        for (int i = start; i <= end; i++)
+        {
+            stack.push(new EpsilonNFA(i));
+            if (i != start)
+            alternate();
+        }
+    }
+    
+    private void alternateCodePointRangeExclusive(int start, int end)
+    {
+        this.alternateCodePointRangeInclusive(start + 1, end - 1);
+    }
+
+    private void processCharacter_class(Character_classContext ctx)
+    {
+        if (ctx.getText().charAt(1) != '^') //non-negated
+        {
+            List<Cc_atomContext> cc_atoms = ctx.cc_atom();
+            for (int i = 0; i < cc_atoms.size(); i++)
+            {
+                List<Cc_literalContext> cc_literals = cc_atoms.get(i).cc_literal();
+                Shared_atomContext shared_atom = cc_atoms.get(i).shared_atom();
+                if (cc_literals.size() == 1) // no hyphen
+                {
+                    int[] code_points = getCc_literalCodePoints(cc_literals.get(0));
+                    alternateCodePoints(code_points);
+                }
+                else if (cc_literals.size() == 2) // hyphen 
+                {
+                    int[] first_code_points = getCc_literalCodePoints(cc_literals.get(0));
+                    int[] second_code_points = getCc_literalCodePoints(cc_literals.get(1));
+                    alternateCodePoints(first_code_points);
+                    alternateCodePoints(second_code_points);
+                    alternate();
+                    alternateCodePointRangeExclusive(first_code_points[first_code_points.length - 1], second_code_points[0]);
+                    alternate();
+                }
+                else if (shared_atom != null)
+                    processSharedAtom(shared_atom);
+
+                if (i != 0)
+                    alternate();
+            }
+        }
+        else // negated
         {
 
         }
+    }
+
+    private void processSharedAtom(Shared_atomContext ctx)
+    {
+        if (ctx.DecimalDigit() != null)
+            alternateCodePointRangeInclusive('0', '9');
+        else if (ctx.HorizontalWhiteSpace() != null)
+            alternateCodePoints(new int[]{'\t', ' '});
+        else if (ctx.WhiteSpace() != null)
+            alternateCodePoints(new int[]{'\t', '\f', ' ', '\r', '\n', "\u000C".codePointAt(0), "\u000B".codePointAt(0), "\u0085".codePointAt(0), "\u2028".codePointAt(0), "\u2029".codePointAt(0)});
+        else if (ctx.VerticalWhiteSpace() != null)
+            alternateCodePoints(new int[]{'\r', '\n', "\u000C".codePointAt(0), "\u000B".codePointAt(0), "\u0085".codePointAt(0), "\u2028".codePointAt(0), "\u2029".codePointAt(0)});
+        else if (ctx.WordChar() != null)
+        {
+            alternateCodePointRangeInclusive('a', 'z');
+            alternateCodePointRangeInclusive('A', 'Z');
+            alternate();
+            alternateCodePointRangeInclusive('0', '9');
+            alternate();
+            stack.push(new EpsilonNFA('_'));
+            alternate();
+        }
+    }
+
+    private int[] getCc_literalCodePoints(Cc_literalContext ctx)
+    {
+        Shared_literalContext shared_literal = ctx.shared_literal();
+        if (shared_literal != null)
+            return getShared_literalCodePoints(shared_literal);
+        if (ctx.WordBoundary() != null)
+            return new int[] {"\u0008".codePointAt(0)};
+        
+        return new int[] {ctx.getText().codePointAt(0)};
     }
 
     public void exitExpr(ExprContext ctx)
     {
         System.out.println("Exited Expr: " + ctx.getText());
         for(int i = 0; i < ctx.element().size() - 1; i++)
-        {
-            EpsilonNFA second = stack.pop();
-            EpsilonNFA first = stack.pop();
-            stack.push(EpsilonNFA.concat(first, second));
-        }
+            concat();
     }
 
     public void exitAlternation(AlternationContext ctx)
     {
         System.out.println("Exited Alternation: " + ctx.getText());
         for(int i = 0; i < ctx.Pipe().size(); i++)
-        {
-            EpsilonNFA second = stack.pop();
-            EpsilonNFA first = stack.pop();
-            stack.push(EpsilonNFA.join(first, second));
-        }
+            alternate();
     }
 
     public void enterQuantifier(QuantifierContext ctx)

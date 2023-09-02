@@ -40,7 +40,7 @@ dependencies {
 }
 
 generateGrammarSource {
-    arguments += ['-package', 'PCREgrammar']
+    arguments += ["-visitor", '-package', 'PCREgrammar']
     outputDirectory = new File(buildDir.toString() + "/generated-src/antlr/main/PCREgrammar/")
 }
 

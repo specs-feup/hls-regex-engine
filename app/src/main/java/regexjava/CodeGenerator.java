@@ -90,6 +90,7 @@ public class CodeGenerator {
         } catch (IOException | TemplateException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
+            System.exit(-1);
         }
     }
 }
