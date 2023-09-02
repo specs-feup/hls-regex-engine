@@ -35,42 +35,48 @@ public class RegexListener extends PCREgrammarBaseListener {
         return Arrays.asList(escape_chars).contains(ctx.getText());
     }
 
-    private void proccessLiteral(LiteralContext ctx)
+    private int[] getShared_literalCodePoints(Shared_literalContext ctx)
     {
         String text = ctx.getText();
-        System.out.println("Entered literal: " + text);
         if (text.length() == 1)
-            stack.push(new EpsilonNFA(text.charAt(0)));
-        else
+            return new int[] {text.charAt(0)};
+        
+        TerminalNode octal = ctx.OctalChar();
+        TerminalNode hex = ctx.HexChar();
+        TerminalNode quoted = ctx.Quoted();
+        TerminalNode block_quoted = ctx.BlockQuoted();
+
+        if (isEscapedChar(ctx))
+            return new int[] {getEscapedCharCodePoint(ctx.getText())};
+        if (octal != null)
+            return new int[] {getOctalCharCodePoint(octal.getText())};
+        if (hex != null)
+            return new int[] {getHexCharCodePoint(hex.getText())};
+        if (quoted != null)
+            return new int[] {getQuotedCodePoint(quoted.getText())};
+       
+        return getBlockQuotedCodePoints(block_quoted.getText());
+    }
+
+    private void proccessLiteral(LiteralContext ctx)
+    {
+        Shared_literalContext shared_literal = ctx.shared_literal();
+        if (shared_literal != null)
         {
-            Shared_literalContext shared_literal = ctx.shared_literal();
-            TerminalNode octal = shared_literal.OctalChar();
-            TerminalNode hex = shared_literal.HexChar();
-            TerminalNode quoted = shared_literal.Quoted();
-            TerminalNode block_quoted = shared_literal.BlockQuoted();
-            if (isEscapedChar(shared_literal))
-                stack.push(new EpsilonNFA(getEscapedCharCodePoint(shared_literal.getText())));
-            else if (octal != null)
-                stack.push(new EpsilonNFA(getOctalCharCodePoint(octal.getText())));
-            else if (hex != null)
-                stack.push(new EpsilonNFA(getHexCharCodePoint(hex.getText())));
-            else if (quoted != null)
-                stack.push(new EpsilonNFA(getQuotedCodePoint(quoted.getText())));
-            else
+            int[] code_points = getShared_literalCodePoints(shared_literal);
+            for (int i = 0; i < code_points.length; i++) 
             {
-                int[] quoted_code_points = getBlockQuotedCodePoints(block_quoted.getText());
-                for (int i = 0; i < quoted_code_points.length; i++)
+                stack.push(new EpsilonNFA(code_points[i]));
+                if (i != 0) 
                 {
-                    stack.push(new EpsilonNFA(quoted_code_points[i]));
-                    if (i != 0)
-                    {
-                        EpsilonNFA second = stack.pop();
-                        EpsilonNFA first = stack.pop();
-                        stack.push(EpsilonNFA.concat(first, second));
-                    }
+                    EpsilonNFA second = stack.pop();
+                    EpsilonNFA first = stack.pop();
+                    stack.push(EpsilonNFA.concat(first, second));
                 }
             }
         }
+        else 
+            stack.push(new EpsilonNFA(']'));
     }
 
     private int getEscapedCharCodePoint(String escaped_str)
@@ -135,7 +141,14 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterCharacter_class(Character_classContext ctx)
     {
-        System.out.println("Entered char class: " + ctx.getText());
+        if (ctx.getText().charAt(1) != '^') //non-negation
+        {
+            
+        }
+        else // negation 
+        {
+
+        }
     }
 
     public void exitExpr(ExprContext ctx)

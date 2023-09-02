@@ -119,7 +119,7 @@ character_class
  | '[' '^' cc_atom+ ']'
  | '[' CharacterClassEnd Hyphen cc_atom+ ']'
  | '[' CharacterClassEnd cc_atom* ']'
- | '[' cc_atom+ ']' // done
+ | '[' cc_atom+ ']'
  ;
 
 // BACKREFERENCES
@@ -377,7 +377,7 @@ atom // WIP
  : subroutine_reference
  | shared_atom
  | literal // DONE
- | character_class
+ | character_class // WIP
  | capture
  | non_capture
  | comment
@@ -427,7 +427,7 @@ shared_atom
  | NotVerticalWhiteSpace
  | WordChar
  | NotWordChar;
-//  | Backslash . // will match "unfinished" escape sequences, like `\x` <--- changed HexChar to deal with this
+//  | Backslash . // will match "unfinished" escape sequences, like `\x` (TWEAKED) changed HexChar to deal with this
 
 literal // DONE
  : shared_literal // DONE
@@ -482,7 +482,7 @@ number
  : digits
  ;
 
-OctalChar
+OctalChar // (TWEAKED)
  : ( Backslash (D0 | D1 | D2 | D3) OctalDigit OctalDigit
    | Backslash OctalDigit OctalDigit
    )
@@ -545,7 +545,7 @@ NewLine        : '\\n';
 CarriageReturn : '\\r';
 Tab            : '\\t';
 Backslash      : '\\';
-HexChar        : '\\x' ( | HexDigit HexDigit
+HexChar        : '\\x' ( | HexDigit HexDigit // (TWEAKED)
                        | '{' HexDigit HexDigit HexDigit+ '}'
                        )
                ;
@@ -747,6 +747,6 @@ fragment UnderscoreAlphaNumerics : ('_' | AlphaNumeric)+;
 fragment AlphaNumerics           : AlphaNumeric+;
 fragment AlphaNumeric            : [a-zA-Z0-9];
 fragment NonAlphaNumeric         : ~[a-zA-Z0-9];
-fragment OctalDigit              : [0-7];
+fragment OctalDigit              : [0-7]; // (TWEAKED)
 fragment HexDigit                : [0-9a-fA-F];
 fragment ASCII                   : [\u0000-\u007F];
