@@ -1,6 +1,7 @@
 // Generated from regexParser.g4 by ANTLR 4.12.0
 package regexjava;
 
+import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Stack;
@@ -232,26 +233,139 @@ public class RegexListener extends PCREgrammarBaseListener {
         }
     }
 
+    private void alpha()
+    {
+        alternateCodePointRangeInclusive('a', 'z');
+        alternateCodePointRangeInclusive('A', 'Z');
+        alternate();
+    }
+
+    private void digit()
+    {
+        alternateCodePointRangeInclusive('0', '9');
+    }
+
+    private void horizontalWhiteSpace()
+    {
+        alternateCodePoints(new int[]{'\t', ' '});
+    }
+
+    private void verticalWhiteSpace()
+    {
+        alternateCodePoints(new int[]{'\r', '\n', 0x000C, 0x000B, 0x0085, 0x2028, 0x2029});
+    }
+
+    private void whiteSpace()
+    {
+        horizontalWhiteSpace();
+        verticalWhiteSpace();
+        alternate();
+    }
+
+    private void word()
+    {
+        alpha();
+        digit();
+        alternate();
+        stack.push(new EpsilonNFA('_'));
+        alternate();
+    }
+
     private void processSharedAtom(Shared_atomContext ctx)
     {
-        if (ctx.DecimalDigit() != null)
-            alternateCodePointRangeInclusive('0', '9');
+        if (ctx.POSIXNamedSet() != null)
+            processPosixSets(ctx.POSIXNamedSet());
+        else if (ctx.ControlChar() != null)
+            processControlChar(ctx.ControlChar());
+        else if (ctx.DecimalDigit() != null)
+            digit();
         else if (ctx.HorizontalWhiteSpace() != null)
-            alternateCodePoints(new int[]{'\t', ' '});
+            horizontalWhiteSpace();
         else if (ctx.WhiteSpace() != null)
-            alternateCodePoints(new int[]{'\t', '\f', ' ', '\r', '\n', "\u000C".codePointAt(0), "\u000B".codePointAt(0), "\u0085".codePointAt(0), "\u2028".codePointAt(0), "\u2029".codePointAt(0)});
+            whiteSpace();
         else if (ctx.VerticalWhiteSpace() != null)
-            alternateCodePoints(new int[]{'\r', '\n', "\u000C".codePointAt(0), "\u000B".codePointAt(0), "\u0085".codePointAt(0), "\u2028".codePointAt(0), "\u2029".codePointAt(0)});
+            verticalWhiteSpace();
         else if (ctx.WordChar() != null)
+            word();
+    }
+
+    private void processControlChar(TerminalNode control_node) // https://www.pcre.org/original/doc/html/pcrepattern.html#SEC5 \cx
+    {
+        char character = Character.toUpperCase(control_node.getText().charAt(2));
+        if (character >= 0 && character <= 127) //ascii
         {
-            alternateCodePointRangeInclusive('a', 'z');
-            alternateCodePointRangeInclusive('A', 'Z');
-            alternate();
-            alternateCodePointRangeInclusive('0', '9');
-            alternate();
-            stack.push(new EpsilonNFA('_'));
-            alternate();
+            BigInteger code = new BigInteger(Integer.toString(character));
+            BigInteger flipped_code = code.flipBit(6);
+            stack.push(new EpsilonNFA(flipped_code.intValueExact()));
         }
+    }
+
+    private void processPosixSets(TerminalNode posix_node)
+    {
+        String text = posix_node.getText();
+        String set_name = text.substring(text.indexOf(':') + 1, text.lastIndexOf(':'));
+
+        switch (set_name)
+        {
+            case "alnum": // alphanumeric
+                alpha();
+                digit();
+                alternate();
+                break;
+            case "alpha": //alphabetic
+                alpha();
+                break;
+            case "ascii":       // 0-127
+                alternateCodePointRangeInclusive(0, 127);
+                break;
+            case "blank":       // space or tab
+                horizontalWhiteSpace();
+                break;
+            case "cntrl":       // control character
+                alternateCodePointRangeInclusive(0x0000, 0x001F);
+                stack.push(new EpsilonNFA(0x007F));
+                alternate();
+                break;
+            case "digit":       // decimal digit
+                digit();
+                break;
+            case "graph":       // printing, excluding space
+                alternateCodePointRangeInclusive(0x0021, 0x007E);
+                break;
+            case "lower":       // lower case letter
+                alternateCodePointRangeInclusive('a', 'z');
+                break;
+            case "print":       // printing, including space
+                alternateCodePointRangeInclusive(0x0020, 0x007E);
+                break;
+            case "punct":       // printing, excluding alphanumeric [!"#$%&'()*+,\-./:;<=>?@[]^_`{|}~]
+                alternateCodePoints(new int[]{'!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '\\', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', ']', '^', '_', '`', '{', '|', '}', '~'});
+                break;
+            case "space":       // white space
+                whiteSpace();
+                break;
+            case "upper":       // upper case letter
+                alternateCodePointRangeInclusive('A', 'Z');
+                break;
+            case "word":        // same as \w
+                word();
+                break;
+            case "xdigit":      // hexadecimal digit
+                digit();
+                alternateCodePointRangeInclusive('a', 'f');
+                alternate();
+                alternateCodePointRangeInclusive('A', 'F');
+                alternate();
+                break;
+            default:
+                try {
+                        throw new Exception("Invalid posix named set");
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.exit(-1);
+                }
+        }
+
     }
 
     private int[] getCc_literalCodePoints(Cc_literalContext ctx)

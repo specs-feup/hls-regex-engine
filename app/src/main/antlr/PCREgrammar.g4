@@ -410,9 +410,9 @@ cc_atom // WIP
  ;
 
 shared_atom // WIP
- : POSIXNamedSet
+ : POSIXNamedSet // DONE
  | POSIXNegatedNamedSet
- | ControlChar 
+ | ControlChar // DONE
  | DecimalDigit // DONE
  | NotDecimalDigit
  | HorizontalWhiteSpace // DONE
