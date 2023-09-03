@@ -420,7 +420,7 @@ shared_atom // WIP
  | NotNewLine
  | CharWithProperty
  | CharWithoutProperty
- | NewLineSequence
+ | NewLineSequence // DONE
  | WhiteSpace // DONE
  | NotWhiteSpace
  | VerticalWhiteSpace // DONE

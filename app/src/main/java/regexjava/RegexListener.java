@@ -277,6 +277,15 @@ public class RegexListener extends PCREgrammarBaseListener {
         alternate();
     }
 
+    private void newLineSequence()
+    {
+        stack.push(new EpsilonNFA('\r'));
+        stack.push(new EpsilonNFA('\n'));
+        concat();
+        alternateCodePoints(new int[]{'\r', '\n', '\f', 0x000B, 0x0085});
+        alternate();
+    }
+
     private void processSharedAtom(Shared_atomContext ctx)
     {
         if (ctx.POSIXNamedSet() != null)
@@ -287,6 +296,8 @@ public class RegexListener extends PCREgrammarBaseListener {
             digit();
         else if (ctx.HorizontalWhiteSpace() != null)
             horizontalWhiteSpace();
+        else if (ctx.NewLineSequence() != null)
+            newLineSequence();
         else if (ctx.WhiteSpace() != null)
             whiteSpace();
         else if (ctx.VerticalWhiteSpace() != null)
