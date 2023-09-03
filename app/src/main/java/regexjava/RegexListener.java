@@ -130,12 +130,10 @@ public class RegexListener extends PCREgrammarBaseListener {
     private int getHexCharCodePoint(String hex_str)
     {
         String unescaped_hex = hex_str.substring(2);
-        int code_point;
+        if (unescaped_hex.contains("{"))
+            unescaped_hex = unescaped_hex.substring(1, unescaped_hex.length() - 1);
 
-        if (unescaped_hex.length() == 0)
-            code_point = 0;
-        else 
-            code_point = Integer.parseInt(unescaped_hex, 16);
+        int code_point = Integer.parseInt(unescaped_hex, 16);
 
         return code_point;
     }

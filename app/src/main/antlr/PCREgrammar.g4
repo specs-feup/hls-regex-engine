@@ -119,7 +119,7 @@ character_class // WIP
  | '[' '^' cc_atom+ ']'
  | '[' CharacterClassEnd Hyphen cc_atom+ ']' 
  | '[' CharacterClassEnd cc_atom* ']'
- | '[' cc_atom+ ']' // WIP
+ | '[' cc_atom+ ']' // DONE
  ;
 
 // BACKREFERENCES
@@ -427,7 +427,7 @@ shared_atom // WIP
  | NotVerticalWhiteSpace
  | WordChar // DONE
  | NotWordChar;
-//  | Backslash . // will match "unfinished" escape sequences, like `\x` (TWEAKED) changed HexChar to deal with this
+//  | Backslash . // will match "unfinished" escape sequences, like `\x` (TWEAKED) this wasn't letting octal and hex chars to be read
 
 literal // DONE
  : shared_literal // DONE
@@ -545,7 +545,7 @@ NewLine        : '\\n';
 CarriageReturn : '\\r';
 Tab            : '\\t';
 Backslash      : '\\';
-HexChar        : '\\x' ( | HexDigit HexDigit // (TWEAKED)
+HexChar        : '\\x' ( HexDigit HexDigit
                        | '{' HexDigit HexDigit HexDigit+ '}'
                        )
                ;
