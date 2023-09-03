@@ -196,6 +196,14 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private void processCharacter_class(Character_classContext ctx)
     {
+          try {
+            if (ctx.getText().length() < 3)
+                throw new Exception("Invalid character class");
+        } catch (Exception e) { 
+            e.printStackTrace();
+            System.exit(-1);
+        }
+        
         if (ctx.getText().charAt(1) != '^') //non-negated
         {
             List<Cc_atomContext> cc_atoms = ctx.cc_atom();
@@ -357,7 +365,7 @@ public class RegexListener extends PCREgrammarBaseListener {
                 break;
             default:
                 try {
-                        throw new Exception("Invalid posix named set");
+                    throw new Exception("Invalid posix named set");
                 } catch (Exception e) {
                     e.printStackTrace();
                     System.exit(-1);
