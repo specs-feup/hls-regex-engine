@@ -4,6 +4,7 @@ public class Transition {
     private State target;
     private int token;
     private boolean wildcard = false;
+    private boolean negated = false;
 
     public State getTarget() 
     {
@@ -34,4 +35,15 @@ public class Transition {
     {
         this.wildcard = wildcard;
     }
+    
+    public boolean isNegated() 
+    {
+        return negated;
+    }
+
+    public void setNegated(boolean negated) 
+    {
+        this.negated = negated;
+    }
+
 }

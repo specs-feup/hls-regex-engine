@@ -17,6 +17,7 @@ import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import regexjava.TemplateElements.State;
 import regexjava.TemplateElements.Transition;
+import regexjava.TemplateElements.TransitionGroup;
 
 public class CodeGenerator {
     private NFA automata;
@@ -60,18 +61,8 @@ public class CodeGenerator {
             {
                 String target = this.automata.getGraph().getEdgeTarget(edge);
                 State target_state = getState(target, vertex_ids);
-                List<Transition> edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
-                for (Transition transition : edge_transitions)
-                    curr_state.addTransition(transition);
-                // Transition transition = new Transition();
-                // transition.setTarget(target_state);
-
-                // if (edge.getClass() == CharacterEdge.class)
-                //     transition.setToken(((CharacterEdge)edge).getCodePoint());
-                // else
-                //     transition.setWildcard(true);
-
-                // curr_state.addTransition(transition);
+                TransitionGroup edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
+                curr_state.addTransitionGroup(edge_transitions);
             }
 
             if (this.automata.getEnds().contains(vertex))

@@ -1,20 +1,20 @@
 package regexjava.TemplateElements;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.LinkedList;
+import java.util.List;
 
 public class State {
     private int id;
-    private Set<Transition> transitions = new HashSet<>();
+    private List<TransitionGroup> transition_groups = new LinkedList<>();
 
-    public Set<Transition> getTransitions() 
+    public List<TransitionGroup> getTransition_groups() 
     {
-        return transitions;
+        return transition_groups;
     }
 
-    public void setTransitions(Set<Transition> transitions) 
+    public void setTransition_groups(List<TransitionGroup> transitions) 
     {
-        this.transitions = transitions;
+        this.transition_groups = transitions;
     }
 
     public int getId() 
@@ -27,8 +27,8 @@ public class State {
         this.id = id;
     }
 
-    public void addTransition(Transition t)
+    public void addTransitionGroup(TransitionGroup tg)
     {
-        this.transitions.add(t);
+        this.transition_groups.add(tg);
     }
 }

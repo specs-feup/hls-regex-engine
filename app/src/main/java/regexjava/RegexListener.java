@@ -164,10 +164,10 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private void processCharacter_class(Character_classContext ctx)
     {
-          try {
+        try {
             if (ctx.getText().length() < 3)
                 throw new Exception("Invalid character class");
-        } catch (Exception e) { 
+        } catch (Exception e) {
             e.printStackTrace();
             System.exit(-1);
         }

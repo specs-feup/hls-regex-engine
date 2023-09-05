@@ -10,6 +10,7 @@ import org.jgrapht.graph.DefaultEdge;
 
 import regexjava.TemplateElements.State;
 import regexjava.TemplateElements.Transition;
+import regexjava.TemplateElements.TransitionGroup;
 
 abstract class LabeledEdge<T> extends DefaultEdge
 {
@@ -42,7 +43,7 @@ abstract class LabeledEdge<T> extends DefaultEdge
 
     abstract public LabeledEdge<T> copy();
 
-    abstract public List<Transition> generateTransitions(State target);
+    abstract public TransitionGroup generateTransitions(State target);
 }
 
 class WildcardEdge extends LabeledEdge<Integer>
@@ -65,12 +66,12 @@ class WildcardEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public List<Transition> generateTransitions(State target) 
+    public TransitionGroup generateTransitions(State target) 
     {
         Transition transition = new Transition();
         transition.setWildcard(true);
         transition.setTarget(target);
-        return Arrays.asList(transition);     
+        return new TransitionGroup(Arrays.asList(transition));
     }
 } 
 
@@ -94,7 +95,7 @@ class EpsilonEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public List<Transition> generateTransitions(State target) 
+    public TransitionGroup generateTransitions(State target) 
     {
         return null;
     }
@@ -126,12 +127,12 @@ class CharacterEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public List<Transition> generateTransitions(State target) 
+    public TransitionGroup generateTransitions(State target) 
     {
         Transition transition = new Transition();
         transition.setTarget(target);
         transition.setToken(this.label);
-        return Arrays.asList(transition);      
+        return new TransitionGroup(Arrays.asList(transition));
     }
 }
 
@@ -167,7 +168,7 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     }
 
     @Override
-    public List<Transition> generateTransitions(State target) 
+    public TransitionGroup generateTransitions(State target) 
     {
         return null;     
     }
@@ -214,7 +215,7 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     }
 
     @Override
-    public List<Transition> generateTransitions(State target) 
+    public TransitionGroup generateTransitions(State target) 
     {
         List<Transition> transitions = new LinkedList<>();
         for (int code_point : this.label)
@@ -222,8 +223,9 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
             Transition transition = new Transition();
             transition.setTarget(target);
             transition.setToken(code_point);
+            transition.setNegated(this.negated);
             transitions.add(transition);
         }
-        return transitions; 
+        return new TransitionGroup(transitions, this.negated);
     }
 }

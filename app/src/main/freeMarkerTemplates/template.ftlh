@@ -1,5 +1,37 @@
 // Kernel generated for regex \${raw_regex}\
 
+<#function getComparator transition>
+  <#if transition.negated>
+    <#return "!=">
+  <#else>
+    <#return "==">
+  </#if>
+</#function>
+
+<#function getJoinOperator group>
+  <#if group.intercept>
+    <#return " &"?no_esc+"& "?no_esc>
+  <#else>
+    <#return " || ">
+  </#if>
+</#function>
+
+<#function getStateComparisons state group>
+    <#assign result = "">
+        <#list group.transitions as transition>
+            <#if !transition.wildcard>
+                <#assign result = result + "c ${getComparator(transition)} ${transition.token}">
+            <#else>
+                <#assign result = result + "true"> 
+            </#if>
+
+            <#if !transition?is_last>
+                <#assign result = result + getJoinOperator(group)> 
+            </#if>
+        </#list>
+    <#return result>
+</#function>
+
 #include <stdio.h>
 #include <string.h>
 
@@ -13,9 +45,9 @@ int kernel(char stream[], int stream_size)
     {
         char c = stream[i];
         <#list states as state>
-        <#list state.transitions as transition>
-        if (<#if !transition.wildcard>c == ${transition.token} && </#if>curr[${state.id}])
-            next[${transition.target.id}] = 1;
+        <#list state.transition_groups as group>
+        if ((${getStateComparisons(state, group)}) && curr[${state.id}])
+            next[${group.transitions[0].target.id}] = 1;
         </#list>
         </#list>
             
