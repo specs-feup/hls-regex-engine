@@ -6,6 +6,7 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -59,15 +60,18 @@ public class CodeGenerator {
             {
                 String target = this.automata.getGraph().getEdgeTarget(edge);
                 State target_state = getState(target, vertex_ids);
-                Transition transition = new Transition();
-                transition.setTarget(target_state);
+                List<Transition> edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
+                for (Transition transition : edge_transitions)
+                    curr_state.addTransition(transition);
+                // Transition transition = new Transition();
+                // transition.setTarget(target_state);
 
-                if (edge.getClass() == RegularTransition.class)
-                    transition.setToken(((RegularTransition)edge).getCodePoint());
-                else
-                    transition.setWildcard(true);
+                // if (edge.getClass() == CharacterEdge.class)
+                //     transition.setToken(((CharacterEdge)edge).getCodePoint());
+                // else
+                //     transition.setWildcard(true);
 
-                curr_state.addTransition(transition);
+                // curr_state.addTransition(transition);
             }
 
             if (this.automata.getEnds().contains(vertex))

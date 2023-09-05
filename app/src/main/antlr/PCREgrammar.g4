@@ -114,11 +114,11 @@ quantifier_type
 //       default,  but  some  of them use Unicode properties if PCRE_UCP is set.
 //       You can use \Q...\E inside a character class.
 character_class // WIP
-//  : '[' '^' CharacterClassEnd Hyphen cc_atom+ ']' // (TWEAKED)
-//  | '[' '^' CharacterClassEnd cc_atom* ']' // (TWEAKED)
- : '[' '^' cc_atom+ ']' // WIP
-//  | '[' CharacterClassEnd Hyphen cc_atom+ ']' // (TWEAKED)
-//  | '[' CharacterClassEnd cc_atom* ']' // (TWEAKED)
+ : '[' '^' CharacterClassEnd Hyphen cc_atom+ ']'
+ | '[' '^' CharacterClassEnd cc_atom* ']' 
+ | '[' '^' cc_atom+ ']' // DONE
+ | '[' CharacterClassEnd Hyphen cc_atom+ ']' 
+ | '[' CharacterClassEnd cc_atom* ']' 
  | '[' cc_atom+ ']' // DONE
  ;
 
@@ -438,7 +438,6 @@ cc_literal // DONE
  : shared_literal // DONE
  | Dot // DONE
  | CharacterClassStart // DONE
- | CharacterClassEnd // DONE  // (TWEAKED)
  | Caret // DONE
  | QuestionMark // DONE
  | Plus // DONE

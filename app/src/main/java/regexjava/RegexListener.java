@@ -3,7 +3,10 @@ package regexjava;
 
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 import java.util.Stack;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -48,7 +51,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         else if (character_class != null)
             processCharacter_class(character_class);
         else if (dot != null)
-            this.stack.push(new EpsilonNFA(WildcardTransition.class));
+            this.stack.push(new EpsilonNFA(new WildcardEdge()));
     }
 
     private boolean isEscapedChar(Shared_literalContext ctx)
@@ -57,11 +60,11 @@ public class RegexListener extends PCREgrammarBaseListener {
         return Arrays.asList(escape_chars).contains(ctx.getText());
     }
 
-    private int[] getShared_literalCodePoints(Shared_literalContext ctx)
+    private List<Integer> getShared_literalCodePoints(Shared_literalContext ctx)
     {
         String text = ctx.getText();
         if (text.length() == 1)
-            return new int[] {text.charAt(0)};
+            return Arrays.asList((int)text.charAt(0));
         
         TerminalNode octal = ctx.OctalChar();
         TerminalNode hex = ctx.HexChar();
@@ -69,27 +72,33 @@ public class RegexListener extends PCREgrammarBaseListener {
         TerminalNode block_quoted = ctx.BlockQuoted();
 
         if (isEscapedChar(ctx))
-            return new int[] {getEscapedCharCodePoint(ctx.getText())};
+            return Arrays.asList(getEscapedCharCodePoint(ctx.getText()));
         if (octal != null)
-            return new int[] {getOctalCharCodePoint(octal.getText())};
+            return Arrays.asList(getOctalCharCodePoint(octal.getText()));
         if (hex != null)
-            return new int[] {getHexCharCodePoint(hex.getText())};
+            return Arrays.asList(getHexCharCodePoint(hex.getText()));
         if (quoted != null)
-            return new int[] {getQuotedCodePoint(quoted.getText())};
-       
-        return getBlockQuotedCodePoints(block_quoted.getText());
+            return Arrays.asList(getQuotedCodePoint(quoted.getText()));
+
+        return Arrays.asList(getBlockQuotedCodePoints(block_quoted.getText()));
     }
 
     private void proccessLiteral(LiteralContext ctx)
     {
         Shared_literalContext shared_literal = ctx.shared_literal();
+        LabeledEdge<?> transition;
         if (shared_literal != null)
         {
-            int[] code_points = getShared_literalCodePoints(shared_literal);
-            concatCodePoints(code_points);
+            List<Integer> code_points = getShared_literalCodePoints(shared_literal);
+            if (code_points.size() == 1)
+                transition = new CharacterEdge(code_points.get(0));
+            else 
+                transition = new CharacterBlockEdge(code_points.toArray(new Integer[]{}));
         }
         else 
-            stack.push(new EpsilonNFA(']'));
+            transition = new CharacterEdge(']');
+
+        stack.push(new EpsilonNFA(transition));
     }
 
     private int getEscapedCharCodePoint(String escaped_str)
@@ -144,54 +153,13 @@ public class RegexListener extends PCREgrammarBaseListener {
         return unescaped_literal.codePointAt(0);
     }
 
-    private int[] getBlockQuotedCodePoints(String block_quoted_str)
+    private Integer[] getBlockQuotedCodePoints(String block_quoted_str)
     {
         String unescaped_literal = block_quoted_str.substring(2, block_quoted_str.length() - 2);
-        return unescaped_literal.codePoints().toArray();
-    }
-
-    private void concatCodePoints(int[] code_points)
-    {
-        for (int i = 0; i < code_points.length; i++) 
-        {
-            stack.push(new EpsilonNFA(code_points[i]));
-            if (i != 0) 
-                concat();
-        }
-    }
-
-    private void alternateCodePoints(int[] code_points)
-    {
-        for (int i = 0; i < code_points.length; i++) 
-        {
-            stack.push(new EpsilonNFA(code_points[i]));
-            if (i != 0) 
-                alternate();
-        }
-    }
-
-    
-    private void alternateCodePointRangeInclusive(int start, int end) 
-    {
-        try {
-            if (start > end)
-            throw new Exception("Invalid code point range");
-        } catch (Exception e) { 
-            e.printStackTrace();
-            System.exit(-1);
-        }
-        
-        for (int i = start; i <= end; i++)
-        {
-            stack.push(new EpsilonNFA(i));
-            if (i != start)
-            alternate();
-        }
-    }
-    
-    private void alternateCodePointRangeExclusive(int start, int end)
-    {
-        this.alternateCodePointRangeInclusive(start + 1, end - 1);
+        int[] primitive_arr = unescaped_literal.codePoints().toArray();
+        Integer[] object_arr = new Integer[primitive_arr.length];
+        Arrays.setAll(object_arr, i -> primitive_arr[i]);
+        return object_arr;
     }
 
     private void processCharacter_class(Character_classContext ctx)
@@ -203,176 +171,186 @@ public class RegexListener extends PCREgrammarBaseListener {
             e.printStackTrace();
             System.exit(-1);
         }
+
+        boolean negated = ctx.getText().charAt(1) == '^';
+        List<Cc_atomContext> cc_atoms = ctx.cc_atom();
+        Set<Integer> processed_atoms = new HashSet<>();
+        for (int i = 0; i < cc_atoms.size(); i++)
+        {
+            List<Cc_literalContext> cc_literals = cc_atoms.get(i).cc_literal();
+            Shared_atomContext shared_atom = cc_atoms.get(i).shared_atom();
+            if (!cc_literals.isEmpty())
+                processed_atoms.addAll(getCc_literalListCodePoints(cc_literals));
+            else if (shared_atom != null)
+                processed_atoms.addAll(getShared_atomCodePoints(shared_atom));
+        }
         
-        if (ctx.getText().charAt(1) != '^') //non-negated
-        {
-            List<Cc_atomContext> cc_atoms = ctx.cc_atom();
-            for (int i = 0; i < cc_atoms.size(); i++)
-            {
-                List<Cc_literalContext> cc_literals = cc_atoms.get(i).cc_literal();
-                Shared_atomContext shared_atom = cc_atoms.get(i).shared_atom();
-                if (cc_literals.size() == 1) // no hyphen
-                {
-                    int[] code_points = getCc_literalCodePoints(cc_literals.get(0));
-                    alternateCodePoints(code_points);
-                }
-                else if (cc_literals.size() == 2) // hyphen 
-                {
-                    int[] first_code_points = getCc_literalCodePoints(cc_literals.get(0));
-                    int[] second_code_points = getCc_literalCodePoints(cc_literals.get(1));
-                    alternateCodePoints(first_code_points);
-                    alternateCodePoints(second_code_points);
-                    alternate();
-                    alternateCodePointRangeExclusive(first_code_points[first_code_points.length - 1], second_code_points[0]);
-                    alternate();
-                }
-                else if (shared_atom != null)
-                    processSharedAtom(shared_atom);
-
-                if (i != 0)
-                    alternate();
-            }
-        }
-        else // negated
-        {
-
-        }
+        if (!processed_atoms.isEmpty())
+            stack.push(new EpsilonNFA(new CharacterClassEdge(processed_atoms, negated)));
+ 
     }
 
-    private void alpha()
+    private List<Integer> getCodePointsInRange(int start, int end)
     {
-        alternateCodePointRangeInclusive('a', 'z');
-        alternateCodePointRangeInclusive('A', 'Z');
+        List<Integer> code_points = new LinkedList<>();
+        for (int i = start; i <= end; i++)
+            code_points.add(i);
+        return code_points;
+    }
+
+    private List<Integer> alpha()
+    {
+        List<Integer> lower = getCodePointsInRange('a', 'z');
+        List<Integer> upper = getCodePointsInRange('A', 'Z');
+        List<Integer> alpha = new LinkedList<>(lower);
+        alpha.addAll(upper);
+        return alpha;
+    }
+
+    private List<Integer> digit()
+    {
+        return getCodePointsInRange('0', '9');
+    }
+
+    private List<Integer> horizontalWhiteSpace()
+    {
+        return Arrays.asList((int) '\t', (int) ' ');
+    }
+
+    private List<Integer> verticalWhiteSpace()
+    {
+        return Arrays.asList((int) '\r', (int) '\n', 0x000C, 0x000B, 0x0085, 0x2028, 0x2029);
+    }
+
+    private List<Integer> whiteSpace()
+    {
+        List<Integer> horizontal_space = horizontalWhiteSpace();
+        List<Integer> vertical_space = verticalWhiteSpace();
+        List<Integer> white_space = new LinkedList<>(horizontal_space);
+        white_space.addAll(vertical_space);
+        return white_space;
+    }
+
+    private List<Integer> word()
+    {
+        List<Integer> alpha = alpha();
+        List<Integer> digit = digit();
+        List<Integer> word = new LinkedList<>(alpha);
+        word.addAll(digit);
+        word.add((int) '_');
+        return word;
+    }
+
+    private void processNewLineSequence() 
+    {
+        stack.push(new EpsilonNFA(new CharacterBlockEdge(new Integer[]{(int)'\r',(int)'\n'})));
+        stack.push(new EpsilonNFA(new CharacterClassEdge(new HashSet<>(Arrays.asList((int)'\r', (int)'\n', (int)'\f', 0x000B, 0x0085)), false)));
         alternate();
     }
 
-    private void digit()
-    {
-        alternateCodePointRangeInclusive('0', '9');
-    }
-
-    private void horizontalWhiteSpace()
-    {
-        alternateCodePoints(new int[]{'\t', ' '});
-    }
-
-    private void verticalWhiteSpace()
-    {
-        alternateCodePoints(new int[]{'\r', '\n', 0x000C, 0x000B, 0x0085, 0x2028, 0x2029});
-    }
-
-    private void whiteSpace()
-    {
-        horizontalWhiteSpace();
-        verticalWhiteSpace();
-        alternate();
-    }
-
-    private void word()
-    {
-        alpha();
-        digit();
-        alternate();
-        stack.push(new EpsilonNFA('_'));
-        alternate();
-    }
-
-    private void newLineSequence()
-    {
-        stack.push(new EpsilonNFA('\r'));
-        stack.push(new EpsilonNFA('\n'));
-        concat();
-        alternateCodePoints(new int[]{'\r', '\n', '\f', 0x000B, 0x0085});
-        alternate();
-    }
-
-    private void processSharedAtom(Shared_atomContext ctx)
+    private List<Integer> getShared_atomCodePoints(Shared_atomContext ctx)
     {
         if (ctx.POSIXNamedSet() != null)
-            processPosixSets(ctx.POSIXNamedSet());
-        else if (ctx.ControlChar() != null)
-            processControlChar(ctx.ControlChar());
-        else if (ctx.DecimalDigit() != null)
-            digit();
-        else if (ctx.HorizontalWhiteSpace() != null)
-            horizontalWhiteSpace();
-        else if (ctx.NewLineSequence() != null)
-            newLineSequence();
-        else if (ctx.WhiteSpace() != null)
-            whiteSpace();
-        else if (ctx.VerticalWhiteSpace() != null)
-            verticalWhiteSpace();
-        else if (ctx.WordChar() != null)
-            word();
+            return getPosixSetsCodePoints(ctx.POSIXNamedSet());
+
+        if (ctx.ControlChar() != null)
+            return getControlCharCodePoints(ctx.ControlChar());
+        
+        if (ctx.DecimalDigit() != null)
+            return digit();
+
+        if (ctx.HorizontalWhiteSpace() != null)
+            return horizontalWhiteSpace();
+
+        if (ctx.NewLineSequence() != null)
+            processNewLineSequence();
+
+        if (ctx.WhiteSpace() != null)
+            return whiteSpace();
+
+        if (ctx.VerticalWhiteSpace() != null)
+            return verticalWhiteSpace();
+
+        if (ctx.WordChar() != null)
+            return word();
+
+        return Arrays.asList();
     }
 
-    private void processControlChar(TerminalNode control_node) // https://www.pcre.org/original/doc/html/pcrepattern.html#SEC5 \cx
+    private List<Integer> getControlCharCodePoints(TerminalNode control_node) // https://www.pcre.org/original/doc/html/pcrepattern.html#SEC5 \cx
     {
         char character = Character.toUpperCase(control_node.getText().charAt(2));
-        if (character >= 0 && character <= 127) //ascii
-        {
-            BigInteger code = new BigInteger(Integer.toString(character));
-            BigInteger flipped_code = code.flipBit(6);
-            stack.push(new EpsilonNFA(flipped_code.intValueExact()));
+
+        try {
+            if (character >= 0 && character <= 127) // ascii
+                throw new Exception("Invalid control character");
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(-1);
         }
+
+        BigInteger code = new BigInteger(Integer.toString(character));
+        BigInteger flipped_code = code.flipBit(6);
+        return Arrays.asList(flipped_code.intValueExact());
     }
 
-    private void processPosixSets(TerminalNode posix_node)
+    private List<Integer> getPosixSetsCodePoints(TerminalNode posix_node)
     {
         String text = posix_node.getText();
         String set_name = text.substring(text.indexOf(':') + 1, text.lastIndexOf(':'));
+        List<Integer> code_points = new LinkedList<>();
 
         switch (set_name)
         {
             case "alnum": // alphanumeric
-                alpha();
-                digit();
-                alternate();
+                code_points.addAll(alpha());
+                code_points.addAll(digit());
                 break;
             case "alpha": //alphabetic
-                alpha();
+                code_points.addAll(alpha());
                 break;
             case "ascii":       // 0-127
-                alternateCodePointRangeInclusive(0, 127);
+                code_points.addAll(getCodePointsInRange(0, 127));
                 break;
             case "blank":       // space or tab
-                horizontalWhiteSpace();
+                code_points.addAll(horizontalWhiteSpace());
                 break;
             case "cntrl":       // control character
-                alternateCodePointRangeInclusive(0x0000, 0x001F);
-                stack.push(new EpsilonNFA(0x007F));
-                alternate();
+                code_points.addAll(getCodePointsInRange(0x0000, 0x001F));
+                code_points.add(0x007F);
                 break;
             case "digit":       // decimal digit
-                digit();
+                code_points.addAll(digit());
                 break;
             case "graph":       // printing, excluding space
-                alternateCodePointRangeInclusive(0x0021, 0x007E);
+                code_points.addAll(getCodePointsInRange(0x0021, 0x007E));
                 break;
             case "lower":       // lower case letter
-                alternateCodePointRangeInclusive('a', 'z');
+                code_points.addAll(getCodePointsInRange('a', 'z'));
                 break;
             case "print":       // printing, including space
-                alternateCodePointRangeInclusive(0x0020, 0x007E);
+                code_points.addAll(getCodePointsInRange(0x0020, 0x007E));
                 break;
             case "punct":       // printing, excluding alphanumeric [!"#$%&'()*+,\-./:;<=>?@[]^_`{|}~]
-                alternateCodePoints(new int[]{'!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '\\', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', ']', '^', '_', '`', '{', '|', '}', '~'});
+                List<Integer> print = getCodePointsInRange(0x0020, 0x007E);
+                List<Integer> alpha_num = new LinkedList<>(alpha());
+                alpha_num.addAll(digit());
+                code_points = print;
+                code_points.removeAll(alpha_num);
                 break;
             case "space":       // white space
-                whiteSpace();
+                code_points.addAll(whiteSpace());
                 break;
             case "upper":       // upper case letter
-                alternateCodePointRangeInclusive('A', 'Z');
+                code_points.addAll(getCodePointsInRange('A', 'Z'));
                 break;
             case "word":        // same as \w
-                word();
+                code_points.addAll(word());
                 break;
             case "xdigit":      // hexadecimal digit
-                digit();
-                alternateCodePointRangeInclusive('a', 'f');
-                alternate();
-                alternateCodePointRangeInclusive('A', 'F');
-                alternate();
+                code_points.addAll(digit());
+                code_points.addAll(getCodePointsInRange('a', 'f'));
+                code_points.addAll(getCodePointsInRange('A', 'F'));
                 break;
             default:
                 try {
@@ -383,29 +361,45 @@ public class RegexListener extends PCREgrammarBaseListener {
                 }
         }
 
+        return code_points;
     }
 
-    private int[] getCc_literalCodePoints(Cc_literalContext ctx)
+    private List<Integer> getCc_literalListCodePoints(List<Cc_literalContext> cc_literals)
+    {
+        List<Integer> code_points;
+        if (cc_literals.size() == 1) // no hyphen
+            code_points = getCc_literalCodePoints(cc_literals.get(0));
+        else // hyphen 
+        {
+            List<Integer> first_code_points = getCc_literalCodePoints(cc_literals.get(0));
+            List<Integer> second_code_points = getCc_literalCodePoints(cc_literals.get(1));
+            code_points = new LinkedList<>(first_code_points);
+            code_points.addAll(second_code_points);
+            code_points.addAll(getCodePointsInRange(first_code_points.get(first_code_points.size() - 1), second_code_points.get(0)));
+        }
+
+        return code_points;
+    }
+
+    private List<Integer> getCc_literalCodePoints(Cc_literalContext ctx)
     {
         Shared_literalContext shared_literal = ctx.shared_literal();
         if (shared_literal != null)
             return getShared_literalCodePoints(shared_literal);
         if (ctx.WordBoundary() != null)
-            return new int[] {"\u0008".codePointAt(0)};
+            return Arrays.asList("\u0008".codePointAt(0));
         
-        return new int[] {ctx.getText().codePointAt(0)};
+        return Arrays.asList(ctx.getText().codePointAt(0));
     }
 
     public void exitExpr(ExprContext ctx)
     {
-        System.out.println("Exited Expr: " + ctx.getText());
         for(int i = 0; i < ctx.element().size() - 1; i++)
             concat();
     }
 
     public void exitAlternation(AlternationContext ctx)
     {
-        System.out.println("Exited Alternation: " + ctx.getText());
         for(int i = 0; i < ctx.Pipe().size(); i++)
             alternate();
     }

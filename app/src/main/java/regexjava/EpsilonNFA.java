@@ -1,6 +1,7 @@
 package regexjava;
 
 import java.util.Arrays;
+import java.util.Stack;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -22,51 +23,66 @@ public class EpsilonNFA {
         this.end = end;
     }
 
-    /* Creates Empty/Wildcard Transition EpsilonNFA */
-    public <T> EpsilonNFA(Class<T> transition_type) {
+    private void copy(EpsilonNFA other)
+    {
+        this.graph = other.graph;
+        this.start = other.start;
+        this.end = other.end;
+    }
+
+    public <T> EpsilonNFA(LabeledEdge<T> edge)
+    {
+        if (edge.getClass() == CharacterBlockEdge.class)
+            blockEdgedEpsilonNFA((CharacterBlockEdge)edge);
+        else 
+            singleEdgeEpsilonNFA(edge);
+    }
+
+    private <T> void singleEdgeEpsilonNFA(LabeledEdge<T> edge)
+    {
         String v1 = VertexIDFactory.getNewVertexID();
         String v2 = VertexIDFactory.getNewVertexID();
         this.graph.addVertex(v1);
         this.graph.addVertex(v2);
-        DefaultEdge new_edge;
-        if (transition_type == WildcardTransition.class)
-            new_edge = new WildcardTransition();
-        else
-            new_edge = new EpsilonTransition();
-
-        this.graph.addEdge(v1, v2, new_edge);
+        this.graph.addEdge(v1, v2, edge);
         this.start = v1;
         this.end = v2;
     }
 
-    /* Creates Single Transition EpsilonNFA */
-    public EpsilonNFA(int symbol) {
-        String v1 = VertexIDFactory.getNewVertexID();
-        String v2 = VertexIDFactory.getNewVertexID();
-        this.graph.addVertex(v1);
-        this.graph.addVertex(v2);
-        this.graph.addEdge(v1, v2, new RegularTransition(symbol));
-        this.start = v1;
-        this.end = v2;
+    private void blockEdgedEpsilonNFA(CharacterBlockEdge block_trans)
+    {
+        Stack<EpsilonNFA> stack = new Stack<>();
+        Integer[] code_points = block_trans.getCodePoints();
+
+        for (Integer code_point : code_points)
+        {
+            stack.push(new EpsilonNFA(new CharacterEdge(code_point)));
+
+            if (stack.size() == 2)
+            {
+                EpsilonNFA second = stack.pop();
+                EpsilonNFA first = stack.pop();
+                stack.push(EpsilonNFA.concat(first, second));
+            }
+        }
+
+        copy(stack.pop());
     }
 
     /* Creates EpsilonNFA from a regex parseTree */
-    public EpsilonNFA(ParseTree tree)
+    EpsilonNFA(ParseTree tree)
     {
         RegexListener listener = new RegexListener();
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);
-        EpsilonNFA nfa = listener.getEpsilonNFA();
-        this.start = nfa.start;
-        this.end = nfa.end;
-        this.graph = nfa.graph;
+        copy(listener.getEpsilonNFA());
     }
 
     public static EpsilonNFA concat(EpsilonNFA first, EpsilonNFA second) {
         EpsilonNFA res = null;
         if (Graphs.addGraph(first.graph, second.graph)) {
             res = new EpsilonNFA(first.graph, first.start, second.end);
-            res.graph.addEdge(first.end, second.start, new EpsilonTransition());
+            res.graph.addEdge(first.end, second.start, new EpsilonEdge());
         }
 
         return res;
@@ -78,13 +94,13 @@ public class EpsilonNFA {
         String new_end = VertexIDFactory.getNewVertexID();
         first.graph.addVertex(new_start);
         second.graph.addVertex(new_start);
-        first.graph.addEdge(new_start, first.start, new EpsilonTransition());
-        second.graph.addEdge(new_start, second.start, new EpsilonTransition());
+        first.graph.addEdge(new_start, first.start, new EpsilonEdge());
+        second.graph.addEdge(new_start, second.start, new EpsilonEdge());
 
         first.graph.addVertex(new_end);
         second.graph.addVertex(new_end);
-        first.graph.addEdge(first.end, new_end, new EpsilonTransition());
-        second.graph.addEdge(second.end, new_end, new EpsilonTransition());
+        first.graph.addEdge(first.end, new_end, new EpsilonEdge());
+        second.graph.addEdge(second.end, new_end, new EpsilonEdge());
 
         if (Graphs.addGraph(first.graph, second.graph))
             res = new EpsilonNFA(first.graph, new_start, new_end);
@@ -98,11 +114,11 @@ public class EpsilonNFA {
         automata.graph.addVertex(new_start);
         automata.graph.addVertex(new_end);
 
-        automata.graph.addEdge(new_start, automata.start, new EpsilonTransition());
-        automata.graph.addEdge(new_start, new_end, new EpsilonTransition());
+        automata.graph.addEdge(new_start, automata.start, new EpsilonEdge());
+        automata.graph.addEdge(new_start, new_end, new EpsilonEdge());
 
-        automata.graph.addEdge(automata.end, new_end, new EpsilonTransition());
-        automata.graph.addEdge(automata.end, automata.start, new EpsilonTransition());
+        automata.graph.addEdge(automata.end, new_end, new EpsilonEdge());
+        automata.graph.addEdge(automata.end, automata.start, new EpsilonEdge());
 
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
@@ -113,9 +129,9 @@ public class EpsilonNFA {
         automata.graph.addVertex(new_start);
         automata.graph.addVertex(new_end);
 
-        automata.graph.addEdge(new_start, automata.start, new EpsilonTransition());
-        automata.graph.addEdge(automata.end, new_end, new EpsilonTransition());
-        automata.graph.addEdge(automata.end, automata.start, new EpsilonTransition());
+        automata.graph.addEdge(new_start, automata.start, new EpsilonEdge());
+        automata.graph.addEdge(automata.end, new_end, new EpsilonEdge());
+        automata.graph.addEdge(automata.end, automata.start, new EpsilonEdge());
 
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
@@ -126,9 +142,9 @@ public class EpsilonNFA {
         automata.graph.addVertex(new_start);
         automata.graph.addVertex(new_end);
 
-        automata.graph.addEdge(new_start, new_end, new EpsilonTransition());
-        automata.graph.addEdge(new_start, automata.start, new EpsilonTransition());
-        automata.graph.addEdge(automata.end, new_end, new EpsilonTransition());
+        automata.graph.addEdge(new_start, new_end, new EpsilonEdge());
+        automata.graph.addEdge(new_start, automata.start, new EpsilonEdge());
+        automata.graph.addEdge(automata.end, new_end, new EpsilonEdge());
 
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
@@ -136,7 +152,7 @@ public class EpsilonNFA {
     private static void getEpsilonClosure(Graph<String, DefaultEdge> graph, String vertex, Set<String> closure) {
         closure.add(vertex);
         for (DefaultEdge edge : graph.outgoingEdgesOf(vertex)) {
-            if (edge.getClass() == EpsilonTransition.class) {
+            if (edge.getClass() == EpsilonEdge.class) {
                 String out_vertex = graph.getEdgeTarget(edge);
                 getEpsilonClosure(graph, out_vertex, closure);
             }
@@ -182,26 +198,18 @@ public class EpsilonNFA {
                 Set<DefaultEdge> edges = graph.outgoingEdgesOf(reachable);
                 for (DefaultEdge edge : edges) 
                 {
-                    if (edge.getClass() == EpsilonTransition.class)
+                    if (edge.getClass() == EpsilonEdge.class)
                         continue;
 
-                    
                     String joinable = graph.getEdgeTarget(edge);
-                    DefaultEdge new_edge;
-                    if (edge.getClass() == WildcardTransition.class)
-                        new_edge = new WildcardTransition();
-                    else 
-                    {
-                        int symbol = ((RegularTransition) edge).getCodePoint();
-                        new_edge =  new RegularTransition(symbol);
-                    }
+                    LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
                     new_graph.addEdge(vertex, joinable, new_edge);
                 }
             }
         }
 
         for (DefaultEdge edge : graph.edgeSet()) {
-            if (edge.getClass() == EpsilonTransition.class)
+            if (edge.getClass() == EpsilonEdge.class)
                 new_graph.removeEdge(edge);
         }
 
