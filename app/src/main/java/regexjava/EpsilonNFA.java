@@ -222,7 +222,36 @@ public class EpsilonNFA {
 
     public static EpsilonNFA repeatRange(EpsilonNFA automata, int min_repetitions, int max_repetitions)
     {
-        return null;
+        String new_start = VertexIDFactory.getNewVertexID();
+        String new_end = VertexIDFactory.getNewVertexID();
+        automata.graph.addVertex(new_start);
+        automata.graph.addVertex(new_end);
+        automata.graph.addEdge(new_start, automata.start, new EpsilonEdge());
+
+        Counter counter = new Counter(min_repetitions, max_repetitions);
+        List<DefaultEdge> to_remove = new LinkedList<>();
+        List<Object[]> to_add = new LinkedList<>();
+        Set<DefaultEdge> end_incomings = automata.graph.incomingEdgesOf(automata.end);
+        for (DefaultEdge end_incoming : end_incomings)
+        {
+            String source = automata.graph.getEdgeSource(end_incoming);
+            LabeledEdge<?> less_edge = ((LabeledEdge<?>) end_incoming).copy();
+            LabeledEdge<?> more_edge = ((LabeledEdge<?>) end_incoming).copy();
+            less_edge.setCounterInfo(new CounterInfo(counter, CounterOperation.COMPARE_LESS));
+            more_edge.setCounterInfo(new CounterInfo(counter, CounterOperation.COMPARE_RANGE));
+            to_add.add(new Object[] {source, new_start, less_edge});
+            to_add.add(new Object[] {source, new_end, more_edge});
+            to_add.add(new Object[] {new_end, automata.start, new EpsilonEdge()});
+            to_remove.add(end_incoming);
+        }
+
+        for (DefaultEdge edge : to_remove)
+            automata.graph.removeEdge(edge);
+
+        for (Object[] add_element : to_add)
+            automata.graph.addEdge((String) add_element[0], (String) add_element[1], (LabeledEdge<?>) add_element[2]);
+        
+        return new EpsilonNFA(automata.graph, new_start, new_end);
     }
 
     private static void getEpsilonClosure(Graph<String, DefaultEdge> graph, String vertex, Set<String> closure) {

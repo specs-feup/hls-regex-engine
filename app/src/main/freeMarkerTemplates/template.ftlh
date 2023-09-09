@@ -17,15 +17,26 @@
 </#function>
 
 <#function getCounterComparisons group>
-    <#assign result = "">
-    <#if group.counter_info??>
+  <#assign result = "">
+  <#if group.counter_info??>
     <#assign result = result + " &"?no_esc+"& "?no_esc>
+    <#assign id = group.counter_info.counter.id>
+    <#assign comp_symbol = "">
     <#if group.counter_info.operation == "COMPARE_EQUAL">
-      <#assign result = result + "${group.counter_info.counter.id} == ${group.counter_info.counter.target_value}">
+      <#assign comp_symbol = "==">
     <#elseif group.counter_info.operation == "COMPARE_LESS">
-      <#assign result = result + "${group.counter_info.counter.id} "+ "<"?no_esc + " ${group.counter_info.counter.target_value}">
+      <#assign comp_symbol = "<"?no_esc>
+    <#elseif group.counter_info.operation == "COMPARE_MORE">
+      <#assign comp_symbol = ">"?no_esc>
+    <#elseif group.counter_info.operation == "COMPARE_EQUALMORE">
+      <#assign comp_symbol = ">"?no_esc+"=">
+    <#elseif group.counter_info.operation == "COMPARE_EQUALLESS">
+      <#assign comp_symbol = "<"?no_esc+"=">
+    </#if>
+    <#if group.counter_info.operation == "COMPARE_RANGE">
+      <#assign result = result + "${id}[1] + (${id}[0] ? 0 : 1) " + ">="?no_esc + " ${group.counter_info.counter.target_value}" + " &"?no_esc+"& "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + "<="?no_esc + " ${group.counter_info.counter.target_value2}">
     <#else>
-      <#assign result = result + "${group.counter_info.counter.id} "+ ">"?no_esc+"=" + " ${group.counter_info.counter.target_value}">
+      <#assign result = result + "${id}[1] + (${id}[0] ? 0 : 1) ${comp_symbol} ${group.counter_info.counter.target_value}">
     </#if>
   </#if>
   <#return result>
@@ -47,10 +58,19 @@
     <#return result>
 </#function>
 
-<#function initializeCounters>
+<#function getBody group>
+  <#assign result = "next[${group.transitions[0].target.id}] = 1;">
+  <#if group.counter_info??>
+    <#assign id = group.counter_info.counter.id>
+    <#assign result = result + " if(!${id}[0]){${id}[1]++; ${id}[0] = 1;}">
+  </#if>
+  <#return result>
+</#function>
+
+<#function declareCounters>
   <#assign result = "">
     <#list counter_ids as counter_id>
-      <#assign result = result + "int ${counter_id} = 0;">
+      <#assign result = result + "int ${counter_id}[] = {0, 0};">
        <#if !counter_id?is_last>
         <#assign result = result + "\n\t\t">
        </#if>
@@ -58,14 +78,16 @@
   <#return result>
 </#function>
 
-<#function getBody group>
-  <#assign result = "next[${group.transitions[0].target.id}] = 1;">
-  <#if group.counter_info??>
-    <#assign result = result + " ${group.counter_info.counter.id}++;">
-  </#if>
+<#function resetCounterGuards>
+  <#assign result = "">
+    <#list counter_ids as counter_id>
+      <#assign result = result + "${counter_id}[0] = 0;">
+       <#if !counter_id?is_last>
+        <#assign result = result + "\n\t\t">
+       </#if>
+    </#list>
   <#return result>
 </#function>
-
 
 #include <stdio.h>
 #include <string.h>
@@ -75,7 +97,7 @@ int kernel(char stream[], int stream_size)
     int curr[${total_states}] = {0};
     int next[${total_states}] = {0};
     curr[${start_state.id}] = 1;
-    ${initializeCounters()}
+    ${declareCounters()}
 
     for (int i = 0; i < stream_size; i++)
     {
@@ -86,7 +108,8 @@ int kernel(char stream[], int stream_size)
           {${getBody(group)}}
         </#list>
         </#list>
-            
+        
+        ${resetCounterGuards()}
         memcpy(curr, next, ${total_states} * sizeof(int));
         memset(next, 0, ${total_states} * sizeof(int));
     }

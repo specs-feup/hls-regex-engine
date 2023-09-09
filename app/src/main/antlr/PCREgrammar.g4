@@ -78,7 +78,7 @@ quantifier // WIP
  | '*' quantifier_type // DONE (NO TYPE)
  | '{' number '}' quantifier_type // DONE (NO TYPE)
  | '{' number ',' '}' quantifier_type // DONE (NO TYPE)
- | '{' number ',' number '}' quantifier_type
+ | '{' number ',' number '}' quantifier_type // DONE (NO TYPE)
  ;
 
 quantifier_type
