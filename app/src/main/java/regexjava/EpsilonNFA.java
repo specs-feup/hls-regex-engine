@@ -3,12 +3,16 @@ package regexjava;
 import java.util.Arrays;
 import java.util.Stack;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
+
+import regexjava.Counter.CounterOperation;
 
 
 public class EpsilonNFA {
@@ -149,6 +153,40 @@ public class EpsilonNFA {
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
 
+    public static EpsilonNFA repeatExactly(EpsilonNFA automata, int repetitions) 
+    {
+        String new_start = VertexIDFactory.getNewVertexID();
+        String new_end = VertexIDFactory.getNewVertexID();
+        automata.graph.addVertex(new_start);
+        automata.graph.addVertex(new_end);
+
+        automata.graph.addEdge(new_start, automata.start, new EpsilonEdge());
+
+        Counter counter = new Counter(repetitions);
+        List<DefaultEdge> to_remove = new LinkedList<>();
+        List<Object[]> to_add = new LinkedList<>();
+        Set<DefaultEdge> end_incomings = automata.graph.incomingEdgesOf(automata.end);
+        for (DefaultEdge end_incoming : end_incomings)
+        {
+            String source = automata.graph.getEdgeSource(end_incoming);
+            LabeledEdge<?> less_edge = ((LabeledEdge<?>) end_incoming).copy();
+            LabeledEdge<?> equal_edge = ((LabeledEdge<?>) end_incoming).copy();
+            less_edge.setCounterInfo(new CounterInfo(counter, CounterOperation.COMPARE_LESS));
+            equal_edge.setCounterInfo(new CounterInfo(counter, CounterOperation.COMPARE_EQUAL));
+            to_add.add(new Object[] {source, new_start, less_edge});
+            to_add.add(new Object[] {source, new_end, equal_edge});
+            to_remove.add(end_incoming);
+        }
+
+        for (DefaultEdge edge : to_remove)
+            automata.graph.removeEdge(edge);
+
+        for (Object[] add_element : to_add)
+            automata.graph.addEdge((String) add_element[0], (String) add_element[1], (LabeledEdge<?>) add_element[2]);
+        
+        return new EpsilonNFA(automata.graph, new_start, new_end);
+    }
+
     private static void getEpsilonClosure(Graph<String, DefaultEdge> graph, String vertex, Set<String> closure) {
         closure.add(vertex);
         for (DefaultEdge edge : graph.outgoingEdgesOf(vertex)) {
@@ -159,7 +197,7 @@ public class EpsilonNFA {
         }
     }
 
-    public static void removeDeadStates(Graph<String, DefaultEdge> graph, Set<String> starts, Set<String> ends)
+    private static void removeDeadStates(Graph<String, DefaultEdge> graph, Set<String> starts, Set<String> ends)
     {
         Set<String> to_remove = new HashSet<>();
         for (String vertex : graph.vertexSet()) 

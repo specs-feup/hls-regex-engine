@@ -374,7 +374,8 @@ callout
  ;
 
 atom // WIP
- : subroutine_reference
+ : backreference
+ | subroutine_reference
  | shared_atom // WIP
  | literal // DONE
  | character_class // WIP
@@ -383,7 +384,6 @@ atom // WIP
  | comment
  | option
  | look_around
- | backreference
  | conditional
  | backtrack_control
  | newline_convention
@@ -426,8 +426,9 @@ shared_atom // WIP
  | VerticalWhiteSpace // DONE
  | NotVerticalWhiteSpace
  | WordChar // DONE
- | NotWordChar;
-//  | Backslash . // will match "unfinished" escape sequences, like `\x` (TWEAKED) this wasn't letting octal and hex chars to be read
+ | NotWordChar
+ | Backslash . // will match "unfinished" escape sequences, like `\x` (TWEAKED) this wasn't letting octal and hex chars to be read
+ ; 
 
 literal // DONE
  : shared_literal // DONE

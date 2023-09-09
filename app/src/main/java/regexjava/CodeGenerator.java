@@ -6,7 +6,6 @@ import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -16,7 +15,6 @@ import org.jgrapht.graph.DefaultEdge;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import regexjava.TemplateElements.State;
-import regexjava.TemplateElements.Transition;
 import regexjava.TemplateElements.TransitionGroup;
 
 public class CodeGenerator {
@@ -53,6 +51,8 @@ public class CodeGenerator {
     {
         Map<String, State> vertex_ids = new HashMap<>();
         Set<State> end_states = new HashSet<>();
+        Set<String> counter_ids = new HashSet<>();
+
         for (String vertex : this.automata.getGraph().vertexSet())
         {
             State curr_state = getState(vertex, vertex_ids);
@@ -63,6 +63,10 @@ public class CodeGenerator {
                 State target_state = getState(target, vertex_ids);
                 TransitionGroup edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
                 curr_state.addTransitionGroup(edge_transitions);
+
+                CounterInfo group_counter_info = edge_transitions.getCounter_info();
+                if (group_counter_info != null)
+                    counter_ids.add(group_counter_info.counter.getId());
             }
 
             if (this.automata.getEnds().contains(vertex))
@@ -73,6 +77,7 @@ public class CodeGenerator {
         Set<State> states = new HashSet<>(vertex_ids.values());
         root.put("raw_regex", this.raw_regex);
         root.put("total_states", states.size());
+        root.put("counter_ids", counter_ids);
         root.put("states", states);
         root.put("end_states", end_states);
         root.put("start_state", vertex_ids.get(this.automata.getStart()));

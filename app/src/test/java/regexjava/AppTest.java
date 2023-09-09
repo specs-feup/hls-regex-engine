@@ -6,9 +6,6 @@ package regexjava;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-
 public class AppTest {
     @Test public void testA()
     {

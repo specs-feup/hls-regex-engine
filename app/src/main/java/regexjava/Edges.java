@@ -15,10 +15,25 @@ import regexjava.TemplateElements.TransitionGroup;
 abstract class LabeledEdge<T> extends DefaultEdge
 {
     protected T label;
+    protected CounterInfo counter_info = null;
 
     public LabeledEdge(T label)
     {
         this.label = label;
+    }
+
+    public LabeledEdge(T label, CounterInfo counter_info)
+    {
+        this.label = label;
+        this.counter_info = counter_info;
+    }
+
+    public CounterInfo getCounterInfo() {
+        return counter_info;
+    }
+
+    public void setCounterInfo(CounterInfo counter_info) {
+        this.counter_info = counter_info;
     }
 
     @Override
@@ -53,16 +68,21 @@ class WildcardEdge extends LabeledEdge<Integer>
         super(-1);
     }
 
+    public WildcardEdge(CounterInfo counter_info)
+    {
+        super(-1, counter_info);
+    }
+
     @Override
     public String toString()
     {
-        return "(" + getSource() + " -> " + getTarget() + " : " + "wildcard" + ")";
+        return "(" + getSource() + " -> " + getTarget() + " : " + "wildcard" + " [" + this.counter_info +"])";
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        return new WildcardEdge();
+        return new WildcardEdge(this.counter_info);
     }
 
     @Override
@@ -71,7 +91,7 @@ class WildcardEdge extends LabeledEdge<Integer>
         Transition transition = new Transition();
         transition.setWildcard(true);
         transition.setTarget(target);
-        return new TransitionGroup(Arrays.asList(transition));
+        return new TransitionGroup(Arrays.asList(transition), this.counter_info);
     }
 } 
 
@@ -97,7 +117,7 @@ class EpsilonEdge extends LabeledEdge<Integer>
     @Override
     public TransitionGroup generateTransitions(State target) 
     {
-        return null;
+        throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
 }
 
@@ -106,6 +126,11 @@ class CharacterEdge extends LabeledEdge<Integer>
     public CharacterEdge(int code_point)
     {
         super(code_point);
+    }
+
+    public CharacterEdge(int code_point, CounterInfo counter_info)
+    {
+        super(code_point, counter_info);
     }
 
     public int getCodePoint()
@@ -117,13 +142,13 @@ class CharacterEdge extends LabeledEdge<Integer>
     public String toString()
     {
         int val = this.label.intValue();
-        return "(" + getSource() + " -> " + getTarget() + " : " + (char) val + ")";
+        return "(" + getSource() + " -> " + getTarget() + " : " + (char) val + " [" + this.counter_info +"])";
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        return new CharacterEdge(this.label);
+        return new CharacterEdge(this.label, this.counter_info);
     }
 
     @Override
@@ -132,7 +157,7 @@ class CharacterEdge extends LabeledEdge<Integer>
         Transition transition = new Transition();
         transition.setTarget(target);
         transition.setToken(this.label);
-        return new TransitionGroup(Arrays.asList(transition));
+        return new TransitionGroup(Arrays.asList(transition), this.counter_info);
     }
 }
 
@@ -170,7 +195,7 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     @Override
     public TransitionGroup generateTransitions(State target) 
     {
-        return null;     
+        throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");  
     }
 }
 
@@ -181,6 +206,12 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     public CharacterClassEdge(Set<Integer> code_points, boolean negated)
     {
         super(code_points);
+        this.negated = negated;
+    }
+
+    public CharacterClassEdge(Set<Integer> code_points, boolean negated, CounterInfo counter_info)
+    {
+        super(code_points, counter_info);
         this.negated = negated;
     }
 
@@ -205,13 +236,13 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
             str += (char) val;
         }
 
-        return str + "])";
+        return str + " [" + this.counter_info + "])";
     }
 
     @Override
     public LabeledEdge<Set<Integer>> copy() 
     {
-        return new CharacterClassEdge(this.label, this.negated);
+        return new CharacterClassEdge(this.label, this.negated, this.counter_info);
     }
 
     @Override
@@ -226,6 +257,31 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
             transition.setNegated(this.negated);
             transitions.add(transition);
         }
-        return new TransitionGroup(transitions, this.negated);
+        return new TransitionGroup(transitions, this.negated, this.counter_info);
     }
+}
+
+class CounterEdge extends LabeledEdge<Counter>
+{
+    public CounterEdge(CounterInfo counter_info)
+    {
+        super(counter_info.counter, counter_info);
+    }
+
+    @Override
+    public String toString()
+    {
+        return "(" + getSource() + " -> " + getTarget() + " : " + this.label.getId() + " [" + this.counter_info +"])";
+    }
+
+    @Override
+    public LabeledEdge<Counter> copy() {
+        return new CounterEdge(this.counter_info);
+    }
+
+    @Override
+    public TransitionGroup generateTransitions(State target) {
+        throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
+    }
+    
 }

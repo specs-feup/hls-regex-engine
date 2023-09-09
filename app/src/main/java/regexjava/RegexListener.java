@@ -414,6 +414,8 @@ public class RegexListener extends PCREgrammarBaseListener {
             stack.push(EpsilonNFA.zeroOrOne(top));
         else if (ctx.Star() != null) // *
             stack.push(EpsilonNFA.zeroOrMore(top));
+        else if (ctx.OpenBrace() != null)
+            stack.push(EpsilonNFA.repeatExactly(top, Integer.parseInt(ctx.number(0).getText())));
     }
 
     public EpsilonNFA getEpsilonNFA()

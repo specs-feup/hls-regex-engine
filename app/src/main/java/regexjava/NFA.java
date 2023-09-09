@@ -22,6 +22,8 @@ public class NFA {
     public NFA(ParseTree root)
     {
         EpsilonNFA eNFA = new EpsilonNFA(root);
+        System.out.println("== e-NFA ==");
+        eNFA.print();
         NFA nfa = eNFA.toRegularNFA();
         this.graph = nfa.graph;
         this.start = nfa.start;

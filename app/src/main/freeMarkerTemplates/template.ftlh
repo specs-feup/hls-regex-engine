@@ -16,13 +16,26 @@
   </#if>
 </#function>
 
-<#function getStateComparisons state group>
+<#function getCounterComparisons group>
+    <#assign result = "">
+    <#if group.counter_info??>
+    <#assign result = result + " &"?no_esc+"& "?no_esc>
+    <#if group.counter_info.operation == "COMPARE_EQUAL">
+      <#assign result = result + "${group.counter_info.counter.id} == ${group.counter_info.counter.target_value}">
+    <#else>
+      <#assign result = result + "${group.counter_info.counter.id} "+ "<"?no_esc + " ${group.counter_info.counter.target_value}">
+    </#if>
+  </#if>
+  <#return result>
+</#function>
+
+<#function getCharacterComparisons group>
     <#assign result = "">
         <#list group.transitions as transition>
             <#if !transition.wildcard>
                 <#assign result = result + "c ${getComparator(transition)} ${transition.token}">
             <#else>
-                <#assign result = result + "true"> 
+                <#assign result = result + "1"> 
             </#if>
 
             <#if !transition?is_last>
@@ -32,6 +45,26 @@
     <#return result>
 </#function>
 
+<#function initializeCounters>
+  <#assign result = "">
+    <#list counter_ids as counter_id>
+      <#assign result = result + "int ${counter_id} = 0;">
+       <#if !counter_id?is_last>
+        <#assign result = result + "\n\t\t">
+       </#if>
+    </#list>
+  <#return result>
+</#function>
+
+<#function getBody group>
+  <#assign result = "next[${group.transitions[0].target.id}] = 1;">
+  <#if group.counter_info??>
+    <#assign result = result + " ${group.counter_info.counter.id}++;">
+  </#if>
+  <#return result>
+</#function>
+
+
 #include <stdio.h>
 #include <string.h>
 
@@ -40,14 +73,15 @@ int kernel(char stream[], int stream_size)
     int curr[${total_states}] = {0};
     int next[${total_states}] = {0};
     curr[${start_state.id}] = 1;
+    ${initializeCounters()}
 
     for (int i = 0; i < stream_size; i++)
     {
         char c = stream[i];
         <#list states as state>
         <#list state.transition_groups as group>
-        if ((${getStateComparisons(state, group)}) && curr[${state.id}])
-            next[${group.transitions[0].target.id}] = 1;
+        if (curr[${state.id}] && (${getCharacterComparisons(group)})${getCounterComparisons(group)})
+          {${getBody(group)}}
         </#list>
         </#list>
             
