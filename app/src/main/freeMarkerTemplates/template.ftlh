@@ -22,8 +22,10 @@
     <#assign result = result + " &"?no_esc+"& "?no_esc>
     <#if group.counter_info.operation == "COMPARE_EQUAL">
       <#assign result = result + "${group.counter_info.counter.id} == ${group.counter_info.counter.target_value}">
-    <#else>
+    <#elseif group.counter_info.operation == "COMPARE_LESS">
       <#assign result = result + "${group.counter_info.counter.id} "+ "<"?no_esc + " ${group.counter_info.counter.target_value}">
+    <#else>
+      <#assign result = result + "${group.counter_info.counter.id} "+ ">"?no_esc+"=" + " ${group.counter_info.counter.target_value}">
     </#if>
   </#if>
   <#return result>

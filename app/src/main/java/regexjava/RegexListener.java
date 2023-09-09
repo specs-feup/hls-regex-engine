@@ -415,7 +415,24 @@ public class RegexListener extends PCREgrammarBaseListener {
         else if (ctx.Star() != null) // *
             stack.push(EpsilonNFA.zeroOrMore(top));
         else if (ctx.OpenBrace() != null)
-            stack.push(EpsilonNFA.repeatExactly(top, Integer.parseInt(ctx.number(0).getText())));
+            processBoundedQuantifier(ctx, top);
+    }
+
+    private void processBoundedQuantifier(QuantifierContext ctx, EpsilonNFA top) 
+    {
+        if (ctx.number().size() == 1) 
+        {
+            int repetitions = Integer.parseInt(ctx.number(0).getText());
+            if (ctx.Comma() != null)
+                stack.push(EpsilonNFA.repeatAtLeast(top, repetitions));
+            else
+                stack.push(EpsilonNFA.repeatExactly(top, repetitions));
+        } 
+        else {
+            int min_repetitions = Integer.parseInt(ctx.number(0).getText());
+            int max_repetitions = Integer.parseInt(ctx.number(1).getText());
+            stack.push(EpsilonNFA.repeatRange(top, min_repetitions, max_repetitions));
+        }
     }
 
     public EpsilonNFA getEpsilonNFA()
