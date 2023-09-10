@@ -2,7 +2,7 @@ package regexjava;
 
 public class Counter {
 
-    public enum CounterOperation {COMPARE_EQUAL, COMPARE_LESS, COMPARE_MORE, COMPARE_EQUALMORE, COMPARE_EQUALLESS, COMPARE_RANGE};
+    public enum CounterOperation {SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_MORE, COMPARE_EQUALMORE, COMPARE_EQUALLESS, COMPARE_RANGE};
 
     private int target_value;
     private int target_value2;

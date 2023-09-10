@@ -236,7 +236,7 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
             str += (char) val;
         }
 
-        return str + " [" + this.counter_info + "])";
+        return str + "]" + " [" + this.counter_info + "]" + ")";
     }
 
     @Override

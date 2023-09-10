@@ -19,7 +19,6 @@
 <#function getCounterComparisons group>
   <#assign result = "">
   <#if group.counter_info??>
-    <#assign result = result + " &"?no_esc+"& "?no_esc>
     <#assign id = group.counter_info.counter.id>
     <#assign comp_symbol = "">
     <#if group.counter_info.operation == "COMPARE_EQUAL">
@@ -34,9 +33,9 @@
       <#assign comp_symbol = "<"?no_esc+"=">
     </#if>
     <#if group.counter_info.operation == "COMPARE_RANGE">
-      <#assign result = result + "${id}[1] + (${id}[0] ? 0 : 1) " + ">="?no_esc + " ${group.counter_info.counter.target_value}" + " &"?no_esc+"& "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + "<="?no_esc + " ${group.counter_info.counter.target_value2}">
-    <#else>
-      <#assign result = result + "${id}[1] + (${id}[0] ? 0 : 1) ${comp_symbol} ${group.counter_info.counter.target_value}">
+      <#assign result = result + " && "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + ">="?no_esc + " ${group.counter_info.counter.target_value}" + " &"?no_esc+"& "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + "<="?no_esc + " ${group.counter_info.counter.target_value2}">
+    <#elseif group.counter_info.operation != "SET">
+      <#assign result = result + " && "?no_esc +  "${id}[1] + (${id}[0] ? 0 : 1) ${comp_symbol} ${group.counter_info.counter.target_value}">
     </#if>
   </#if>
   <#return result>
@@ -62,7 +61,11 @@
   <#assign result = "next[${group.transitions[0].target.id}] = 1;">
   <#if group.counter_info??>
     <#assign id = group.counter_info.counter.id>
-    <#assign result = result + " if(!${id}[0]){${id}[1]++; ${id}[0] = 1;}">
+    <#if group.counter_info.operation != "SET">
+      <#assign result = result + " if(!${id}[0]){${id}[1]++; ${id}[0] = 1;}">
+    <#else>
+      <#assign result = result + " ${id}[1] = 1;">
+    </#if>
   </#if>
   <#return result>
 </#function>
