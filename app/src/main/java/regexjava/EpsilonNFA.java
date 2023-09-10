@@ -213,6 +213,9 @@ public class EpsilonNFA {
             String source = duplicated.graph.getEdgeSource(end_incoming);
             LabeledEdge<?> set_edge = ((LabeledEdge<?>) end_incoming).copy();
             set_edge.setCounterInfo(new CounterInfo(counter, CounterOperation.SET));
+            if (counter.getTarget_value() == 1)
+                to_add.add(new Object[] {source, new_end, set_edge.copy()});
+                
             to_add.add(new Object[] {source, new_mid, set_edge});
             to_remove.add(end_incoming);
         }

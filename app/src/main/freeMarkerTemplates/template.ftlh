@@ -86,7 +86,7 @@
     <#list counter_ids as counter_id>
       <#assign result = result + "${counter_id}[0] = 0;">
        <#if !counter_id?is_last>
-        <#assign result = result + "\n\t\t">
+        <#assign result = result + "\n\t\t\t\t">
        </#if>
     </#list>
   <#return result>
