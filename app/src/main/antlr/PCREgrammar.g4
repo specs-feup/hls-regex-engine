@@ -376,9 +376,9 @@ callout
 atom // WIP
  : backreference
  | subroutine_reference
- | shared_atom // WIP
+ | shared_atom // DONE
  | literal // DONE
- | character_class // WIP
+ | character_class // DONE
  | capture
  | non_capture
  | comment

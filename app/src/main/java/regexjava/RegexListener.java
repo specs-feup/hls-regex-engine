@@ -46,11 +46,21 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         LiteralContext literal = ctx.literal();
         Character_classContext character_class = ctx.character_class();
+        Shared_atomContext shared_atom = ctx.shared_atom();
         TerminalNode dot = ctx.Dot();
         if (literal != null)
             proccessLiteral(literal);
         else if (character_class != null)
             processCharacter_class(character_class);
+        else if (shared_atom != null)
+        {
+            AtomicBoolean negated = new AtomicBoolean(false);
+            Set<Integer> code_points = new HashSet<>();
+            code_points.addAll(getShared_atomCodePoints(shared_atom, negated));
+
+            if (!code_points.isEmpty())
+                stack.push(new EpsilonNFA(new CharacterClassEdge(code_points, negated.get())));
+        }
         else if (dot != null)
             this.stack.push(new EpsilonNFA(new WildcardEdge()));
     }
