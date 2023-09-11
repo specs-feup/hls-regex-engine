@@ -271,7 +271,7 @@ class CounterEdge extends LabeledEdge<Counter>
     @Override
     public String toString()
     {
-        return "(" + getSource() + " -> " + getTarget() + " : " + this.label.getId() + " [" + this.counter_info +"])";
+        return "(" + getSource() + " -> " + getTarget() + " : COUNTER " + this.label.getId() + " [" + this.counter_info +"])";
     }
 
     @Override
