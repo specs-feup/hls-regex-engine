@@ -411,23 +411,23 @@ cc_atom // WIP
 
 shared_atom // WIP
  : POSIXNamedSet // DONE
- | POSIXNegatedNamedSet
+ | POSIXNegatedNamedSet // DONE
  | ControlChar // DONE
  | DecimalDigit // DONE
- | NotDecimalDigit
+ | NotDecimalDigit // DONE
  | HorizontalWhiteSpace // DONE
- | NotHorizontalWhiteSpace
- | NotNewLine
+ | NotHorizontalWhiteSpace // DONE
+ | NotNewLine // DONE
  | CharWithProperty
  | CharWithoutProperty
  | NewLineSequence // DONE
  | WhiteSpace // DONE
- | NotWhiteSpace
+ | NotWhiteSpace // DONE
  | VerticalWhiteSpace // DONE
- | NotVerticalWhiteSpace
+ | NotVerticalWhiteSpace // DONE
  | WordChar // DONE
- | NotWordChar
- | Backslash . // will match "unfinished" escape sequences, like `\x` (TWEAKED) this wasn't letting octal and hex chars to be read
+ | NotWordChar // DONE
+ | Backslash . // will match "unfinished" escape sequences, like `\x` DONE
  ; 
 
 literal // DONE

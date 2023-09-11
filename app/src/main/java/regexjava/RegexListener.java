@@ -8,6 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.Stack;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -172,7 +173,7 @@ public class RegexListener extends PCREgrammarBaseListener {
             System.exit(-1);
         }
 
-        boolean negated = ctx.getText().charAt(1) == '^';
+        AtomicBoolean negated = new AtomicBoolean(ctx.getText().charAt(1) == '^');
         List<Cc_atomContext> cc_atoms = ctx.cc_atom();
         Set<Integer> processed_atoms = new HashSet<>();
         for (int i = 0; i < cc_atoms.size(); i++)
@@ -182,11 +183,11 @@ public class RegexListener extends PCREgrammarBaseListener {
             if (!cc_literals.isEmpty())
                 processed_atoms.addAll(getCc_literalListCodePoints(cc_literals));
             else if (shared_atom != null)
-                processed_atoms.addAll(getShared_atomCodePoints(shared_atom));
+                processed_atoms.addAll(getShared_atomCodePoints(shared_atom, negated));
         }
         
         if (!processed_atoms.isEmpty())
-            stack.push(new EpsilonNFA(new CharacterClassEdge(processed_atoms, negated)));
+            stack.push(new EpsilonNFA(new CharacterClassEdge(processed_atoms, negated.get())));
  
     }
 
@@ -248,10 +249,16 @@ public class RegexListener extends PCREgrammarBaseListener {
         alternate();
     }
 
-    private List<Integer> getShared_atomCodePoints(Shared_atomContext ctx)
+    private List<Integer> getShared_atomCodePoints(Shared_atomContext ctx, AtomicBoolean negated)
     {
         if (ctx.POSIXNamedSet() != null)
-            return getPosixSetsCodePoints(ctx.POSIXNamedSet());
+            return getPosixSetsCodePoints(ctx.POSIXNamedSet(), false);
+
+        if (ctx.POSIXNegatedNamedSet() != null)
+        {
+            negated.set(!negated.get());
+            return getPosixSetsCodePoints(ctx.POSIXNegatedNamedSet(), true);
+        }
 
         if (ctx.ControlChar() != null)
             return getControlCharCodePoints(ctx.ControlChar());
@@ -259,20 +266,61 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (ctx.DecimalDigit() != null)
             return digit();
 
+        if (ctx.NotDecimalDigit() != null)
+        {
+            negated.set(!negated.get());
+            return digit();
+        }
+
         if (ctx.HorizontalWhiteSpace() != null)
             return horizontalWhiteSpace();
+
+        if (ctx.NotHorizontalWhiteSpace() != null)
+        {
+            negated.set(!negated.get());
+            return horizontalWhiteSpace();
+        }
 
         if (ctx.NewLineSequence() != null)
             processNewLineSequence();
 
+        if (ctx.NotNewLine() != null)
+        {
+            negated.set(!negated.get());
+            return Arrays.asList((int)'\n');
+        }
+
         if (ctx.WhiteSpace() != null)
             return whiteSpace();
+
+        if (ctx.NotWhiteSpace() != null)
+        {
+            negated.set(!negated.get());
+            return whiteSpace();
+        }
 
         if (ctx.VerticalWhiteSpace() != null)
             return verticalWhiteSpace();
 
+        if (ctx.NotVerticalWhiteSpace() != null)
+        {
+            negated.set(!negated.get());
+            return verticalWhiteSpace();
+        }
+
         if (ctx.WordChar() != null)
             return word();
+
+        if (ctx.NotWordChar() != null)
+        {
+            negated.set(!negated.get());
+            return word();
+        }
+
+        if (ctx.Backslash() != null)
+        {
+            return Arrays.asList(0);
+        }
 
         return Arrays.asList();
     }
@@ -294,10 +342,11 @@ public class RegexListener extends PCREgrammarBaseListener {
         return Arrays.asList(flipped_code.intValueExact());
     }
 
-    private List<Integer> getPosixSetsCodePoints(TerminalNode posix_node)
+    private List<Integer> getPosixSetsCodePoints(TerminalNode posix_node, boolean negated)
     {
         String text = posix_node.getText();
-        String set_name = text.substring(text.indexOf(':') + 1, text.lastIndexOf(':'));
+        int name_offset = negated ? 2 : 1;
+        String set_name = text.substring(text.indexOf(':') + name_offset, text.lastIndexOf(':'));
         List<Integer> code_points = new LinkedList<>();
 
         switch (set_name)
