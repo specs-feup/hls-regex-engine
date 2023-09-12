@@ -1,4 +1,4 @@
-package regexjava;
+package pcreToHLS;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -14,7 +14,7 @@ import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
 
-import regexjava.Counter.CounterOperation;
+import pcreToHLS.Counter.CounterOperation;
 
 
 public class EpsilonNFA {

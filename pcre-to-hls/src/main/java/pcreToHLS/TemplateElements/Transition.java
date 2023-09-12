@@ -1,4 +1,4 @@
-package regexjava.TemplateElements;
+package pcreToHLS.TemplateElements;
 
 public class Transition {
     private State target;

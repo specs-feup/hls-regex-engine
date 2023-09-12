@@ -1,8 +1,8 @@
-package regexjava.TemplateElements;
+package pcreToHLS.TemplateElements;
 
 import java.util.List;
 
-import regexjava.CounterInfo;
+import pcreToHLS.CounterInfo;
 
 public class TransitionGroup {
     private List<Transition> transitions;

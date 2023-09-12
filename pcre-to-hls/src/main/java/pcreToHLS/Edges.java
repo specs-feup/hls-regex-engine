@@ -1,4 +1,4 @@
-package regexjava;
+package pcreToHLS;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -8,9 +8,9 @@ import java.util.Set;
 
 import org.jgrapht.graph.DefaultEdge;
 
-import regexjava.TemplateElements.State;
-import regexjava.TemplateElements.Transition;
-import regexjava.TemplateElements.TransitionGroup;
+import pcreToHLS.TemplateElements.State;
+import pcreToHLS.TemplateElements.Transition;
+import pcreToHLS.TemplateElements.TransitionGroup;
 
 abstract class LabeledEdge<T> extends DefaultEdge
 {

@@ -1,6 +1,6 @@
-package regexjava;
+package pcreToHLS;
 
-import regexjava.Counter.CounterOperation;
+import pcreToHLS.Counter.CounterOperation;
 
 public class CounterInfo 
 {

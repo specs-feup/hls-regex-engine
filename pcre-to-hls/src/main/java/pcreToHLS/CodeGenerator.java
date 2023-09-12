@@ -1,4 +1,4 @@
-package regexjava;
+package pcreToHLS;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -14,8 +14,8 @@ import org.jgrapht.graph.DefaultEdge;
 
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
-import regexjava.TemplateElements.State;
-import regexjava.TemplateElements.TransitionGroup;
+import pcreToHLS.TemplateElements.State;
+import pcreToHLS.TemplateElements.TransitionGroup;
 
 public class CodeGenerator {
     private NFA automata;

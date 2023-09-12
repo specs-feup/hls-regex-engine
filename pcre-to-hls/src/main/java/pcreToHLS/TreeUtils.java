@@ -1,6 +1,6 @@
 // https://stackoverflow.com/questions/50064110/antlr4-java-pretty-print-parse-tree-to-stdout
 
-package regexjava;
+package pcreToHLS;
 
 import java.util.Arrays;
 import java.util.List;

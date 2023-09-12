@@ -23,12 +23,6 @@ run {
 }
 
 dependencies {
-    // Use JUnit test framework.
-    testImplementation 'junit:junit:4.13.2'
-
-    // This dependency is used by the application.
-    implementation 'com.google.guava:guava:31.1-jre'
-
     // https://mvnrepository.com/artifact/org.jgrapht/jgrapht-core
     implementation 'org.jgrapht:jgrapht-core:1.5.1'
 
@@ -46,6 +40,6 @@ generateGrammarSource {
 
 application {
     // Define the main class for the application.
-    mainClass = 'regexjava.App'
+    mainClass = 'pcreToHLS.App'
 }
 

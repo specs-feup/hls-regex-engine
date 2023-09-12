@@ -8,4 +8,4 @@
  */
 
 rootProject.name = 'RegexJava'
-include('app')
+include('pcre-to-hls', 'pcre-extractor')
