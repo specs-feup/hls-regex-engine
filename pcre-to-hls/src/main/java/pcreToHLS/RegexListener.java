@@ -496,7 +496,7 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public EpsilonNFA getEpsilonNFA()
     {
-        return this.stack.peek();
+        return this.stack.pop();
     }
     
 }

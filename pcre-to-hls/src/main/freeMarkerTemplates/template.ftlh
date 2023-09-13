@@ -1,4 +1,4 @@
-// Kernel generated for regex \${raw_regex}\
+// Kernel generated for regex /${raw_regex}/
 
 <#function getComparator transition>
   <#if transition.negated>

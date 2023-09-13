@@ -22,7 +22,8 @@ public class App {
         BufferedReader reader = new BufferedReader(new FileReader(rule_file));
         FileWriter writer = new FileWriter(out_path);
         String line;
-        while ((line = reader.readLine()) != null) {
+        while ((line = reader.readLine()) != null) 
+        {
           Matcher matcher = pattern.matcher(line);
           while (matcher.find()) {
             String pcre_string = matcher.group(1);

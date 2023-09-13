@@ -3,6 +3,11 @@
  */
 package pcreToHLS;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Scanner;
 
 import org.antlr.v4.runtime.CharStream;
@@ -14,31 +19,81 @@ import PCREgrammar.PCREgrammarLexer;
 import PCREgrammar.PCREgrammarParser;
 
 public class App {
+
     public static void main(String[] args)
     {
-        Scanner scanner = new Scanner(System.in);
-        System.out.printf("Insert a regex: ");
-        String expr = scanner.nextLine();
-        
-        CharStream stream = CharStreams.fromString(expr);
-        PCREgrammarLexer lexer = new PCREgrammarLexer(stream);
-        CommonTokenStream tokens = new CommonTokenStream(lexer);
-        PCREgrammarParser parser = new PCREgrammarParser(tokens);
-        ParseTree tree = parser.parse();
-        
-        System.out.println("\n=== Parse Tree ===");
-        System.out.println(TreeUtils.toPrettyTree(tree, parser));
-        
-        CodeGenerator cg = new CodeGenerator(expr, tree);
-        NFA automata = cg.getAutomata();
-        System.out.println("\n=== NFA ===");
-        automata.print();
-        
-        String default_path = System.getProperty("user.home") + "\\Desktop\\generated.c";
-        System.out.println("\n=== Source Code Generator ===");
-        System.out.println("Sucessfully generated a matcher for \\" + expr + "\\ in " + default_path);
-        cg.generate(default_path);
-        scanner.close();
+        String rules_path_name = "/rules";
+        List<String> expressions = new LinkedList<>();
+        if (args.length == 0) // read expression from stdin
+        {
+            Scanner scanner = new Scanner(System.in);
+            String expr = scanner.nextLine();
+            expressions.add(expr);
+            scanner.close();
+        }
+        else if (args[0].equals("-f")) // read expressions from file
+        {
+            String file_name = args[1] + ".pcre";
+            String rule_path = App.class.getResource(rules_path_name + "/" + file_name).getPath();
+            expressions.addAll(getExpressionsFromFile(rule_path));
+        }
+        else if (args[0].equals("-d")) // read expressions from files in 'resources/rules' directory
+        {
+            String rules_path = App.class.getResource(rules_path_name).getPath();
+            File[] rule_files = new File(rules_path).listFiles();
+            for (File rule_file : rule_files)
+                expressions.addAll(getExpressionsFromFile(rule_file.getPath()));
+        } 
+        else 
+        {
+            System.out.println("invalid arguments");
+            System.exit(-1);
+        }
+
+        toHLS(expressions);
+    }
+
+
+
+    private static void toHLS(List<String> expressions)
+    {
+        int expression_number = 0;
+        for (String expression : expressions)
+        {
+            CharStream stream = CharStreams.fromString(expression);
+            PCREgrammarLexer lexer = new PCREgrammarLexer(stream);
+            CommonTokenStream tokens = new CommonTokenStream(lexer);
+            PCREgrammarParser parser = new PCREgrammarParser(tokens);
+            ParseTree tree = parser.parse();
+
+            System.out.println("\n=== Parse Tree ===");
+            System.out.println(TreeUtils.toPrettyTree(tree, parser));
+            
+            CodeGenerator generator = new CodeGenerator(expression, tree);
+            String default_path = System.getProperty("user.home") + "\\Desktop\\generated_" + expression_number++ + ".c";
+            System.out.println("\n=== Source Code Generator ===");
+            System.out.println("Sucessfully generated a matcher for /" + expression + "/ in " + default_path);
+            generator.generate(default_path);
+        }
+    }
+
+    private static List<String> getExpressionsFromFile(String file_path)
+    {
+        List<String> expressions = new LinkedList<>();
+        File rule_file = new File(file_path);
+        try {
+            BufferedReader reader = new BufferedReader(new FileReader(rule_file));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String pcre = line.substring(line.indexOf('/') + 1, line.lastIndexOf('/'));
+                // String pcre_flags = line.substring(line.lastIndexOf('/') + 1);
+                expressions.add(pcre);
+            }
+            reader.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return expressions;
     }
 
 }
