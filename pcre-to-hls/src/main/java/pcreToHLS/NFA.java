@@ -19,9 +19,9 @@ public class NFA {
         this.ends = ends;
     }
 
-    public NFA(ParseTree root)
+    public NFA(ParseTree root, RulesAnalyzer analyzer)
     {
-        EpsilonNFA eNFA = new EpsilonNFA(root);
+        EpsilonNFA eNFA = new EpsilonNFA(root, analyzer);
         System.out.println("=== e-NFA ===");
         eNFA.print();
         NFA nfa = eNFA.toRegularNFA();

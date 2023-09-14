@@ -1,5 +1,49 @@
-// Kernel generated for regex /${raw_regex}/
+#include <stdio.h>
+#include <string.h>
 
+<#list automata as automaton>
+//kernel for /${automaton.expression}/
+int kernel${automaton?counter}(char stream[], int stream_size)
+{
+    int curr[${automaton.states?size}] = {0};
+    int next[${automaton.states?size}] = {0};
+    curr[${automaton.start_state.id}] = 1;
+    ${declareCounters(automaton.counter_ids)}
+
+    for (int i = 0; i < stream_size; i++)
+    {
+        char c = stream[i];
+        <#list automaton.states as state>
+        <#list state.transition_groups as group>
+        if (curr[${state.id}] && (${getCharacterComparisons(group)})${getCounterComparisons(group)})
+          {${getBody(group)}}
+        </#list>
+        </#list>
+        
+        ${resetCounterGuards(automaton.counter_ids)}
+        memcpy(curr, next, ${automaton.states?size} * sizeof(int));
+        memset(next, 0, ${automaton.states?size} * sizeof(int));
+    }
+
+    return <#list automaton.end_states as end_state>curr[${end_state.id}]<#if !end_state?is_last> || </#if></#list>;
+}
+
+</#list>
+int main()
+{
+    char stream[256];
+    while (1)
+    {
+        printf("Insert a string: ");
+        fgets(stream, 256, stdin);
+        if ((strlen(stream) > 0) && (stream[strlen (stream) - 1] == '\n'))
+            stream[strlen (stream) - 1] = '\0';
+        int match = <#list automata as automaton>kernel${automaton?counter}(stream, strlen(stream))<#if !automaton?is_last> || </#if></#list>;
+        match ? printf("\n\033[0;32mIt's a match! :)\n\n\033[0m") : printf("\n\033[0;31mIt's not a match :(\n\n\033[0m");
+    }
+
+    return 0;
+}
 <#function getComparator transition>
   <#if transition.negated>
     <#return "!=">
@@ -70,7 +114,7 @@
   <#return result>
 </#function>
 
-<#function declareCounters>
+<#function declareCounters counter_ids>
   <#assign result = "">
     <#list counter_ids as counter_id>
       <#assign result = result + "int ${counter_id}[] = {0, 0};">
@@ -81,7 +125,7 @@
   <#return result>
 </#function>
 
-<#function resetCounterGuards>
+<#function resetCounterGuards counter_ids>
   <#assign result = "">
     <#list counter_ids as counter_id>
       <#assign result = result + "${counter_id}[0] = 0;">
@@ -91,47 +135,3 @@
     </#list>
   <#return result>
 </#function>
-
-#include <stdio.h>
-#include <string.h>
-
-int kernel(char stream[], int stream_size)
-{
-    int curr[${total_states}] = {0};
-    int next[${total_states}] = {0};
-    curr[${start_state.id}] = 1;
-    ${declareCounters()}
-
-    for (int i = 0; i < stream_size; i++)
-    {
-        char c = stream[i];
-        <#list states as state>
-        <#list state.transition_groups as group>
-        if (curr[${state.id}] && (${getCharacterComparisons(group)})${getCounterComparisons(group)})
-          {${getBody(group)}}
-        </#list>
-        </#list>
-        
-        ${resetCounterGuards()}
-        memcpy(curr, next, ${total_states} * sizeof(int));
-        memset(next, 0, ${total_states} * sizeof(int));
-    }
-
-    return (curr[${end_states[0].id}]<#list end_states[1..] as end> || curr[${end.id}]</#list>);
-}
-
-int main()
-{
-    char stream[256];
-    while (1)
-    {
-        printf("Insert a string: ");
-        fgets(stream, 256, stdin);
-        if ((strlen(stream) > 0) && (stream[strlen (stream) - 1] == '\n'))
-            stream[strlen (stream) - 1] = '\0';
-        int match = kernel(stream, strlen(stream));
-        match ? printf("\nIt's a match! :)\n\n") : printf("\nIt's not a match :(\n\n");
-    }
-
-    return 0;
-}

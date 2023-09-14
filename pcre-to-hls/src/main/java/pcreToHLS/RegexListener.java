@@ -10,9 +10,11 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import PCREgrammar.PCREgrammarBaseListener;
+import PCREgrammar.PCREgrammarParser;
 import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
 import PCREgrammar.PCREgrammarParser.Cc_atomContext;
@@ -26,7 +28,14 @@ import PCREgrammar.PCREgrammarParser.Shared_literalContext;
 
 public class RegexListener extends PCREgrammarBaseListener {
 
-    private Stack<EpsilonNFA> stack = new Stack<>();
+    private Stack<EpsilonNFA> stack;
+    private RulesAnalyzer analyzer;
+
+    public RegexListener(RulesAnalyzer analyzer)
+    {
+        this.stack = new Stack<>();
+        this.analyzer = analyzer;
+    }
 
     private void alternate()
     {
@@ -40,6 +49,12 @@ public class RegexListener extends PCREgrammarBaseListener {
         EpsilonNFA second = stack.pop();
         EpsilonNFA first = stack.pop();
         stack.push(EpsilonNFA.concat(first, second));
+    }
+
+    public void enterEveryRule(ParserRuleContext ctx)
+    {
+        String[] rule_names = PCREgrammarParser.ruleNames;
+        this.analyzer.addOccurence(rule_names[ctx.getRuleIndex()]);
     }
 
     public void enterAtom(AtomContext ctx)

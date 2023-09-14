@@ -10,19 +10,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 
-import org.antlr.v4.runtime.CharStream;
-import org.antlr.v4.runtime.CharStreams;
-import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTree;
-
-import PCREgrammar.PCREgrammarLexer;
-import PCREgrammar.PCREgrammarParser;
-
 public class App {
 
     public static void main(String[] args)
     {
         String rules_path_name = "/rules";
+        String generation_path = System.getProperty("user.home") + "\\Desktop\\generated.c";
         List<String> expressions = new LinkedList<>();
         if (args.length == 0) // read expression from stdin
         {
@@ -50,31 +43,11 @@ public class App {
             System.exit(-1);
         }
 
-        toHLS(expressions);
-    }
-
-
-
-    private static void toHLS(List<String> expressions)
-    {
-        int expression_number = 0;
-        for (String expression : expressions)
-        {
-            CharStream stream = CharStreams.fromString(expression);
-            PCREgrammarLexer lexer = new PCREgrammarLexer(stream);
-            CommonTokenStream tokens = new CommonTokenStream(lexer);
-            PCREgrammarParser parser = new PCREgrammarParser(tokens);
-            ParseTree tree = parser.parse();
-
-            System.out.println("\n=== Parse Tree ===");
-            System.out.println(TreeUtils.toPrettyTree(tree, parser));
-            
-            CodeGenerator generator = new CodeGenerator(expression, tree);
-            String default_path = System.getProperty("user.home") + "\\Desktop\\generated_" + expression_number++ + ".c";
-            System.out.println("\n=== Source Code Generator ===");
-            System.out.println("Sucessfully generated a matcher for /" + expression + "/ in " + default_path);
-            generator.generate(default_path);
-        }
+        CodeGenerator generator = new CodeGenerator(expressions);
+        System.out.println("\n === Analyzer ===");
+        generator.getAnalyzer().print();
+        generator.generate(generation_path);
+        System.out.println("\nMatcher generated in " + generation_path);
     }
 
     private static List<String> getExpressionsFromFile(String file_path)

@@ -96,9 +96,9 @@ public class EpsilonNFA {
     }
 
     /* Creates EpsilonNFA from a regex parseTree */
-    EpsilonNFA(ParseTree tree)
+    EpsilonNFA(ParseTree tree, RulesAnalyzer analyzer)
     {
-        RegexListener listener = new RegexListener();
+        RegexListener listener = new RegexListener(analyzer);
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);
         copy(listener.getEpsilonNFA());
