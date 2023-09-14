@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,10 +43,13 @@ public class CodeGenerator {
             PCREgrammarParser parser = new PCREgrammarParser(tokens);
             ParseTree tree = parser.parse();
 
-            System.out.println("\n=== Parse Tree ===");
-            System.out.println(TreeUtils.toPrettyTree(tree, parser));
-
-            this.regex.put(expression, new NFA(tree, this.analyzer));
+            // System.out.println("\n=== Parse Tree ===");
+            // System.out.println(TreeUtils.toPrettyTree(tree, parser));
+            try { 
+                this.regex.put(expression, new NFA(tree, this.analyzer));
+            } 
+            catch (EmptyStackException e) { System.out.println("Failed to parse: " + expression); }
+            
         }
     }
 
@@ -89,12 +93,17 @@ public class CodeGenerator {
                 {
                     String target = automaton_graph.getEdgeTarget(edge);
                     State target_state = getState(target, vertex_ids);
-                    TransitionGroup edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
-                    curr_state.addTransitionGroup(edge_transitions);
+                    try {
+                        TransitionGroup edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
+                        curr_state.addTransitionGroup(edge_transitions);
+                        CounterInfo group_counter_info = edge_transitions.getCounter_info();
+                        if (group_counter_info != null)
+                            counter_ids.add(group_counter_info.counter.getId());
+                    } catch (UnsupportedOperationException e) {
+                        System.out.println("error because of bounded quantifier (to remove)"); //TODO REMOVE THIS AFTER FIX
+                        continue;
+                    }
 
-                    CounterInfo group_counter_info = edge_transitions.getCounter_info();
-                    if (group_counter_info != null)
-                        counter_ids.add(group_counter_info.counter.getId());
                 }
 
                 if (automaton.getEnds().contains(vertex))

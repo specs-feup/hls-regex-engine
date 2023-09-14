@@ -1,6 +1,7 @@
 package pcreToHLS;
 
 import java.util.Arrays;
+import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.HashSet;
@@ -96,7 +97,7 @@ public class EpsilonNFA {
     }
 
     /* Creates EpsilonNFA from a regex parseTree */
-    EpsilonNFA(ParseTree tree, RulesAnalyzer analyzer)
+    EpsilonNFA(ParseTree tree, RulesAnalyzer analyzer) throws EmptyStackException
     {
         RegexListener listener = new RegexListener(analyzer);
         ParseTreeWalker walker = new ParseTreeWalker();

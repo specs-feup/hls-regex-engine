@@ -1,5 +1,6 @@
 package pcreToHLS;
 
+import java.util.EmptyStackException;
 import java.util.Set;
 
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -19,14 +20,14 @@ public class NFA {
         this.ends = ends;
     }
 
-    public NFA(ParseTree root, RulesAnalyzer analyzer)
+    public NFA(ParseTree root, RulesAnalyzer analyzer) throws EmptyStackException
     {
         EpsilonNFA eNFA = new EpsilonNFA(root, analyzer);
-        System.out.println("=== e-NFA ===");
-        eNFA.print();
+        // System.out.println("=== e-NFA ===");
+        // eNFA.print();
         NFA nfa = eNFA.toRegularNFA();
-        System.out.println("\n=== NFA ===");
-        nfa.print();
+        // System.out.println("\n=== NFA ===");
+        // nfa.print();
         this.graph = nfa.graph;
         this.start = nfa.start;
         this.ends = nfa.ends;

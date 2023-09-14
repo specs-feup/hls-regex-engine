@@ -10,21 +10,28 @@ import java.util.Set;
 import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import PCREgrammar.PCREgrammarBaseListener;
-import PCREgrammar.PCREgrammarParser;
 import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
+import PCREgrammar.PCREgrammarParser.BackreferenceContext;
+import PCREgrammar.PCREgrammarParser.CalloutContext;
+import PCREgrammar.PCREgrammarParser.CaptureContext;
 import PCREgrammar.PCREgrammarParser.Cc_atomContext;
 import PCREgrammar.PCREgrammarParser.Cc_literalContext;
 import PCREgrammar.PCREgrammarParser.Character_classContext;
+import PCREgrammar.PCREgrammarParser.ConditionalContext;
 import PCREgrammar.PCREgrammarParser.ExprContext;
 import PCREgrammar.PCREgrammarParser.LiteralContext;
+import PCREgrammar.PCREgrammarParser.Look_aroundContext;
+import PCREgrammar.PCREgrammarParser.Non_captureContext;
+import PCREgrammar.PCREgrammarParser.ParseContext;
 import PCREgrammar.PCREgrammarParser.QuantifierContext;
+import PCREgrammar.PCREgrammarParser.Quantifier_typeContext;
 import PCREgrammar.PCREgrammarParser.Shared_atomContext;
 import PCREgrammar.PCREgrammarParser.Shared_literalContext;
+import PCREgrammar.PCREgrammarParser.Subroutine_referenceContext;
 
 public class RegexListener extends PCREgrammarBaseListener {
 
@@ -49,12 +56,6 @@ public class RegexListener extends PCREgrammarBaseListener {
         EpsilonNFA second = stack.pop();
         EpsilonNFA first = stack.pop();
         stack.push(EpsilonNFA.concat(first, second));
-    }
-
-    public void enterEveryRule(ParserRuleContext ctx)
-    {
-        String[] rule_names = PCREgrammarParser.ruleNames;
-        this.analyzer.addOccurence(rule_names[ctx.getRuleIndex()]);
     }
 
     public void enterAtom(AtomContext ctx)
@@ -469,17 +470,24 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void exitExpr(ExprContext ctx)
     {
         for(int i = 0; i < ctx.element().size() - 1; i++)
+        {
+            this.analyzer.addOccurence("Concatenations");
             concat();
+        }
     }
 
     public void exitAlternation(AlternationContext ctx)
     {
         for(int i = 0; i < ctx.Pipe().size(); i++)
+        {
+            this.analyzer.addOccurence("Alternations");
             alternate();
+        }
     }
 
     public void enterQuantifier(QuantifierContext ctx)
     {
+        this.analyzer.addOccurence("Total Quantifiers");
         EpsilonNFA top = stack.pop();
 
         if (ctx.Plus() != null) // +
@@ -489,7 +497,10 @@ public class RegexListener extends PCREgrammarBaseListener {
         else if (ctx.Star() != null) // *
             stack.push(EpsilonNFA.zeroOrMore(top));
         else if (ctx.OpenBrace() != null)
+        {
+            this.analyzer.addOccurence("Bounded Quantifiers");
             processBoundedQuantifier(ctx, top);
+        }
     }
 
     private void processBoundedQuantifier(QuantifierContext ctx, EpsilonNFA top) 
@@ -512,6 +523,60 @@ public class RegexListener extends PCREgrammarBaseListener {
     public EpsilonNFA getEpsilonNFA()
     {
         return this.stack.pop();
+    }
+
+    // ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ====
+    public void enterParse(ParseContext ctx)
+    {
+        this.analyzer.addOccurence("Expressions");
+    }
+
+    public void enterCharacter_class(Character_classContext ctx)
+    {
+        this.analyzer.addOccurence("Character Classes");
+    }
+
+    public void enterQuantifier_type(Quantifier_typeContext ctx)
+    {
+        if (ctx.Plus() != null)
+            this.analyzer.addOccurence("Possessive Quantifiers");
+        else if (ctx.QuestionMark() != null)
+            this.analyzer.addOccurence("Lazy Quantifiers");
+    }
+
+    public void enterBackreference(BackreferenceContext ctx)
+    {
+        this.analyzer.addOccurence("Backreferences");
+    }
+
+    public void enterCapture(CaptureContext ctx)
+    {
+        this.analyzer.addOccurence("Capture Groups");
+    }
+
+    public void enterNon_capture(Non_captureContext ctx)
+    {
+        this.analyzer.addOccurence("Non-Capture Groups");
+    }
+
+    public void enterLook_around(Look_aroundContext ctx)
+    {
+        this.analyzer.addOccurence("LookArounds");
+    }
+
+    public void enterSubroutine_reference(Subroutine_referenceContext ctx)
+    {
+        this.analyzer.addOccurence("Subroutines");
+    }
+
+    public void enterConditional(ConditionalContext ctx)
+    {
+        this.analyzer.addOccurence("Conditional Patterns");
+    }
+
+    public void enterCallout(CalloutContext ctx)
+    {
+        this.analyzer.addOccurence("Callouts");
     }
     
 }
