@@ -34,4 +34,17 @@ public class CounterInfo
     {
         return this.counter.getId() + " " + this.operation + " " + this.counter.getTarget_value();
     }
+
+    @Override
+    public boolean equals(Object other)
+    {
+        if (this == other)
+            return true;
+
+        if (other == null || getClass() != other.getClass())
+            return false;
+
+        CounterInfo other_counter_info = (CounterInfo) other;
+        return this.counter.equals(other_counter_info.counter) && this.operation.equals(other_counter_info.operation);
+    }
 }

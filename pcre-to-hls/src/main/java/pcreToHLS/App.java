@@ -44,6 +44,10 @@ public class App {
         }
 
         CodeGenerator generator = new CodeGenerator(expressions);
+        List<NFA> a = new LinkedList<>(generator.getRegex().values());
+        DFA dfa = a.get(0).toDFA();
+        System.out.println("\n=== DFA ===");
+        dfa.print();
         System.out.println("\n === Analyzer ===");
         generator.getAnalyzer().print();
         generator.generate(generation_path);

@@ -57,6 +57,10 @@ public class CodeGenerator {
         return analyzer;
     }
 
+    public Map<String, NFA> getRegex() {
+        return regex;
+    }
+
     private State getState(String vertex, Map<String, State> vertices_mapping)
     {
         State state;

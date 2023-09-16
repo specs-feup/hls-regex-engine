@@ -52,7 +52,8 @@ abstract class LabeledEdge<T> extends DefaultEdge
             return false;
 
         LabeledEdge<?> other_edge = (LabeledEdge<?>) other;
-        return other_edge.label.equals(this.label) && other_edge.getSource().equals(this.getSource()) 
+        boolean check_counter_info = this.counter_info != null ? this.counter_info.equals(other_edge.counter_info) : other_edge.counter_info == null;
+        return other_edge.label.equals(this.label) && check_counter_info && other_edge.getSource().equals(this.getSource()) 
                && other_edge.getTarget().equals(this.getTarget());
     }
 
@@ -261,21 +262,21 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     }
 }
 
-class CounterEdge extends LabeledEdge<Counter>
+class CounterEdge extends LabeledEdge<CounterInfo>
 {
     public CounterEdge(CounterInfo counter_info)
     {
-        super(counter_info.counter, counter_info);
+        super(counter_info, counter_info);
     }
 
     @Override
     public String toString()
     {
-        return "(" + getSource() + " -> " + getTarget() + " : COUNTER " + this.label.getId() + " [" + this.counter_info +"])";
+        return "(" + getSource() + " -> " + getTarget() + " : COUNTER " + this.label.counter.getId() + " [" + this.counter_info +"])";
     }
 
     @Override
-    public LabeledEdge<Counter> copy() {
+    public LabeledEdge<CounterInfo> copy() {
         return new CounterEdge(this.counter_info);
     }
 
