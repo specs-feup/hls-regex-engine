@@ -1,14 +1,13 @@
 package pcreToHLS;
 
+import java.util.EmptyStackException;
 import java.util.Set;
 
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
 
-public class DFA {
-    private String start;
-    private Set<String> ends;
-    private Graph<String, DefaultEdge> graph = new DirectedPseudograph<>(LabeledEdge.class);
+public class DFA extends FinalAutomaton {
 
     public DFA(Graph<String, DefaultEdge> graph, String start, Set<String> ends) 
     {
@@ -17,27 +16,13 @@ public class DFA {
         this.ends = ends;
     }
 
-    public String getStart() 
+    public DFA(ParseTree root, RulesAnalyzer analyzer) throws EmptyStackException 
     {
-        return start;
-    }
-
-    public Set<String> getEnds() 
-    {
-        return ends;
-    }
-
-    public Graph<String, DefaultEdge> getGraph() 
-    {
-        return graph;
-    }
-
-
-    public void print()
-    {
-        System.out.println("Start: " + this.start);
-        System.out.println("Ends: " + this.ends);
-        System.out.println("Graph:");
-        System.out.println(this.graph);
+        EpsilonNFA eNFA = new EpsilonNFA(root, analyzer);
+        NFA nfa = eNFA.toRegularNFA();
+        DFA dfa = nfa.toDFA();
+        System.out.println("\n=== DFA ===");
+        dfa.print();
+        copy(dfa);
     }
 }

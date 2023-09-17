@@ -15,10 +15,7 @@ import org.jgrapht.*;
 import org.jgrapht.graph.*;
 
 
-public class NFA {
-    private String start;
-    private Set<String> ends;
-    private Graph<String, DefaultEdge> graph = new DirectedPseudograph<>(LabeledEdge.class);
+public class NFA extends FinalAutomaton {
 
     public NFA(Graph<String, DefaultEdge> graph, String start, Set<String> ends) 
     {
@@ -30,29 +27,10 @@ public class NFA {
     public NFA(ParseTree root, RulesAnalyzer analyzer) throws EmptyStackException
     {
         EpsilonNFA eNFA = new EpsilonNFA(root, analyzer);
-        // System.out.println("=== e-NFA ===");
-        // eNFA.print();
         NFA nfa = eNFA.toRegularNFA();
         System.out.println("\n=== NFA ===");
         nfa.print();
-        this.graph = nfa.graph;
-        this.start = nfa.start;
-        this.ends = nfa.ends;
-    }
-
-    public String getStart() 
-    {
-        return start;
-    }
-
-    public Set<String> getEnds() 
-    {
-        return ends;
-    }
-
-    public Graph<String, DefaultEdge> getGraph() 
-    {
-        return graph;
+        copy(nfa);
     }
 
     public DFA toDFA() // powerset construction
@@ -104,14 +82,5 @@ public class NFA {
         }
 
         return new DFA(new_graph, new_start_id, new_ends);
-    }
-
-
-    public void print()
-    {
-        System.out.println("Start: " + this.start);
-        System.out.println("Ends: " + this.ends);
-        System.out.println("Graph:");
-        System.out.println(this.graph);
     }
 }

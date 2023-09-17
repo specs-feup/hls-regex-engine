@@ -28,10 +28,10 @@ import pcreToHLS.TemplateElements.State;
 import pcreToHLS.TemplateElements.TransitionGroup;
 
 public class CodeGenerator {
-    private Map<String, NFA> regex;
+    private Map<String, FinalAutomaton> regex;
     private RulesAnalyzer analyzer;
 
-    public CodeGenerator(List<String> expressions)
+    public CodeGenerator(List<String> expressions, boolean dfas)
     {
         this.analyzer = new RulesAnalyzer();
         this.regex = new HashMap<>();
@@ -45,9 +45,14 @@ public class CodeGenerator {
 
             // System.out.println("\n=== Parse Tree ===");
             // System.out.println(TreeUtils.toPrettyTree(tree, parser));
-            try { 
-                this.regex.put(expression, new NFA(tree, this.analyzer));
-            } 
+            try {
+                FinalAutomaton automaton;
+                if (dfas)
+                    automaton = new DFA(tree, this.analyzer);
+                else 
+                    automaton = new NFA(tree, this.analyzer);
+                this.regex.put(expression, automaton);
+            }
             catch (EmptyStackException e) { System.out.println("Failed to parse: " + expression); }
             
         }
@@ -57,7 +62,7 @@ public class CodeGenerator {
         return analyzer;
     }
 
-    public Map<String, NFA> getRegex() {
+    public Map<String, FinalAutomaton> getRegex() {
         return regex;
     }
 
@@ -80,9 +85,9 @@ public class CodeGenerator {
     {
         Set<Automaton> automata = new HashSet<>();
 
-        for (Entry<String, NFA> regex_entry : this.regex.entrySet())
+        for (Entry<String, FinalAutomaton> regex_entry : this.regex.entrySet())
         {
-            NFA automaton = regex_entry.getValue();
+            FinalAutomaton automaton = regex_entry.getValue();
             String expression = regex_entry.getKey();
             Graph<String, DefaultEdge> automaton_graph = automaton.getGraph();
             Map<String, State> vertex_ids = new HashMap<>();

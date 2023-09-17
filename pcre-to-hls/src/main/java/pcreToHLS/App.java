@@ -10,27 +10,62 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Scanner;
 
+import org.apache.commons.cli.*;
+
 public class App {
 
     public static void main(String[] args)
     {
-        String rules_path_name = "/rules";
         String generation_path = System.getProperty("user.home") + "\\Desktop\\generated.c";
-        List<String> expressions = new LinkedList<>();
-        if (args.length == 0) // read expression from stdin
-        {
-            Scanner scanner = new Scanner(System.in);
-            String expr = scanner.nextLine();
-            expressions.add(expr);
-            scanner.close();
+        CommandLine cmd = parseOptions(args);
+        boolean generate_dfas = cmd.hasOption("dfa");
+        List<String> expressions = getExpressions(cmd);
+
+        CodeGenerator generator = new CodeGenerator(expressions, generate_dfas);
+        System.out.println("\n === Analyzer ===");
+        generator.getAnalyzer().print();
+        generator.generate(generation_path);
+        System.out.println("\nMatcher generated in " + generation_path);
+    }
+
+    private static CommandLine parseOptions(String[] args)
+    {
+        Options options = new Options();
+        OptionGroup alternative_expression_source = new OptionGroup();
+        Option file_option = new Option("f", "file", true, "parses pcre ruleset in 'resources/<arg>.pcre' file");
+        Option dir_option = new Option("d", "dir", false, "parses all pcre rulesets in 'resources' directory");
+        alternative_expression_source.addOption(file_option);
+        alternative_expression_source.addOption(dir_option);
+        options.addOptionGroup(alternative_expression_source);
+        Option dfa_option = new Option("dfa", "uses DFAs instead of NFAs");
+        options.addOption(dfa_option);
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd = null;
+
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp("pcreToHLS", options);
+            System.exit(-1);
         }
-        else if (args[0].equals("-f")) // read expressions from file
+
+        return cmd;
+    }
+
+    private static List<String> getExpressions(CommandLine cmd)
+    {
+        String rules_path_name = "/rules";
+        List<String> expressions = new LinkedList<>();
+
+        if (cmd.hasOption("f")) 
         {
-            String file_name = args[1] + ".pcre";
+            String file_name = cmd.getOptionValue("f") + ".pcre";
             String rule_path = App.class.getResource(rules_path_name + "/" + file_name).getPath();
             expressions.addAll(getExpressionsFromFile(rule_path));
-        }
-        else if (args[0].equals("-d")) // read expressions from files in 'resources/rules' directory
+        } 
+        else if (cmd.hasOption("d")) 
         {
             String rules_path = App.class.getResource(rules_path_name).getPath();
             File[] rule_files = new File(rules_path).listFiles();
@@ -39,19 +74,13 @@ public class App {
         } 
         else 
         {
-            System.out.println("invalid arguments");
-            System.exit(-1);
+            Scanner scanner = new Scanner(System.in);
+            String expr = scanner.nextLine();
+            expressions.add(expr);
+            scanner.close();
         }
 
-        CodeGenerator generator = new CodeGenerator(expressions);
-        List<NFA> a = new LinkedList<>(generator.getRegex().values());
-        DFA dfa = a.get(0).toDFA();
-        System.out.println("\n=== DFA ===");
-        dfa.print();
-        System.out.println("\n === Analyzer ===");
-        generator.getAnalyzer().print();
-        generator.generate(generation_path);
-        System.out.println("\nMatcher generated in " + generation_path);
+        return expressions;
     }
 
     private static List<String> getExpressionsFromFile(String file_path)

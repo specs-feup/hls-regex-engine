@@ -15,7 +15,6 @@ import org.jgrapht.graph.*;
 
 import pcreToHLS.Counter.CounterOperation;
 
-
 public class EpsilonNFA {
 
     private Graph<String, DefaultEdge> graph = new DirectedMultigraph<>(LabeledEdge.class);
