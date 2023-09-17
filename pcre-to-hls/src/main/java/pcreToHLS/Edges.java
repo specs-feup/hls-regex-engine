@@ -53,8 +53,9 @@ abstract class LabeledEdge<T> extends DefaultEdge
 
         LabeledEdge<?> other_edge = (LabeledEdge<?>) other;
         boolean check_counter_info = this.counter_info != null ? this.counter_info.equals(other_edge.counter_info) : other_edge.counter_info == null;
-        return other_edge.label.equals(this.label) && check_counter_info && other_edge.getSource().equals(this.getSource()) 
-               && other_edge.getTarget().equals(this.getTarget());
+        boolean check_source = this.getSource() != null ? this.getSource().equals(other_edge.getSource()) : other_edge.getSource() == null;
+        boolean check_target = this.getTarget() != null ? this.getTarget().equals(other_edge.getTarget()) : other_edge.getTarget() == null;
+        return other_edge.label.equals(this.label) && check_counter_info && check_source && check_target;
     }
 
     abstract public LabeledEdge<T> copy();

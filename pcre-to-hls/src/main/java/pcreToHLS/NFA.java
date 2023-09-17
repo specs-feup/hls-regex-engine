@@ -1,7 +1,7 @@
 package pcreToHLS;
 
-import java.util.AbstractMap;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,56 +55,55 @@ public class NFA {
         return graph;
     }
 
-    public DFA toDFA()
+    public DFA toDFA() // powerset construction
     {
         Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
         Stack<Set<String>> outer_states = new Stack<>();
         Map<Set<String>, String> outer_state_map = new HashMap<>();
+        Set<String> new_ends = new HashSet<>();
+        String new_start_id = VertexIDFactory.getNewVertexID();
         outer_states.push(Set.of(this.start));
+        outer_state_map.put(Set.of(this.start), new_start_id);
+        new_graph.addVertex(new_start_id);
 
         while (!outer_states.isEmpty())
         {
             Set<String> outer_state = outer_states.pop();
-            if (!outer_state_map.containsKey(outer_state))
-            {
-                String new_id = VertexIDFactory.getNewVertexID();
-                outer_state_map.put(outer_state, new_id);
-                new_graph.addVertex(new_id);
-            }
 
+            if (!Collections.disjoint(outer_state, this.ends))
+                new_ends.add(outer_state_map.get(outer_state));
+    
+            Map<LabeledEdge<?>, Set<String>> new_sub_states = new HashMap<>();
             for (String sub_state : outer_state)
-            {
-                Map<Object, Entry<Set<String>, LabeledEdge<?>>> new_sub_states = new HashMap<>();
                 for (DefaultEdge edge : this.graph.outgoingEdgesOf(sub_state))
                 {
-                    Object edge_label = ((LabeledEdge<?>) edge).label;
+                    LabeledEdge<?> edge_copy = ((LabeledEdge<?>) edge).copy();
                     String edge_target = this.graph.getEdgeTarget(edge);
-                    if (new_sub_states.putIfAbsent(edge_label, new AbstractMap.SimpleEntry<>(new HashSet<>(Arrays.asList(edge_target)), (LabeledEdge<?>) edge)) != null)
-                        new_sub_states.get(edge_label).getKey().add(edge_target);
+                    if (new_sub_states.putIfAbsent(edge_copy, new HashSet<>(Arrays.asList(edge_target))) != null)
+                        new_sub_states.get(edge_copy).add(edge_target);
                 }
 
-                for (Entry<Set<String>, LabeledEdge<?>>  entry : new_sub_states.values())
+            for (Entry<LabeledEdge<?>, Set<String>>  entry : new_sub_states.entrySet())
+            {
+                String source_state_id = outer_state_map.get(outer_state);
+    
+                String destination_state_id = "";
+                if (outer_state_map.containsKey(entry.getValue()))
+                    destination_state_id = outer_state_map.get(entry.getValue());
+                else
                 {
-                    String source_state_id = outer_state_map.get(outer_state);
-       
-                    String destination_state_id = "";
-                    if (outer_state_map.containsKey(entry.getKey()))
-                        destination_state_id = outer_state_map.get(entry.getKey());
-                    else
-                    {
-                        destination_state_id = VertexIDFactory.getNewVertexID();
-                        outer_state_map.put(entry.getKey(), destination_state_id);
-                        new_graph.addVertex(destination_state_id);
-                        outer_states.push(entry.getKey());
-                    }
-
-                    new_graph.addEdge(source_state_id, destination_state_id, entry.getValue().copy());
+                    destination_state_id = VertexIDFactory.getNewVertexID();
+                    outer_state_map.put(entry.getValue(), destination_state_id);
+                    new_graph.addVertex(destination_state_id);
+                    outer_states.push(entry.getValue());
                 }
+
+                new_graph.addEdge(source_state_id, destination_state_id, entry.getKey());
             }
 
         }
 
-        return new DFA(new_graph, "", null);
+        return new DFA(new_graph, new_start_id, new_ends);
     }
 
 
