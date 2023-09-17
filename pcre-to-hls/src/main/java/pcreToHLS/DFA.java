@@ -23,6 +23,7 @@ public class DFA extends FinalAutomaton {
         DFA dfa = nfa.toDFA();
         System.out.println("\n=== DFA ===");
         dfa.print();
+        dfa.display();
         copy(dfa);
     }
 }
