@@ -15,25 +15,38 @@ import pcreToHLS.TemplateElements.TransitionGroup;
 abstract class LabeledEdge<T> extends DefaultEdge
 {
     protected T label;
-    protected CounterInfo counter_info = null;
+    protected List<CounterInfo> counter_infos;
 
     public LabeledEdge(T label)
     {
         this.label = label;
+        this.counter_infos = new LinkedList<>();
     }
 
     public LabeledEdge(T label, CounterInfo counter_info)
     {
         this.label = label;
-        this.counter_info = counter_info;
+        this.counter_infos = new LinkedList<>(Arrays.asList(counter_info));
     }
 
-    public CounterInfo getCounterInfo() {
-        return counter_info;
+    public LabeledEdge(T label, List<CounterInfo> counter_infos)
+    {
+        this.label = label;
+        this.counter_infos = new LinkedList<>(counter_infos);
     }
 
-    public void setCounterInfo(CounterInfo counter_info) {
-        this.counter_info = counter_info;
+    public List<CounterInfo> getCounterInfos() {
+        return counter_infos;
+    }
+
+    public void setCounterInfos(List<CounterInfo> counter_infos)
+    {
+        this.counter_infos = counter_infos;
+    }
+
+    public void addCounterInfos(List<CounterInfo> counter_infos) 
+    {
+        this.counter_infos.addAll(counter_infos);
     }
 
     @Override
@@ -52,10 +65,22 @@ abstract class LabeledEdge<T> extends DefaultEdge
             return false;
 
         LabeledEdge<?> other_edge = (LabeledEdge<?>) other;
-        boolean check_counter_info = this.counter_info != null ? this.counter_info.equals(other_edge.counter_info) : other_edge.counter_info == null;
+        boolean check_counter_info = this.counter_infos.equals(other_edge.counter_infos);
         boolean check_source = this.getSource() != null ? this.getSource().equals(other_edge.getSource()) : other_edge.getSource() == null;
         boolean check_target = this.getTarget() != null ? this.getTarget().equals(other_edge.getTarget()) : other_edge.getTarget() == null;
         return other_edge.label.equals(this.label) && check_counter_info && check_source && check_target;
+    }
+
+    protected String getCountersString()
+    {
+        String str = "[";
+        for (int i = 0; i < this.counter_infos.size(); i++)
+        {
+            if (i != 0)
+                str += " & ";
+            str += this.counter_infos.get(i);
+        }
+        return str + "]";
     }
 
     abstract public LabeledEdge<T> copy();
@@ -75,16 +100,21 @@ class WildcardEdge extends LabeledEdge<Integer>
         super(-1, counter_info);
     }
 
+    public WildcardEdge(List<CounterInfo> counter_infos)
+    {
+        super(-1, counter_infos);
+    }
+
     @Override
     public String toString()
     {
-        return "(" + getSource() + " -> " + getTarget() + " : " + "wildcard" + " [" + this.counter_info +"])";
+        return "wildcard" + getCountersString();
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        return new WildcardEdge(this.counter_info);
+        return new WildcardEdge(this.counter_infos);
     }
 
     @Override
@@ -93,7 +123,7 @@ class WildcardEdge extends LabeledEdge<Integer>
         Transition transition = new Transition();
         transition.setWildcard(true);
         transition.setTarget(target);
-        return new TransitionGroup(Arrays.asList(transition), this.counter_info);
+        return new TransitionGroup(Arrays.asList(transition), this.counter_infos);
     }
 } 
 
@@ -107,7 +137,7 @@ class EpsilonEdge extends LabeledEdge<Integer>
     @Override
     public String toString()
     {
-        return "(" + getSource() + " -> " + getTarget() + " : " + "epsilon" + ")";
+        return "epsilon";
     }
 
     @Override
@@ -135,6 +165,11 @@ class CharacterEdge extends LabeledEdge<Integer>
         super(code_point, counter_info);
     }
 
+    public CharacterEdge(int code_point, List<CounterInfo> counter_infos)
+    {
+        super(code_point, counter_infos);
+    }
+
     public int getCodePoint()
     {
         return this.label;
@@ -144,13 +179,13 @@ class CharacterEdge extends LabeledEdge<Integer>
     public String toString()
     {
         int val = this.label.intValue();
-        return "(" + getSource() + " -> " + getTarget() + " : " + (char) val + " [" + this.counter_info +"])";
+        return (char) val + this.getCountersString();
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        return new CharacterEdge(this.label, this.counter_info);
+        return new CharacterEdge(this.label, this.counter_infos);
     }
 
     @Override
@@ -159,7 +194,7 @@ class CharacterEdge extends LabeledEdge<Integer>
         Transition transition = new Transition();
         transition.setTarget(target);
         transition.setToken(this.label);
-        return new TransitionGroup(Arrays.asList(transition), this.counter_info);
+        return new TransitionGroup(Arrays.asList(transition), this.counter_infos);
     }
 }
 
@@ -178,14 +213,14 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     @Override
     public String toString()
     {
-        String str = "(" + getSource() + " -> " + getTarget() + " : BLOCK[";
+        String str = "BLOCK(";
         for (Integer e : this.label)
         {
             int val = e.intValue();
             str += (char) val;
         }
 
-        return str + "])";
+        return str + ")";
     }
 
     @Override
@@ -217,6 +252,12 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         this.negated = negated;
     }
 
+    public CharacterClassEdge(Set<Integer> code_points, boolean negated, List<CounterInfo> counter_infos)
+    {
+        super(code_points, counter_infos);
+        this.negated = negated;
+    }
+
     public Set<Integer> getCodePoints()
     {
         return this.label;
@@ -231,20 +272,20 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     public String toString()
     {
         String type = this.negated ? "NEGATED_" : "";
-        String str = "(" + getSource() + " -> " + getTarget() + " : " + type + "CLASS[";
+        String str = type + "CLASS(";
         for (Integer e : this.label)
         {
             int val = e.intValue();
             str += (char) val;
         }
 
-        return str + "]" + " [" + this.counter_info + "]" + ")";
+        return str + ")" + getCountersString();
     }
 
     @Override
     public LabeledEdge<Set<Integer>> copy() 
     {
-        return new CharacterClassEdge(this.label, this.negated, this.counter_info);
+        return new CharacterClassEdge(this.label, this.negated, this.counter_infos);
     }
 
     @Override
@@ -259,7 +300,7 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
             transition.setNegated(this.negated);
             transitions.add(transition);
         }
-        return new TransitionGroup(transitions, this.negated, this.counter_info);
+        return new TransitionGroup(transitions, this.negated, this.counter_infos);
     }
 }
 
@@ -273,12 +314,12 @@ class CounterEdge extends LabeledEdge<CounterInfo>
     @Override
     public String toString()
     {
-        return "(" + getSource() + " -> " + getTarget() + " : COUNTER " + this.label.counter.getId() + " [" + this.counter_info +"])";
+        return "COUNTER " + this.label.counter.getId() + getCountersString();
     }
 
     @Override
     public LabeledEdge<CounterInfo> copy() {
-        return new CounterEdge(this.counter_info);
+        return new CounterEdge(this.counter_infos.get(0));
     }
 
     @Override

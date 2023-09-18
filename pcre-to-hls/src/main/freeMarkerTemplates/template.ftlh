@@ -62,26 +62,27 @@ int main()
 
 <#function getCounterComparisons group>
   <#assign result = "">
-  <#if group.counter_info??>
-    <#assign id = group.counter_info.counter.id>
+  <#list group.counter_infos as counter_info>
+    <#assign id = counter_info.counter.id>
     <#assign comp_symbol = "">
-    <#if group.counter_info.operation == "COMPARE_EQUAL">
+    <#if counter_info.operation == "COMPARE_EQUAL">
       <#assign comp_symbol = "==">
-    <#elseif group.counter_info.operation == "COMPARE_LESS">
+    <#elseif counter_info.operation == "COMPARE_LESS">
       <#assign comp_symbol = "<"?no_esc>
-    <#elseif group.counter_info.operation == "COMPARE_MORE">
+    <#elseif counter_info.operation == "COMPARE_MORE">
       <#assign comp_symbol = ">"?no_esc>
-    <#elseif group.counter_info.operation == "COMPARE_EQUALMORE">
+    <#elseif counter_info.operation == "COMPARE_EQUALMORE">
       <#assign comp_symbol = ">"?no_esc+"=">
-    <#elseif group.counter_info.operation == "COMPARE_EQUALLESS">
+    <#elseif counter_info.operation == "COMPARE_EQUALLESS">
       <#assign comp_symbol = "<"?no_esc+"=">
     </#if>
-    <#if group.counter_info.operation == "COMPARE_RANGE">
-      <#assign result = result + " && "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + ">="?no_esc + " ${group.counter_info.counter.target_value}" + " &"?no_esc+"& "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + "<="?no_esc + " ${group.counter_info.counter.target_value2}">
-    <#elseif group.counter_info.operation != "SET">
-      <#assign result = result + " && "?no_esc +  "${id}[1] + (${id}[0] ? 0 : 1) ${comp_symbol} ${group.counter_info.counter.target_value}">
+    <#if counter_info.operation == "COMPARE_RANGE">
+      <#assign result = result + " && "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + ">="?no_esc + " ${counter_info.counter.target_value}" + " &"?no_esc+"& "?no_esc + "${id}[1] + (${id}[0] ? 0 : 1) " + "<="?no_esc + " ${counter_info.counter.target_value2}">
+    <#elseif counter_info.operation != "SET">
+      <#assign result = result + " && "?no_esc +  "${id}[1] + (${id}[0] ? 0 : 1) ${comp_symbol} ${counter_info.counter.target_value}">
     </#if>
-  </#if>
+
+  </#list>
   <#return result>
 </#function>
 
@@ -103,14 +104,15 @@ int main()
 
 <#function getBody group>
   <#assign result = "next[${group.transitions[0].target.id}] = 1;">
-  <#if group.counter_info??>
-    <#assign id = group.counter_info.counter.id>
-    <#if group.counter_info.operation != "SET">
+  <#list group.counter_infos as counter_info>
+    <#assign id = counter_info.counter.id>
+    <#if counter_info.operation != "SET">
       <#assign result = result + " if(!${id}[0]){${id}[1]++; ${id}[0] = 1;}">
     <#else>
       <#assign result = result + " ${id}[1] = 1;">
     </#if>
-  </#if>
+  </#list>
+
   <#return result>
 </#function>
 

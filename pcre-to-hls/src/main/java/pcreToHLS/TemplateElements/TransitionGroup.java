@@ -1,5 +1,6 @@
 package pcreToHLS.TemplateElements;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import pcreToHLS.CounterInfo;
@@ -7,25 +8,25 @@ import pcreToHLS.CounterInfo;
 public class TransitionGroup {
     private List<Transition> transitions;
     private boolean intercept;
-    private CounterInfo counter_info;
+    private List<CounterInfo> counter_infos;
 
     public TransitionGroup(){}
 
-    public TransitionGroup(List<Transition> transitions, boolean intercept, CounterInfo counter_info)
+    public TransitionGroup(List<Transition> transitions, boolean intercept, List<CounterInfo> counter_infos)
     {
         this.transitions = transitions;
         this.intercept = intercept;
-        this.counter_info = counter_info;
+        this.counter_infos = counter_infos;
     }
 
     public TransitionGroup(List<Transition> transitions, boolean intercept)
     {
-        this(transitions, intercept, null);
+        this(transitions, intercept, new LinkedList<>());
     }
 
-    public TransitionGroup(List<Transition> transitions, CounterInfo counter_info)
+    public TransitionGroup(List<Transition> transitions, List<CounterInfo> counter_infos)
     {
-        this(transitions, false, counter_info);
+        this(transitions, false, counter_infos);
     }
 
     public TransitionGroup(List<Transition> transitions)
@@ -54,11 +55,11 @@ public class TransitionGroup {
         this.transitions.add(t);
     }
 
-    public CounterInfo getCounter_info() {
-        return counter_info;
+    public List<CounterInfo> getCounter_infos() {
+        return counter_infos;
     }
 
-    public void setCounter_info(CounterInfo counter_info) {
-        this.counter_info = counter_info;
+    public void setCounter_infos(List<CounterInfo> counter_infos) {
+        this.counter_infos = counter_infos;
     }
 }

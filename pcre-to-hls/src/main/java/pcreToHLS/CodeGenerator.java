@@ -105,9 +105,9 @@ public class CodeGenerator {
                     try {
                         TransitionGroup edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
                         curr_state.addTransitionGroup(edge_transitions);
-                        CounterInfo group_counter_info = edge_transitions.getCounter_info();
-                        if (group_counter_info != null)
-                            counter_ids.add(group_counter_info.counter.getId());
+                        List<CounterInfo> group_counter_infos = edge_transitions.getCounter_infos();
+                        for (CounterInfo info : group_counter_infos)
+                            counter_ids.add(info.counter.getId());
                     } catch (UnsupportedOperationException e) {
                         System.out.println("error because of bounded quantifier (to remove)"); //TODO REMOVE THIS AFTER FIX
                         continue;

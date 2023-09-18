@@ -68,7 +68,7 @@ public abstract class FinalAutomaton {
         {
             String source = this.graph.getEdgeSource(edge);
             String target = this.graph.getEdgeTarget(edge);
-            Edge new_edge = display_graph.addEdge(source + target, source, target, true);
+            Edge new_edge = display_graph.addEdge(source + target + edge, source, target, true);
             new_edge.setAttribute("ui.label", edge);
         }
 

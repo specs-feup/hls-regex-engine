@@ -5,13 +5,20 @@ import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.ParseTreeWalker;
+import org.graphstream.graph.Edge;
+import org.graphstream.graph.Node;
+import org.graphstream.graph.implementations.MultiGraph;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
+import org.jgrapht.traverse.DepthFirstIterator;
+import org.jgrapht.traverse.GraphIterator;
 
 import pcreToHLS.Counter.CounterOperation;
 
@@ -187,7 +194,6 @@ public class EpsilonNFA {
         new_graph.addVertex(new_end);
 
         new_graph.addEdge(new_start, duplicated.start, new EpsilonEdge());
-        new_graph.addEdge(duplicated.end, new_mid, new EpsilonEdge());
         new_graph.addEdge(new_mid, automata.start, new EpsilonEdge());
 
         if (counter.getTarget_value() == 1)
@@ -220,8 +226,8 @@ public class EpsilonNFA {
         Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end);
 
         new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
+        new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUALMORE)));
         new_graph.addEdge(automata.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUALMORE)));
-        new_graph.addEdge(new_end, new_mid, new EpsilonEdge());
         
         return new EpsilonNFA(new_graph, new_start, new_end);
     }
@@ -235,8 +241,8 @@ public class EpsilonNFA {
         Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end);
 
         new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
+        new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_RANGE)));
         new_graph.addEdge(automata.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_RANGE)));
-        new_graph.addEdge(new_end, new_mid, new EpsilonEdge());
         
         return new EpsilonNFA(new_graph, new_start, new_end);
     }
@@ -307,41 +313,83 @@ public class EpsilonNFA {
 
     private void removeCounterEdges()
     {
-        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
-        Graphs.addGraph(new_graph, this.graph);
-
-        for (DefaultEdge edge : this.graph.edgeSet())
+        GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
+        while (iterator.hasNext()) 
         {
-            if (edge.getClass() != CounterEdge.class)
-                continue;
-            String counter_source = this.graph.getEdgeSource(edge);
-            String counter_target = this.graph.getEdgeTarget(edge);
-
-            for (DefaultEdge incoming_source : this.graph.incomingEdgesOf(counter_source))
+            String current_vertex = iterator.next();
+            List<DefaultEdge> to_remove = new LinkedList<>();
+            List<Object[]> to_add = new LinkedList<>();
+            for (DefaultEdge outgoing_edge : this.graph.outgoingEdgesOf(current_vertex))
             {
-                if (incoming_source.getClass() == CounterEdge.class)
-                    System.out.println("this is a problem");
+                if (outgoing_edge.getClass() != CounterEdge.class)
+                    continue;
 
-                String to_transfer_source = this.graph.getEdgeSource(incoming_source);
-                LabeledEdge<?> transfer_edge = ((LabeledEdge<?>) incoming_source).copy();
-                transfer_edge.setCounterInfo(((LabeledEdge<?>) edge).getCounterInfo());
-                new_graph.addEdge(to_transfer_source, counter_target, transfer_edge);
+                String counter_target = this.graph.getEdgeTarget(outgoing_edge);
+                for (DefaultEdge incoming_to_counter : this.graph.incomingEdgesOf(current_vertex))
+                {
+                    String transfer_source = this.graph.getEdgeSource(incoming_to_counter);
+                    LabeledEdge<?> transfer_edge = ((LabeledEdge<?>) incoming_to_counter).copy();
+                    transfer_edge.addCounterInfos(((LabeledEdge<?>) outgoing_edge).getCounterInfos());
+                    to_add.add(new Object[] {transfer_source, counter_target, transfer_edge});
+                    to_remove.add(incoming_to_counter);
+                }
+
+                to_remove.add(outgoing_edge);
             }
+
+            this.graph.removeAllEdges(to_remove);
+            for (Object[] arr : to_add)
+                this.graph.addEdge((String) arr[0], (String) arr[1], (DefaultEdge) arr[2]);
         }
-
-        for (DefaultEdge edge : graph.edgeSet()) 
-            if (edge.getClass() == CounterEdge.class)
-                new_graph.removeEdge(edge);
-
-        this.graph = new_graph;
     }
 
     public NFA toRegularNFA() 
     {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        new NFA(this.graph, this.start, new_ends).display();
         removeCounterEdges();
+        removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         return new NFA(this.graph, this.start, new_ends);
+    }
+
+    public void display()
+    {
+        System.setProperty("org.graphstream.ui", "swing");
+        String style = 
+            "graph { fill-color: white; } node { size: 0.1gu; fill-color: rgb(0,100,255); text-style: bold; text-size: 22;} " 
+            + "node.start { fill-color: rgb(0,255,100); } node.end { fill-color: rgb(255,100,0); }"
+            + "node.both { fill-color: rgb(192,255,00); }"  
+            + "edge { text-alignment: above; text-alignment: center; text-size: 13; text-background-mode: rounded-box; text-background-color: rgb(0,228,200); }";
+        org.graphstream.graph.Graph display_graph = new MultiGraph("Automaton Graph");
+        display_graph.setAttribute("ui.stylesheet", style);
+
+        for (String vertex : this.graph.vertexSet())
+        {
+            Node new_node = display_graph.addNode(vertex);
+            new_node.setAttribute("ui.label", vertex);
+            if (this.start.equals(vertex))
+                new_node.setAttribute("ui.class", "start");
+            
+            if (this.end.equals(vertex))
+            {
+                if (new_node.hasAttribute("ui.class"))
+                    new_node.setAttribute("ui.class", "both");
+                else 
+                    new_node.setAttribute("ui.class", "end");
+            }
+
+        }
+        
+        for (DefaultEdge edge : this.graph.edgeSet())
+        {
+            String source = this.graph.getEdgeSource(edge);
+            String target = this.graph.getEdgeTarget(edge);
+            Edge new_edge = display_graph.addEdge(source + target + edge, source, target, true);
+            new_edge.setAttribute("ui.label", edge);
+        }
+
+        display_graph.display();
     }
 
     public void print()

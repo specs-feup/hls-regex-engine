@@ -24,6 +24,17 @@ public class Counter {
         Counter.id_no++;
     }
 
+    public Counter copy(int target_value)
+    {
+        return new Counter(this.id, target_value);
+    }
+
+    private Counter(String id, int target_value)
+    {
+        this.target_value = target_value;
+        this.id = id;
+    }
+
     public int getTarget_value() {
         return target_value;
     }
