@@ -182,7 +182,7 @@ public class EpsilonNFA {
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
 
-    private static Graph<String, DefaultEdge> prepareBoundedQuantifierDuplicate(EpsilonNFA automata, Counter counter, String new_start, String new_mid, String new_end)
+    private static Graph<String, DefaultEdge> prepareBoundedQuantifierDuplicate(EpsilonNFA automata, Counter counter, String new_start, String new_mid, String new_end, boolean read_on_zero)
     {
         EpsilonNFA duplicated = duplicate(automata);
         Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
@@ -198,6 +198,15 @@ public class EpsilonNFA {
 
         if (counter.getTarget_value() == 1)
             new_graph.addEdge(duplicated.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
+
+        if (counter.getTarget_value() == 0)
+        {
+            new_graph.addEdge(new_start, new_end, new EpsilonEdge());
+            if (read_on_zero)
+                new_graph.addEdge(duplicated.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
+        }
+
+
         new_graph.addEdge(duplicated.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
 
         return new_graph;
@@ -209,7 +218,7 @@ public class EpsilonNFA {
         String new_start = VertexIDFactory.getNewVertexID();
         String new_mid = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
-        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end);
+        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end, false);
 
         new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
         new_graph.addEdge(automata.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUAL)));
@@ -223,7 +232,7 @@ public class EpsilonNFA {
         String new_start = VertexIDFactory.getNewVertexID();
         String new_mid = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
-        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end);
+        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end, true);
 
         new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
         new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUALMORE)));
@@ -238,7 +247,7 @@ public class EpsilonNFA {
         String new_start = VertexIDFactory.getNewVertexID();
         String new_mid = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
-        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end);
+        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end, true);
 
         new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
         new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_RANGE)));
