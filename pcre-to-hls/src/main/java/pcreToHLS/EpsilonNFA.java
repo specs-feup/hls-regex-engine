@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.Map.Entry;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -182,32 +183,26 @@ public class EpsilonNFA {
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
 
-    private static Graph<String, DefaultEdge> prepareBoundedQuantifierDuplicate(EpsilonNFA automata, Counter counter, String new_start, String new_mid, String new_end, boolean read_on_zero)
+    private static Graph<String, DefaultEdge> prepareBoundedQuantifierDuplicate(EpsilonNFA automata, Counter counter, String new_start, String new_end, boolean read_on_zero)
     {
-        EpsilonNFA duplicated = duplicate(automata);
         Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
         Graphs.addGraph(new_graph, automata.graph);
-        Graphs.addGraph(new_graph, duplicated.graph);
 
         new_graph.addVertex(new_start);
-        new_graph.addVertex(new_mid);
         new_graph.addVertex(new_end);
 
-        new_graph.addEdge(new_start, duplicated.start, new EpsilonEdge());
-        new_graph.addEdge(new_mid, automata.start, new EpsilonEdge());
+        // if (counter.getTarget_value() == 1)
+        //     new_graph.addEdge(duplicated.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
 
-        if (counter.getTarget_value() == 1)
-            new_graph.addEdge(duplicated.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
-
-        if (counter.getTarget_value() == 0)
-        {
-            new_graph.addEdge(new_start, new_end, new EpsilonEdge());
-            if (read_on_zero)
-                new_graph.addEdge(duplicated.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
-        }
+        // if (counter.getTarget_value() == 0)
+        // {
+        //     new_graph.addEdge(new_start, new_end, new EpsilonEdge());
+        //     if (read_on_zero)
+        //         new_graph.addEdge(duplicated.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
+        // }
 
 
-        new_graph.addEdge(duplicated.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
+        new_graph.addEdge(new_start, automata.start, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
 
         return new_graph;
     }
@@ -216,11 +211,10 @@ public class EpsilonNFA {
     {
         Counter counter = new Counter(repetitions);
         String new_start = VertexIDFactory.getNewVertexID();
-        String new_mid = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
-        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end, false);
+        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_end, false);
 
-        new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
+        new_graph.addEdge(automata.end, automata.start, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
         new_graph.addEdge(automata.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUAL)));
 
         return new EpsilonNFA(new_graph, new_start, new_end);
@@ -230,12 +224,11 @@ public class EpsilonNFA {
     {
         Counter counter = new Counter(repetitions);
         String new_start = VertexIDFactory.getNewVertexID();
-        String new_mid = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
-        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end, true);
+        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_end, true);
 
-        new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
-        new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUALMORE)));
+        new_graph.addEdge(automata.end, automata.start, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
+        new_graph.addEdge(automata.end, automata.start, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUALMORE)));
         new_graph.addEdge(automata.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_EQUALMORE)));
         
         return new EpsilonNFA(new_graph, new_start, new_end);
@@ -245,12 +238,11 @@ public class EpsilonNFA {
     {
         Counter counter = new Counter(min_repetitions, max_repetitions);
         String new_start = VertexIDFactory.getNewVertexID();
-        String new_mid = VertexIDFactory.getNewVertexID();
         String new_end = VertexIDFactory.getNewVertexID();
-        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_mid, new_end, true);
+        Graph<String, DefaultEdge> new_graph = prepareBoundedQuantifierDuplicate(automata, counter, new_start, new_end, true);
 
-        new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
-        new_graph.addEdge(automata.end, new_mid, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_RANGE)));
+        new_graph.addEdge(automata.end, automata.start, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_LESS)));
+        new_graph.addEdge(automata.end, automata.start, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_RANGE)));
         new_graph.addEdge(automata.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_RANGE)));
         
         return new EpsilonNFA(new_graph, new_start, new_end);
@@ -262,6 +254,20 @@ public class EpsilonNFA {
             if (edge.getClass() == EpsilonEdge.class) {
                 String out_vertex = graph.getEdgeTarget(edge);
                 getEpsilonClosure(graph, out_vertex, closure);
+            }
+        }
+    }
+
+    private static void getCounterClosure(Graph<String, DefaultEdge> graph, String vertex, List<CounterInfo> infos, Map<String, List<CounterInfo>> closure)
+    {
+        closure.put(vertex, infos);
+        for (DefaultEdge edge : graph.outgoingEdgesOf(vertex)) {
+            if (edge.getClass() == CounterEdge.class) {
+                String out_vertex = graph.getEdgeTarget(edge);
+                List<CounterInfo> edge_infos = ((CounterEdge)edge).getCounterInfos();
+                List<CounterInfo> sum_infos = new LinkedList<>(infos);
+                sum_infos.addAll(edge_infos);
+                getCounterClosure(graph, out_vertex, sum_infos, closure);
             }
         }
     }
@@ -322,34 +328,48 @@ public class EpsilonNFA {
 
     private void removeCounterEdges()
     {
-        GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
-        while (iterator.hasNext()) 
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+        for (String vertex : this.graph.vertexSet()) 
         {
-            String current_vertex = iterator.next();
-            List<DefaultEdge> to_remove = new LinkedList<>();
-            List<Object[]> to_add = new LinkedList<>();
-            for (DefaultEdge outgoing_edge : this.graph.outgoingEdgesOf(current_vertex))
+            Map<String, List<CounterInfo>> closure = new HashMap<>();
+            getCounterClosure(this.graph, vertex, new LinkedList<>(), closure);
+
+            for (Entry<String, List<CounterInfo>> reachable : closure.entrySet()) 
             {
-                if (outgoing_edge.getClass() != CounterEdge.class)
-                    continue;
-
-                String counter_target = this.graph.getEdgeTarget(outgoing_edge);
-                for (DefaultEdge incoming_to_counter : this.graph.incomingEdgesOf(current_vertex))
+                String reachable_vertex = reachable.getKey();
+                List<CounterInfo> needed_counters = reachable.getValue(); 
+                Set<DefaultEdge> edges = graph.outgoingEdgesOf(reachable_vertex);
+                if (edges.isEmpty())
                 {
-                    String transfer_source = this.graph.getEdgeSource(incoming_to_counter);
-                    LabeledEdge<?> transfer_edge = ((LabeledEdge<?>) incoming_to_counter).copy();
-                    transfer_edge.addCounterInfos(((LabeledEdge<?>) outgoing_edge).getCounterInfos());
-                    to_add.add(new Object[] {transfer_source, counter_target, transfer_edge});
-                    to_remove.add(incoming_to_counter);
+                    edges = graph.incomingEdgesOf(vertex);
+                    for (DefaultEdge edge : edges) {
+                        if (edge.getClass() == CounterEdge.class)
+                            continue;
+
+                        LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
+                        new_edge.setCounterInfos(needed_counters);
+                        new_graph.addEdge(vertex, reachable_vertex, new_edge);
+                    }
                 }
+                else
+                    for (DefaultEdge edge : edges) {
+                        if (edge.getClass() == CounterEdge.class)
+                            continue;
 
-                to_remove.add(outgoing_edge);
+                        String joinable = graph.getEdgeTarget(edge);
+                        LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
+                        new_edge.setCounterInfos(needed_counters);
+                        new_graph.addEdge(vertex, joinable, new_edge);
+                    }
             }
-
-            this.graph.removeAllEdges(to_remove);
-            for (Object[] arr : to_add)
-                this.graph.addEdge((String) arr[0], (String) arr[1], (DefaultEdge) arr[2]);
         }
+
+        for (DefaultEdge edge : graph.edgeSet()) 
+            if (edge.getClass() == CounterEdge.class)
+                new_graph.removeEdge(edge);
+
+        this.graph = new_graph;
     }
 
     public NFA toRegularNFA() 

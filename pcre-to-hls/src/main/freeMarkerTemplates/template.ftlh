@@ -109,7 +109,7 @@ int main()
     <#if counter_info.operation != "SET">
       <#assign result = result + " if(!${id}[0]){${id}[1]++; ${id}[0] = 1;}">
     <#else>
-      <#assign result = result + " ${id}[1] = 1;">
+      <#assign result = result + " ${id}[1] = 0;">
     </#if>
   </#list>
 
