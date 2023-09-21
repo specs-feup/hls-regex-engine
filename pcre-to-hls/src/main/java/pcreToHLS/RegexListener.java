@@ -78,7 +78,11 @@ public class RegexListener extends PCREgrammarBaseListener {
                 stack.push(new EpsilonNFA(new CharacterClassEdge(code_points, negated.get())));
         }
         else if (dot != null)
-            this.stack.push(new EpsilonNFA(new WildcardEdge()));
+            stack.push(new EpsilonNFA(new WildcardEdge()));
+        else if (ctx.Caret() != null || ctx.StartOfSubject() != null)
+            stack.push(new EpsilonNFA(new StartAnchorEdge()));
+        else if (ctx.EndOfSubjectOrLine() != null || ctx.EndOfSubjectOrLineEndOfSubject() != null)
+            stack.push(new EpsilonNFA(new EndAnchorEdge())); 
     }
 
     private boolean isEscapedChar(Shared_literalContext ctx)
@@ -522,7 +526,9 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public EpsilonNFA getEpsilonNFA()
     {
-        return this.stack.pop();
+        EpsilonNFA top = this.stack.pop();
+        EpsilonNFA padded_start = EpsilonNFA.concat(EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge())), top);
+        return EpsilonNFA.concat(padded_start, EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge())));
     }
 
     // ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ====

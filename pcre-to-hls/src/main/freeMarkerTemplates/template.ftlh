@@ -15,7 +15,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
         char c = stream[i];
         <#list automaton.states as state>
         <#list state.transition_groups as group>
-        if (curr[${state.id}] && (${getCharacterComparisons(group)})${getCounterComparisons(group)})
+        if (curr[${state.id}] && ${getAnchorComparisons(group)}(${getCharacterComparisons(group)})${getCounterComparisons(group)})
           {${getBody(group)}}
         </#list>
         </#list>
@@ -83,6 +83,16 @@ int main()
     </#if>
 
   </#list>
+  <#return result>
+</#function>
+
+<#function getAnchorComparisons group>
+  <#assign result = "">
+  <#if group.anchor_info == "START">
+    <#assign result = "i == 0 &&"?no_esc>
+  <#elseif group.anchor_info == "END">
+    <#assign result = "i == stream_size - 1 &&"?no_esc>
+  </#if>
   <#return result>
 </#function>
 

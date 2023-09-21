@@ -21,6 +21,7 @@ import org.jgrapht.traverse.DepthFirstIterator;
 import org.jgrapht.traverse.GraphIterator;
 
 import pcreToHLS.Counter.CounterOperation;
+import pcreToHLS.LabeledEdge.AnchorType;
 
 public class EpsilonNFA {
 
@@ -277,6 +278,20 @@ public class EpsilonNFA {
             Set<DefaultEdge> incoming = graph.incomingEdgesOf(vertex);
             if (incoming.isEmpty())
                 to_remove.add(vertex);
+            else
+            {
+                boolean only_self_edges = true;
+                for (DefaultEdge incoming_edge : incoming)
+                {
+                    if (!graph.getEdgeSource(incoming_edge).equals(graph.getEdgeTarget(incoming_edge)))
+                    {
+                        only_self_edges = false;
+                        break;
+                    }   
+                }
+                if (only_self_edges)
+                    to_remove.add(vertex);
+            }
         }
 
         for (String vertex : to_remove)
@@ -352,13 +367,87 @@ public class EpsilonNFA {
         }
     }
 
+    public void removeAnchorEdges()
+    {
+        this.removeStartAnchors();
+        this.removeEndAnchors();
+    }
+
+    public void removeEndAnchors()
+    {
+        GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
+        
+        while (iterator.hasNext()) 
+        {
+            List<DefaultEdge> to_remove = new LinkedList<>();
+            List<Object[]> to_add = new LinkedList<>();
+            String current_vertex = iterator.next();
+            for (DefaultEdge outgoing_edge : this.graph.outgoingEdgesOf(current_vertex))
+            {
+                if (outgoing_edge.getClass() != EndAnchorEdge.class)
+                    continue;
+
+                String anchor_target = this.graph.getEdgeTarget(outgoing_edge);
+                to_remove.add(outgoing_edge);
+                for (DefaultEdge edge : this.graph.incomingEdgesOf(current_vertex))
+                {
+                    String transfer_source = this.graph.getEdgeSource(edge);
+                    LabeledEdge<?> transfer_edge = ((LabeledEdge<?>)edge).copy();
+                    transfer_edge.setAnchorInfo(AnchorType.END);
+                    to_add.add(new Object[] {transfer_source, anchor_target, transfer_edge});
+                    to_remove.addAll(this.graph.outgoingEdgesOf(anchor_target));
+                }
+            }
+
+            this.graph.removeAllEdges(to_remove);
+            for (Object[] arr : to_add)
+                this.graph.addEdge((String) arr[0], (String) arr[1], (DefaultEdge) arr[2]);
+        }
+    }
+
+    public void removeStartAnchors()
+    {
+        GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
+        
+        while (iterator.hasNext()) 
+        {
+            List<DefaultEdge> to_remove = new LinkedList<>();
+            List<Object[]> to_add = new LinkedList<>();
+            String current_vertex = iterator.next();
+            for (DefaultEdge outgoing_edge : this.graph.outgoingEdgesOf(current_vertex))
+            {
+                if (outgoing_edge.getClass() != StartAnchorEdge.class)
+                    continue;
+
+                String anchor_target = this.graph.getEdgeTarget(outgoing_edge);
+                to_remove.add(outgoing_edge);
+                for (DefaultEdge edge : this.graph.outgoingEdgesOf(anchor_target))
+                {
+                    String transfer_target = this.graph.getEdgeTarget(edge);
+                    LabeledEdge<?> transfer_edge = ((LabeledEdge<?>)edge).copy();
+                    transfer_edge.setAnchorInfo(AnchorType.START);
+                    to_add.add(new Object[] {current_vertex, transfer_target, transfer_edge});
+                    to_remove.addAll(this.graph.incomingEdgesOf(anchor_target));
+                }
+            }
+
+            this.graph.removeAllEdges(to_remove);
+            for (Object[] arr : to_add)
+                this.graph.addEdge((String) arr[0], (String) arr[1], (DefaultEdge) arr[2]);
+        }
+    }
+
     public NFA toRegularNFA() 
     {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        new NFA(this.graph, this.start, new_ends).display();
         removeCounterEdges();
+        new NFA(this.graph, this.start, new_ends).display();
+        new NFA(this.graph, this.start, new_ends).print();
+        removeAnchorEdges();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        new NFA(this.graph, this.start, new_ends).display();
+        new NFA(this.graph, this.start, new_ends).print();
         return new NFA(this.graph, this.start, new_ends);
     }
 

@@ -389,12 +389,12 @@ atom // WIP
  | newline_convention
  | callout
  | Dot // DONE
- | Caret
- | StartOfSubject
+ | Caret // WIP
+ | StartOfSubject // WIP
  | WordBoundary
  | NonWordBoundary
- | EndOfSubjectOrLine
- | EndOfSubjectOrLineEndOfSubject
+ | EndOfSubjectOrLine // WIP
+ | EndOfSubjectOrLineEndOfSubject // WIP
  | EndOfSubject
  | PreviousMatchInSubject
  | ResetStartMatch

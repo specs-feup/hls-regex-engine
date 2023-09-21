@@ -9,6 +9,7 @@ public class TransitionGroup {
     private List<Transition> transitions;
     private boolean intercept;
     private List<CounterInfo> counter_infos;
+    private String anchor_info;
 
     public TransitionGroup(){}
 
@@ -61,5 +62,13 @@ public class TransitionGroup {
 
     public void setCounter_infos(List<CounterInfo> counter_infos) {
         this.counter_infos = counter_infos;
+    }
+
+    public String getAnchor_info() {
+        return anchor_info;
+    }
+
+    public void setAnchor_info(String anchor_info) {
+        this.anchor_info = anchor_info;
     }
 }
