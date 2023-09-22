@@ -367,13 +367,13 @@ public class EpsilonNFA {
         }
     }
 
-    public void removeAnchorEdges()
+    public void removeAnchorEdges(boolean multiline)
     {
-        this.removeStartAnchors();
-        this.removeEndAnchors();
+        this.removeStartAnchors(multiline);
+        this.removeEndAnchors(multiline);
     }
 
-    public void removeEndAnchors()
+    public void removeEndAnchors(boolean multiline)
     {
         GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
         
@@ -395,7 +395,8 @@ public class EpsilonNFA {
                     LabeledEdge<?> transfer_edge = ((LabeledEdge<?>)edge).copy();
                     transfer_edge.setAnchorInfo(AnchorType.END);
                     to_add.add(new Object[] {transfer_source, anchor_target, transfer_edge});
-                    to_remove.addAll(this.graph.outgoingEdgesOf(anchor_target));
+                    if (!multiline)
+                        to_remove.addAll(this.graph.outgoingEdgesOf(anchor_target));
                 }
             }
 
@@ -405,7 +406,7 @@ public class EpsilonNFA {
         }
     }
 
-    public void removeStartAnchors()
+    public void removeStartAnchors(boolean multiline)
     {
         GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
         
@@ -427,7 +428,8 @@ public class EpsilonNFA {
                     LabeledEdge<?> transfer_edge = ((LabeledEdge<?>)edge).copy();
                     transfer_edge.setAnchorInfo(AnchorType.START);
                     to_add.add(new Object[] {current_vertex, transfer_target, transfer_edge});
-                    to_remove.addAll(this.graph.incomingEdgesOf(anchor_target));
+                    if (!multiline)
+                        to_remove.addAll(this.graph.incomingEdgesOf(anchor_target));
                 }
             }
 
@@ -437,13 +439,16 @@ public class EpsilonNFA {
         }
     }
 
-    public NFA toRegularNFA() 
+    public NFA toRegularNFA(boolean multiline) 
     {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         removeCounterEdges();
-        removeAnchorEdges();
+        new NFA(this.graph, this.start, new_ends).display();
+        removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        new NFA(this.graph, this.start, new_ends).display();
+        new NFA(this.graph, this.start, new_ends).print();
         return new NFA(this.graph, this.start, new_ends);
     }
 

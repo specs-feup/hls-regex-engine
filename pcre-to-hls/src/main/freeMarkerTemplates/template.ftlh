@@ -16,7 +16,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
         char c = ${setCurrentCharVar(automaton)};
         <#list automaton.states as state>
         <#list state.transition_groups as group>
-        if (curr[${state.id}] && ${getAnchorComparisons(group)}(${getCharacterComparisons(group, hasCaseInsensitiveFlag(automaton))})${getCounterComparisons(group)})
+        if (curr[${state.id}] && ${getAnchorComparisons(group, hasMultilineFlag(automaton))}(${getCharacterComparisons(group, hasCaseInsensitiveFlag(automaton))})${getCounterComparisons(group)})
           {${getBody(group)}}
         </#list>
         </#list>
@@ -87,12 +87,20 @@ int main()
   <#return result>
 </#function>
 
-<#function getAnchorComparisons group>
+<#function getAnchorComparisons group is_line_comparison>
   <#assign result = "">
   <#if group.anchor_info == "START">
-    <#assign result = "i == 0 && "?no_esc>
+    <#if is_line_comparison>
+      <#assign result = "(i == 0 || stream[i - 1] == 10) && "?no_esc> <#-- 10 is \n -->
+    <#else>
+      <#assign result = "i == 0 && "?no_esc>
+    </#if>
   <#elseif group.anchor_info == "END">
-    <#assign result = "i == stream_size - 1 && "?no_esc>
+      <#if is_line_comparison>
+      <#assign result = "(i == stream_size - 1 || stream[i + 1] == 10) && "?no_esc>
+    <#else>
+      <#assign result = "i == stream_size - 1 && "?no_esc>
+    </#if>
   </#if>
   <#return result>
 </#function>

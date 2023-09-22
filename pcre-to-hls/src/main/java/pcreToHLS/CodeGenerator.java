@@ -57,14 +57,16 @@ public class CodeGenerator {
             PCREgrammarParser parser = new PCREgrammarParser(tokens);
             ParseTree tree = parser.parse();
 
+            boolean multiline = regex.flags.indexOf('m') != -1;
+
             // System.out.println("\n=== Parse Tree ===");
             // System.out.println(TreeUtils.toPrettyTree(tree, parser));
             try {
                 FinalAutomaton automaton;
                 if (dfas)
-                    automaton = new DFA(tree, this.analyzer);
+                    automaton = new DFA(tree, this.analyzer, multiline);
                 else 
-                    automaton = new NFA(tree, this.analyzer);
+                    automaton = new NFA(tree, this.analyzer, multiline);
                 this.regexes.put(regex, automaton);
             }
             catch (EmptyStackException e) { System.out.println("Failed to parse: " + regex); }
