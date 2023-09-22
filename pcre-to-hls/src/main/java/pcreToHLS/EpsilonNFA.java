@@ -444,11 +444,11 @@ public class EpsilonNFA {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         removeCounterEdges();
-        new NFA(this.graph, this.start, new_ends).display();
+        // new NFA(this.graph, this.start, new_ends).display();
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        new NFA(this.graph, this.start, new_ends).display();
-        new NFA(this.graph, this.start, new_ends).print();
+        // new NFA(this.graph, this.start, new_ends).display();
+        // new NFA(this.graph, this.start, new_ends).print();
         return new NFA(this.graph, this.start, new_ends);
     }
 

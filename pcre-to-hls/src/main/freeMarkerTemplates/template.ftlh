@@ -87,7 +87,8 @@ int main()
   <#return result>
 </#function>
 
-<#function getAnchorComparisons group is_line_comparison>
+<#function getAnchorComparisons group automaton>
+  <#assign is_line_comparison = hasMultilineFlag(automaton)>
   <#assign result = "">
   <#if group.anchor_info == "START">
     <#if is_line_comparison>

@@ -31,9 +31,9 @@ public class NFA extends FinalAutomaton {
         // eNFA.print();
         // eNFA.display();
         NFA nfa = eNFA.toRegularNFA(multiline);
-        // System.out.println("\n=== NFA ===");
-        // nfa.print();
-        // nfa.display();
+        System.out.println("\n=== NFA ===");
+        nfa.print();
+        nfa.display();
         copy(nfa);
     }
 
