@@ -28,16 +28,30 @@ import pcreToHLS.TemplateElements.State;
 import pcreToHLS.TemplateElements.TransitionGroup;
 
 public class CodeGenerator {
-    private Map<String, FinalAutomaton> regex;
+
+    private class PCRE {
+        public String expression;
+        public String flags;
+        public PCRE(Entry<String, String> pcre_data) {
+            this.expression = pcre_data.getKey();
+            this.flags = pcre_data.getValue();
+        }
+        public String toString(){
+            return "/" + this.expression + "/" + this.flags;
+        }
+    };
+
+    private Map<PCRE, FinalAutomaton> regexes;
     private RulesAnalyzer analyzer;
 
-    public CodeGenerator(List<String> expressions, boolean dfas)
+    public CodeGenerator(Map<String, String> expressions, boolean dfas)
     {
         this.analyzer = new RulesAnalyzer();
-        this.regex = new HashMap<>();
-        for (String expression : expressions)
+        this.regexes = new HashMap<>();
+        for (Entry<String, String> expression_entry : expressions.entrySet())
         {
-            CharStream stream = CharStreams.fromString(expression);
+            PCRE regex = new PCRE(expression_entry);
+            CharStream stream = CharStreams.fromString(regex.expression);
             PCREgrammarLexer lexer = new PCREgrammarLexer(stream);
             CommonTokenStream tokens = new CommonTokenStream(lexer);
             PCREgrammarParser parser = new PCREgrammarParser(tokens);
@@ -51,19 +65,15 @@ public class CodeGenerator {
                     automaton = new DFA(tree, this.analyzer);
                 else 
                     automaton = new NFA(tree, this.analyzer);
-                this.regex.put(expression, automaton);
+                this.regexes.put(regex, automaton);
             }
-            catch (EmptyStackException e) { System.out.println("Failed to parse: " + expression); }
+            catch (EmptyStackException e) { System.out.println("Failed to parse: " + regex); }
             
         }
     }
 
     public RulesAnalyzer getAnalyzer() {
         return analyzer;
-    }
-
-    public Map<String, FinalAutomaton> getRegex() {
-        return regex;
     }
 
     private State getState(String vertex, Map<String, State> vertices_mapping)
@@ -85,10 +95,10 @@ public class CodeGenerator {
     {
         Set<Automaton> automata = new HashSet<>();
 
-        for (Entry<String, FinalAutomaton> regex_entry : this.regex.entrySet())
+        for (Entry<PCRE, FinalAutomaton> regex_entry : this.regexes.entrySet())
         {
             FinalAutomaton automaton = regex_entry.getValue();
-            String expression = regex_entry.getKey();
+            PCRE regex = regex_entry.getKey();
             Graph<String, DefaultEdge> automaton_graph = automaton.getGraph();
             Map<String, State> vertex_ids = new HashMap<>();
             Set<State> end_states = new HashSet<>();
@@ -122,7 +132,7 @@ public class CodeGenerator {
             Set<State> states = new HashSet<>(vertex_ids.values());
             State start_state = vertex_ids.get(automaton.getStart());
 
-            automata.add(new Automaton(expression, counter_ids, states, start_state, end_states));
+            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, states, start_state, end_states));
         }
         
         Map<String, Object> root = new HashMap<>();

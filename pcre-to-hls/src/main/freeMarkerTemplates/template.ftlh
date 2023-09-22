@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 
 <#list automata as automaton>
 //kernel for /${automaton.expression}/
@@ -12,10 +13,10 @@ int kernel${automaton?counter}(char stream[], int stream_size)
 
     for (int i = 0; i < stream_size; i++)
     {
-        char c = stream[i];
+        char c = ${setCurrentCharVar(automaton)};
         <#list automaton.states as state>
         <#list state.transition_groups as group>
-        if (curr[${state.id}] && ${getAnchorComparisons(group)}(${getCharacterComparisons(group)})${getCounterComparisons(group)})
+        if (curr[${state.id}] && ${getAnchorComparisons(group)}(${getCharacterComparisons(group, hasCaseInsensitiveFlag(automaton))})${getCounterComparisons(group)})
           {${getBody(group)}}
         </#list>
         </#list>
@@ -89,18 +90,22 @@ int main()
 <#function getAnchorComparisons group>
   <#assign result = "">
   <#if group.anchor_info == "START">
-    <#assign result = "i == 0 &&"?no_esc>
+    <#assign result = "i == 0 && "?no_esc>
   <#elseif group.anchor_info == "END">
-    <#assign result = "i == stream_size - 1 &&"?no_esc>
+    <#assign result = "i == stream_size - 1 && "?no_esc>
   </#if>
   <#return result>
 </#function>
 
-<#function getCharacterComparisons group>
+<#function getCharacterComparisons group is_insensitive_comparison>
     <#assign result = "">
         <#list group.transitions as transition>
             <#if !transition.wildcard>
-                <#assign result = result + "c ${getComparator(transition)} ${transition.token}">
+                <#assign comp_character = transition.token>
+                <#if is_insensitive_comparison>
+                  <#assign comp_character = "toupper(" + comp_character + ")">
+                </#if>
+                <#assign result = result + "c ${getComparator(transition)} ${comp_character}">
             <#else>
                 <#assign result = result + "1"> 
             </#if>
@@ -146,4 +151,24 @@ int main()
        </#if>
     </#list>
   <#return result>
+</#function>
+
+<#function hasCaseInsensitiveFlag automaton>
+  <#return automaton.flags?contains("i")>
+</#function>
+
+<#function hasMultilineFlag automaton>
+  <#return automaton.flags?contains("m")>
+</#function>
+
+<#function hasSinglelineFlag automaton>
+  <#return automaton.flags?contains("s")>
+</#function>
+
+<#function setCurrentCharVar automaton>
+  <#if hasCaseInsensitiveFlag(automaton)>
+    <#return "toupper(stream[i])">
+  <#else>
+    <#return "stream[i]">
+  </#if>
 </#function>

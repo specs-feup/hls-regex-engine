@@ -4,6 +4,7 @@ import java.util.Set;
 
 public class Automaton {
     private String expression;
+    private String flags;
     private Set<String> counter_ids;
     private Set<State> states;
     private State start_state;
@@ -11,9 +12,10 @@ public class Automaton {
 
     public Automaton() {}
 
-    public Automaton(String expression, Set<String> counter_ids, Set<State> states, State start_state, Set<State> end_states)
+    public Automaton(String expression, String flags, Set<String> counter_ids, Set<State> states, State start_state, Set<State> end_states)
     {
         this.expression = expression;
+        this.flags = flags;
         this.counter_ids = counter_ids;
         this.states = states;
         this.start_state = start_state;
@@ -30,6 +32,14 @@ public class Automaton {
 
     public Set<String> getCounter_ids() {
         return counter_ids;
+    }
+
+    public String getFlags() {
+        return flags;
+    }
+
+    public void setFlags(String flags) {
+        this.flags = flags;
     }
 
     public void setCounter_ids(Set<String> counter_ids) {
