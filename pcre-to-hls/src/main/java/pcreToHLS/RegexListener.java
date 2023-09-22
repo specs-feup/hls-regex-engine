@@ -527,8 +527,8 @@ public class RegexListener extends PCREgrammarBaseListener {
     public EpsilonNFA getEpsilonNFA()
     {
         EpsilonNFA top = this.stack.pop();
-        EpsilonNFA padded_start = EpsilonNFA.concat(EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge())), top);
-        return EpsilonNFA.concat(padded_start, EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge())));
+        EpsilonNFA padded_start = EpsilonNFA.concat(EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge(true))), top);
+        return EpsilonNFA.concat(padded_start, EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge(true))));
     }
 
     // ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ====

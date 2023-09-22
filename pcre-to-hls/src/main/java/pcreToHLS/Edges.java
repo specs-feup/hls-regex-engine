@@ -123,9 +123,17 @@ abstract class LabeledEdge<T> extends DefaultEdge
 
 class WildcardEdge extends LabeledEdge<Integer>
 {
+    boolean padding = false;
+
     public WildcardEdge()
     {
         super(-1);
+    }
+
+    public WildcardEdge(boolean padding)
+    {
+        super(-1);
+        this.padding = padding;
     }
 
     public WildcardEdge(CounterInfo counter_info)
@@ -141,14 +149,16 @@ class WildcardEdge extends LabeledEdge<Integer>
     @Override
     public String toString()
     {
-        return "wildcard" + getAnchorString() + getCountersString();
+        String name = "wildcard" + (this.padding ? "(padding)" : "");
+        return name + getAnchorString() + getCountersString();
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        LabeledEdge<Integer> copy = new WildcardEdge(this.counter_infos);
+        WildcardEdge copy = new WildcardEdge(this.counter_infos);
         copy.setAnchorInfo(this.anchor_info);
+        copy.padding = this.padding;
         return copy;
     }
 
@@ -158,6 +168,7 @@ class WildcardEdge extends LabeledEdge<Integer>
         Transition transition = new Transition();
         transition.setWildcard(true);
         transition.setTarget(target);
+        transition.setPadding(padding);
         TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
         group.setAnchor_info(this.anchor_info.name());
         return group;

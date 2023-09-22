@@ -5,6 +5,7 @@ public class Transition {
     private int token;
     private boolean wildcard = false;
     private boolean negated = false;
+    private boolean padding = false;
 
     public State getTarget() 
     {
@@ -44,6 +45,14 @@ public class Transition {
     public void setNegated(boolean negated) 
     {
         this.negated = negated;
+    }
+
+    public boolean isPadding() {
+        return padding;
+    }
+
+    public void setPadding(boolean padding) {
+        this.padding = padding;
     }
 
 }

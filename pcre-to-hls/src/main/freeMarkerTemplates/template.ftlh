@@ -16,7 +16,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
         char c = ${setCurrentCharVar(automaton)};
         <#list automaton.states as state>
         <#list state.transition_groups as group>
-        if (curr[${state.id}] && ${getAnchorComparisons(group, hasMultilineFlag(automaton))}(${getCharacterComparisons(group, hasCaseInsensitiveFlag(automaton))})${getCounterComparisons(group)})
+        if (curr[${state.id}] && ${getAnchorComparisons(group, automaton)}(${getCharacterComparisons(group, automaton)})${getCounterComparisons(group)})
           {${getBody(group)}}
         </#list>
         </#list>
@@ -91,7 +91,7 @@ int main()
   <#assign result = "">
   <#if group.anchor_info == "START">
     <#if is_line_comparison>
-      <#assign result = "(i == 0 || stream[i - 1] == 10) && "?no_esc> <#-- 10 is \n -->
+      <#assign result = "(i == 0 || stream[i - 1] == 10) && "?no_esc>
     <#else>
       <#assign result = "i == 0 && "?no_esc>
     </#if>
@@ -105,7 +105,9 @@ int main()
   <#return result>
 </#function>
 
-<#function getCharacterComparisons group is_insensitive_comparison>
+<#function getCharacterComparisons group automaton>
+    <#assign is_insensitive_comparison = hasCaseInsensitiveFlag(automaton)>
+    <#assign is_singleline_comparison = hasSinglelineFlag(automaton)>
     <#assign result = "">
         <#list group.transitions as transition>
             <#if !transition.wildcard>
@@ -115,7 +117,11 @@ int main()
                 </#if>
                 <#assign result = result + "c ${getComparator(transition)} ${comp_character}">
             <#else>
-                <#assign result = result + "1"> 
+                <#if is_singleline_comparison || transition.padding>
+                  <#assign result = result + "1"> 
+                <#else>
+                  <#assign result = result + "c != 10">
+                </#if>
             </#if>
 
             <#if !transition?is_last>
