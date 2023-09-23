@@ -37,11 +37,23 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private Stack<EpsilonNFA> stack;
     private RulesAnalyzer analyzer;
+    private String flags;
 
-    public RegexListener(RulesAnalyzer analyzer)
+    public RegexListener(RulesAnalyzer analyzer, String flags)
     {
         this.stack = new Stack<>();
         this.analyzer = analyzer;
+        this.flags = flags;
+    }
+
+    private boolean hasAnchoredFlag()
+    {
+        return this.flags.indexOf('A') != -1;
+    }
+
+    private boolean hasExtendedFlag()
+    {
+        return this.flags.indexOf('x') != -1;
     }
 
     private void alternate()
@@ -527,6 +539,8 @@ public class RegexListener extends PCREgrammarBaseListener {
     public EpsilonNFA getEpsilonNFA()
     {
         EpsilonNFA top = this.stack.pop();
+        if (this.hasAnchoredFlag())
+            top = EpsilonNFA.concat(new EpsilonNFA(new StartAnchorEdge()), top);
         EpsilonNFA padded_start = EpsilonNFA.concat(EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge(true))), top);
         return EpsilonNFA.concat(padded_start, EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge(true))));
     }

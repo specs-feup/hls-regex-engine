@@ -104,9 +104,9 @@ public class EpsilonNFA {
     }
 
     /* Creates EpsilonNFA from a regex parseTree */
-    EpsilonNFA(ParseTree tree, RulesAnalyzer analyzer) throws EmptyStackException
+    EpsilonNFA(ParseTree tree, RulesAnalyzer analyzer, String flags) throws EmptyStackException
     {
-        RegexListener listener = new RegexListener(analyzer);
+        RegexListener listener = new RegexListener(analyzer, flags);
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);
         copy(listener.getEpsilonNFA());
@@ -267,6 +267,26 @@ public class EpsilonNFA {
         }
     }
 
+    private static void getStartAnchorClosure(Graph<String, DefaultEdge> graph, String vertex, Set<String> closure) {
+        for (DefaultEdge edge : graph.outgoingEdgesOf(vertex)) {
+            if (edge.getClass() == StartAnchorEdge.class) {
+                String out_vertex = graph.getEdgeTarget(edge);
+                closure.add(out_vertex);
+                getStartAnchorClosure(graph, out_vertex, closure);
+            }
+        }
+    }
+
+    private static void getEndAnchorClosure(Graph<String, DefaultEdge> graph, String vertex, Set<String> closure) {
+        for (DefaultEdge edge : graph.outgoingEdgesOf(vertex)) {
+            if (edge.getClass() == EndAnchorEdge.class) {
+                String out_vertex = graph.getEdgeTarget(edge);
+                closure.add(out_vertex);
+                getEndAnchorClosure(graph, out_vertex, closure);
+            }
+        }
+    }
+
     private static void removeDeadStates(Graph<String, DefaultEdge> graph, Set<String> starts, Set<String> ends)
     {
         Set<String> to_remove = new HashSet<>();
@@ -367,87 +387,85 @@ public class EpsilonNFA {
         }
     }
 
-    public void removeAnchorEdges(boolean multiline)
+    public void removeAnchorEdges()
     {
-        this.removeStartAnchors(multiline);
-        this.removeEndAnchors(multiline);
+        this.removeStartAnchors();
+        this.removeEndAnchors();
     }
 
-    public void removeEndAnchors(boolean multiline)
+    public void removeEndAnchors()
     {
-        GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
-        
-        while (iterator.hasNext()) 
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+        for (String current_vertex : this.graph.vertexSet()) 
         {
-            List<DefaultEdge> to_remove = new LinkedList<>();
-            List<Object[]> to_add = new LinkedList<>();
-            String current_vertex = iterator.next();
-            for (DefaultEdge outgoing_edge : this.graph.outgoingEdgesOf(current_vertex))
-            {
-                if (outgoing_edge.getClass() != EndAnchorEdge.class)
-                    continue;
+            Set<String> closure = new HashSet<>();
+            getEndAnchorClosure(graph, current_vertex, closure);
 
-                String anchor_target = this.graph.getEdgeTarget(outgoing_edge);
-                to_remove.add(outgoing_edge);
-                for (DefaultEdge edge : this.graph.incomingEdgesOf(current_vertex))
+            for (String reachable : closure) 
+            {
+                Set<DefaultEdge> edges = graph.incomingEdgesOf(current_vertex);
+                for (DefaultEdge edge : edges) 
                 {
-                    String transfer_source = this.graph.getEdgeSource(edge);
-                    LabeledEdge<?> transfer_edge = ((LabeledEdge<?>)edge).copy();
-                    transfer_edge.setAnchorInfo(AnchorType.END);
-                    to_add.add(new Object[] {transfer_source, anchor_target, transfer_edge});
-                    if (!multiline)
-                        to_remove.addAll(this.graph.outgoingEdgesOf(anchor_target));
+                    if (edge.getClass() == EndAnchorEdge.class)
+                        continue;
+
+                    String joinable = graph.getEdgeSource(edge);
+                    LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
+                    new_edge.setAnchorInfo(AnchorType.END);
+                    new_graph.addEdge(joinable, reachable, new_edge);
                 }
             }
+        }                
 
-            this.graph.removeAllEdges(to_remove);
-            for (Object[] arr : to_add)
-                this.graph.addEdge((String) arr[0], (String) arr[1], (DefaultEdge) arr[2]);
-        }
+        for (DefaultEdge edge : graph.edgeSet()) 
+            if (edge.getClass() == EndAnchorEdge.class)
+                new_graph.removeEdge(edge);
+
+        this.graph = new_graph;
     }
 
-    public void removeStartAnchors(boolean multiline)
-    {
-        GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(this.graph, this.start);
-        
-        while (iterator.hasNext()) 
+    public void removeStartAnchors()
+    {        
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+        for (String current_vertex : this.graph.vertexSet()) 
         {
-            List<DefaultEdge> to_remove = new LinkedList<>();
-            List<Object[]> to_add = new LinkedList<>();
-            String current_vertex = iterator.next();
-            for (DefaultEdge outgoing_edge : this.graph.outgoingEdgesOf(current_vertex))
-            {
-                if (outgoing_edge.getClass() != StartAnchorEdge.class)
-                    continue;
+            Set<String> closure = new HashSet<>();
+            getStartAnchorClosure(graph, current_vertex, closure);
 
-                String anchor_target = this.graph.getEdgeTarget(outgoing_edge);
-                to_remove.add(outgoing_edge);
-                for (DefaultEdge edge : this.graph.outgoingEdgesOf(anchor_target))
+            for (String reachable : closure) 
+            {
+                Set<DefaultEdge> edges = graph.outgoingEdgesOf(reachable);
+                for (DefaultEdge edge : edges) 
                 {
-                    String transfer_target = this.graph.getEdgeTarget(edge);
-                    LabeledEdge<?> transfer_edge = ((LabeledEdge<?>)edge).copy();
-                    transfer_edge.setAnchorInfo(AnchorType.START);
-                    to_add.add(new Object[] {current_vertex, transfer_target, transfer_edge});
-                    if (!multiline)
-                        to_remove.addAll(this.graph.incomingEdgesOf(anchor_target));
+                    if (edge.getClass() == StartAnchorEdge.class)
+                        continue;
+
+                    String joinable = graph.getEdgeTarget(edge);
+                    LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
+                    new_edge.setAnchorInfo(AnchorType.START);
+                    new_graph.addEdge(current_vertex, joinable, new_edge);
                 }
             }
+        }                
 
-            this.graph.removeAllEdges(to_remove);
-            for (Object[] arr : to_add)
-                this.graph.addEdge((String) arr[0], (String) arr[1], (DefaultEdge) arr[2]);
-        }
+        for (DefaultEdge edge : graph.edgeSet()) 
+            if (edge.getClass() == StartAnchorEdge.class)
+                new_graph.removeEdge(edge);
+
+        this.graph = new_graph;
     }
 
-    public NFA toRegularNFA(boolean multiline) 
+    public NFA toRegularNFA() 
     {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         removeCounterEdges();
-        // new NFA(this.graph, this.start, new_ends).display();
-        removeAnchorEdges(multiline);
+        new NFA(this.graph, this.start, new_ends).display();
+        removeAnchorEdges();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        // new NFA(this.graph, this.start, new_ends).display();
+        new NFA(this.graph, this.start, new_ends).display();
         // new NFA(this.graph, this.start, new_ends).print();
         return new NFA(this.graph, this.start, new_ends);
     }

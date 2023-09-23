@@ -16,10 +16,10 @@ public class DFA extends FinalAutomaton {
         this.ends = ends;
     }
 
-    public DFA(ParseTree root, RulesAnalyzer analyzer, boolean multiline) throws EmptyStackException 
+    public DFA(ParseTree root, RulesAnalyzer analyzer, String flags) throws EmptyStackException 
     {
-        EpsilonNFA eNFA = new EpsilonNFA(root, analyzer);
-        NFA nfa = eNFA.toRegularNFA(multiline);
+        EpsilonNFA eNFA = new EpsilonNFA(root, analyzer, flags);
+        NFA nfa = eNFA.toRegularNFA();
         DFA dfa = nfa.toDFA();
         System.out.println("\n=== DFA ===");
         dfa.print();
