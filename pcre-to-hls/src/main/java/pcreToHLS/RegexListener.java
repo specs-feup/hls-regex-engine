@@ -105,9 +105,15 @@ public class RegexListener extends PCREgrammarBaseListener {
         else if (dot != null)
             stack.push(new EpsilonNFA(new WildcardEdge()));
         else if (ctx.Caret() != null || ctx.StartOfSubject() != null)
+        {
+            addOccurrence("Start Anchor");
             stack.push(new EpsilonNFA(new StartAnchorEdge()));
+        }
         else if (ctx.EndOfSubjectOrLine() != null || ctx.EndOfSubjectOrLineEndOfSubject() != null)
-            stack.push(new EpsilonNFA(new EndAnchorEdge())); 
+        {
+            addOccurrence("End Anchor");
+            stack.push(new EpsilonNFA(new EndAnchorEdge()));
+        }
     }
 
     private boolean isEscapedChar(Shared_literalContext ctx)
