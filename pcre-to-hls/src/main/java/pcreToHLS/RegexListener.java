@@ -90,11 +90,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         Shared_atomContext shared_atom = ctx.shared_atom();
         TerminalNode dot = ctx.Dot();
         if (literal != null)
-        {
-            if (literal.shared_literal().Hash() != null && this.hasExtendedFlag())
-                stack.lock();
             proccessLiteral(literal);
-        }
         else if (character_class != null)
             processCharacter_class(character_class);
         else if (shared_atom != null)
@@ -149,6 +145,12 @@ public class RegexListener extends PCREgrammarBaseListener {
         LabeledEdge<?> transition;
         if (shared_literal != null)
         {
+            if (shared_literal.Hash() != null && this.hasExtendedFlag())
+            {
+                this.stack.lock();
+                return;
+            }
+
             List<Integer> code_points = getShared_literalCodePoints(shared_literal);
             if (code_points.size() == 1)
                 transition = new CharacterEdge(code_points.get(0));
