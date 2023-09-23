@@ -475,7 +475,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         for(int i = 0; i < ctx.element().size() - 1; i++)
         {
-            this.analyzer.addOccurence("Concatenations");
+            this.analyzer.addOperatorOccurrence("Concatenations");
             concat();
         }
     }
@@ -484,14 +484,14 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         for(int i = 0; i < ctx.Pipe().size(); i++)
         {
-            this.analyzer.addOccurence("Alternations");
+            this.analyzer.addOperatorOccurrence("Alternations");
             alternate();
         }
     }
 
     public void enterQuantifier(QuantifierContext ctx)
     {
-        this.analyzer.addOccurence("Total Quantifiers");
+        this.analyzer.addOperatorOccurrence("Total Quantifiers");
         EpsilonNFA top = stack.pop();
 
         if (ctx.Plus() != null) // +
@@ -502,7 +502,7 @@ public class RegexListener extends PCREgrammarBaseListener {
             stack.push(EpsilonNFA.zeroOrMore(top));
         else if (ctx.OpenBrace() != null)
         {
-            this.analyzer.addOccurence("Bounded Quantifiers");
+            this.analyzer.addOperatorOccurrence("Bounded Quantifiers");
             processBoundedQuantifier(ctx, top);
         }
     }
@@ -534,55 +534,55 @@ public class RegexListener extends PCREgrammarBaseListener {
     // ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ====
     public void enterParse(ParseContext ctx)
     {
-        this.analyzer.addOccurence("Expressions");
+        this.analyzer.addOperatorOccurrence("Expressions");
     }
 
     public void enterCharacter_class(Character_classContext ctx)
     {
-        this.analyzer.addOccurence("Character Classes");
+        this.analyzer.addOperatorOccurrence("Character Classes");
     }
 
     public void enterQuantifier_type(Quantifier_typeContext ctx)
     {
         if (ctx.Plus() != null)
-            this.analyzer.addOccurence("Possessive Quantifiers");
+            this.analyzer.addOperatorOccurrence("Possessive Quantifiers");
         else if (ctx.QuestionMark() != null)
-            this.analyzer.addOccurence("Lazy Quantifiers");
+            this.analyzer.addOperatorOccurrence("Lazy Quantifiers");
     }
 
     public void enterBackreference(BackreferenceContext ctx)
     {
-        this.analyzer.addOccurence("Backreferences");
+        this.analyzer.addOperatorOccurrence("Backreferences");
     }
 
     public void enterCapture(CaptureContext ctx)
     {
-        this.analyzer.addOccurence("Capture Groups");
+        this.analyzer.addOperatorOccurrence("Capture Groups");
     }
 
     public void enterNon_capture(Non_captureContext ctx)
     {
-        this.analyzer.addOccurence("Non-Capture Groups");
+        this.analyzer.addOperatorOccurrence("Non-Capture Groups");
     }
 
     public void enterLook_around(Look_aroundContext ctx)
     {
-        this.analyzer.addOccurence("LookArounds");
+        this.analyzer.addOperatorOccurrence("LookArounds");
     }
 
     public void enterSubroutine_reference(Subroutine_referenceContext ctx)
     {
-        this.analyzer.addOccurence("Subroutines");
+        this.analyzer.addOperatorOccurrence("Subroutines");
     }
 
     public void enterConditional(ConditionalContext ctx)
     {
-        this.analyzer.addOccurence("Conditional Patterns");
+        this.analyzer.addOperatorOccurrence("Conditional Patterns");
     }
 
     public void enterCallout(CalloutContext ctx)
     {
-        this.analyzer.addOccurence("Callouts");
+        this.analyzer.addOperatorOccurrence("Callouts");
     }
     
 }

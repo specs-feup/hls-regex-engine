@@ -57,6 +57,8 @@ public class CodeGenerator {
             PCREgrammarParser parser = new PCREgrammarParser(tokens);
             ParseTree tree = parser.parse();
 
+            this.analyzer.addFlagsOccurrence(regex.flags);
+
             boolean multiline = regex.flags.indexOf('m') != -1;
 
             // System.out.println("\n=== Parse Tree ===");
