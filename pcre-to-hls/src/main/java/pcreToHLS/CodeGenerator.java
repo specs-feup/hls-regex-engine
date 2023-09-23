@@ -59,8 +59,8 @@ public class CodeGenerator {
 
             this.analyzer.addFlagsOccurrence(regex.flags);
 
-            // System.out.println("\n=== Parse Tree ===");
-            // System.out.println(TreeUtils.toPrettyTree(tree, parser));
+            System.out.println("\n=== Parse Tree ===");
+            System.out.println(TreeUtils.toPrettyTree(tree, parser));
             try {
                 FinalAutomaton automaton;
                 if (dfas)
