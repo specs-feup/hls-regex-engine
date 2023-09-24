@@ -44,7 +44,7 @@ public class CodeGenerator {
     private Map<PCRE, FinalAutomaton> regexes;
     private RulesAnalyzer analyzer;
 
-    public CodeGenerator(Map<String, String> expressions, boolean dfas)
+    public CodeGenerator(Map<String, String> expressions, boolean debug, boolean dfas)
     {
         this.analyzer = new RulesAnalyzer();
         this.regexes = new HashMap<>();
@@ -59,14 +59,18 @@ public class CodeGenerator {
 
             this.analyzer.addFlagsOccurrence(regex.flags);
 
-            System.out.println("\n=== Parse Tree ===");
-            System.out.println(TreeUtils.toPrettyTree(tree, parser));
+            if (debug)
+            {
+                System.out.println("\n=== Parse Tree ===");
+                System.out.println(TreeUtils.toPrettyTree(tree, parser));
+            }
+
             try {
                 FinalAutomaton automaton;
                 if (dfas)
-                    automaton = new DFA(tree, this.analyzer, regex.flags);
+                    automaton = new DFA(tree, this.analyzer, regex.flags, debug);
                 else 
-                    automaton = new NFA(tree, this.analyzer, regex.flags);
+                    automaton = new NFA(tree, this.analyzer, regex.flags, debug);
                 this.regexes.put(regex, automaton);
             }
             catch (EmptyStackException e) { System.out.println("Failed to parse: " + regex); }
