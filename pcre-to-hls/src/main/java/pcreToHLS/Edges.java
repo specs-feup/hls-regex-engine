@@ -1,6 +1,7 @@
 package pcreToHLS;
 
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -18,24 +19,35 @@ abstract class LabeledEdge<T> extends DefaultEdge
 
     protected T label;
     protected List<CounterInfo> counter_infos;
-    protected AnchorType anchor_info = AnchorType.NONE;
+    protected AnchorType anchor_info;
+    protected Set<Fifo> fifos_info;
 
-    public LabeledEdge(T label)
+    public LabeledEdge(T label, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<Fifo> fifos_info)
     {
         this.label = label;
-        this.counter_infos = new LinkedList<>();
+        this.counter_infos = new LinkedList<>(counter_infos);
+        this.anchor_info = anchor_info;
+        this.fifos_info = new HashSet<>(fifos_info);
     }
 
-    public LabeledEdge(T label, CounterInfo counter_info)
+    public LabeledEdge(T label, List<CounterInfo> counter_infos, Set<Fifo> fifos_info)
     {
-        this.label = label;
-        this.counter_infos = new LinkedList<>(Arrays.asList(counter_info));
+        this(label, counter_infos, AnchorType.NONE, fifos_info);
     }
 
     public LabeledEdge(T label, List<CounterInfo> counter_infos)
     {
-        this.label = label;
-        this.counter_infos = new LinkedList<>(counter_infos);
+        this(label, counter_infos, new HashSet<>());
+    }
+
+    public LabeledEdge(T label, CounterInfo counter_info)
+    {
+        this(label, Arrays.asList(counter_info));
+    }
+
+    public LabeledEdge(T label)
+    {
+        this(label, new LinkedList<>());
     }
 
     public List<CounterInfo> getCounterInfos() {
@@ -50,6 +62,20 @@ abstract class LabeledEdge<T> extends DefaultEdge
     public void addCounterInfos(List<CounterInfo> counter_infos) 
     {
         this.counter_infos.addAll(counter_infos);
+    }
+
+    public Set<Fifo> getFifosInfo() {
+        return fifos_info;
+    }
+
+    public void setFifosInfo(Set<Fifo> fifos_info)
+    {
+        this.fifos_info = fifos_info;
+    }
+
+    public void addFifosInfo(Fifo fifo)
+    {
+        this.fifos_info.add(fifo);
     }
 
     public AnchorType getAnchorInfo() 
@@ -116,8 +142,15 @@ abstract class LabeledEdge<T> extends DefaultEdge
         return str;
     }
 
-    abstract public LabeledEdge<T> copy();
+    protected String getFifosString()
+    {
+        String str = "[";
+        for (Fifo fifo : this.fifos_info)
+            str += fifo;
+        return str + "]";
+    }
 
+    abstract public LabeledEdge<T> copy();
     abstract public TransitionGroup generateTransitions(State target);
 }
 
@@ -146,20 +179,23 @@ class WildcardEdge extends LabeledEdge<Integer>
         super(-1, counter_infos);
     }
 
+    private WildcardEdge(boolean padding, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<Fifo> fifos_info)
+    {
+        super(-1, counter_infos, anchor_info, fifos_info);
+        this.padding = padding;
+    }
+
     @Override
     public String toString()
     {
         String name = "wildcard" + (this.padding ? "(padding)" : "");
-        return name + getAnchorString() + getCountersString();
+        return name + getAnchorString() + getCountersString() + getFifosString();
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        WildcardEdge copy = new WildcardEdge(this.counter_infos);
-        copy.setAnchorInfo(this.anchor_info);
-        copy.padding = this.padding;
-        return copy;
+        return new WildcardEdge(this.padding, this.counter_infos, this.anchor_info, this.fifos_info);
     }
 
     @Override
@@ -171,6 +207,7 @@ class WildcardEdge extends LabeledEdge<Integer>
         transition.setPadding(padding);
         TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
         group.setAnchor_info(this.anchor_info.name());
+        group.setFifos_info(this.fifos_info);
         return group;
     }
 } 
@@ -182,6 +219,11 @@ class EpsilonEdge extends LabeledEdge<Integer>
         super(-2);
     }
 
+    private EpsilonEdge(List<CounterInfo> counter_infos, AnchorType anchor_info, Set<Fifo> fifos_info)
+    {
+        super(-2, counter_infos, anchor_info, fifos_info);
+    }
+
     @Override
     public String toString()
     {
@@ -191,9 +233,7 @@ class EpsilonEdge extends LabeledEdge<Integer>
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        LabeledEdge<Integer> copy = new EpsilonEdge();
-        copy.setAnchorInfo(this.anchor_info);
-        return copy;
+        return new EpsilonEdge(this.counter_infos, this.anchor_info, this.fifos_info);
     }
 
     @Override
@@ -220,6 +260,11 @@ class CharacterEdge extends LabeledEdge<Integer>
         super(code_point, counter_infos);
     }
 
+    private CharacterEdge(int code_point, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<Fifo> fifos_info)
+    {
+        super(code_point, counter_infos, anchor_info, fifos_info);
+    }
+
     public int getCodePoint()
     {
         return this.label;
@@ -229,15 +274,13 @@ class CharacterEdge extends LabeledEdge<Integer>
     public String toString()
     {
         int val = this.label.intValue();
-        return (char) val + this.getAnchorString() + this.getCountersString();
+        return (char) val + this.getAnchorString() + this.getCountersString() + getFifosString();
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        LabeledEdge<Integer> copy =  new CharacterEdge(this.label, this.counter_infos);
-        copy.setAnchorInfo(this.anchor_info);
-        return copy;
+        return new CharacterEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
     }
 
     @Override
@@ -248,6 +291,7 @@ class CharacterEdge extends LabeledEdge<Integer>
         transition.setToken(this.label);
         TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
         group.setAnchor_info(this.anchor_info.name());
+        group.setFifos_info(this.fifos_info);
         return group;
     }
 }
@@ -258,6 +302,11 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     {
         super(code_points);
     } 
+
+    private CharacterBlockEdge(Integer[] code_points, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<Fifo> fifos_info)
+    {
+        super(code_points, counter_infos, anchor_info, fifos_info);
+    }
 
     public Integer[] getCodePoints()
     {
@@ -280,9 +329,7 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     @Override
     public LabeledEdge<Integer[]> copy() 
     {
-        LabeledEdge<Integer[]> copy = new CharacterBlockEdge(this.label);
-        copy.setAnchorInfo(this.anchor_info);
-        return copy;
+        return new CharacterBlockEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
     }
 
     @Override
@@ -314,6 +361,12 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         this.negated = negated;
     }
 
+    private CharacterClassEdge(Set<Integer> code_points, boolean negated, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<Fifo> fifos_info)
+    {
+        super(code_points, counter_infos, anchor_info, fifos_info);
+        this.negated = negated;
+    }
+
     public Set<Integer> getCodePoints()
     {
         return this.label;
@@ -335,15 +388,13 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
             str += (char) val;
         }
 
-        return str + ")" + getCountersString();
+        return str + ")" + getAnchorString() + getCountersString() + getFifosString();
     }
 
     @Override
     public LabeledEdge<Set<Integer>> copy() 
     {
-        LabeledEdge<Set<Integer>> copy = new CharacterClassEdge(this.label, this.negated, this.counter_infos);
-        copy.setAnchorInfo(this.anchor_info);
-        return copy;
+        return new CharacterClassEdge(this.label, this.negated, this.counter_infos, this.anchor_info, this.fifos_info);
     }
 
     @Override
@@ -360,6 +411,7 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         }
         TransitionGroup group = new TransitionGroup(transitions, this.negated, this.counter_infos);
         group.setAnchor_info(this.anchor_info.name());
+        group.setFifos_info(this.fifos_info);
         return group;
     }
 }
@@ -371,6 +423,11 @@ class CounterEdge extends LabeledEdge<CounterInfo>
         super(counter_info, counter_info);
     }
 
+    private CounterEdge(CounterInfo counter_info, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<Fifo> fifos_info)
+    {
+        super(counter_info, counter_infos, anchor_info, fifos_info);
+    }
+
     @Override
     public String toString()
     {
@@ -380,9 +437,7 @@ class CounterEdge extends LabeledEdge<CounterInfo>
     @Override
     public LabeledEdge<CounterInfo> copy() 
     {
-        LabeledEdge<CounterInfo> copy = new CounterEdge(this.counter_infos.get(0));
-        copy.setAnchorInfo(this.anchor_info);
-        return copy;
+        return new CounterEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
     }
 
     @Override
@@ -435,6 +490,51 @@ class EndAnchorEdge extends LabeledEdge<Integer>
     public LabeledEdge<Integer> copy() 
     {
         return new EndAnchorEdge();
+    }
+
+    @Override
+    public TransitionGroup generateTransitions(State target) 
+    {
+        throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
+    }
+}
+
+class CaptureEdge extends LabeledEdge<Fifo>
+{
+    public enum CaptureType {START, END};
+    private CaptureType type;
+
+    public CaptureEdge(CaptureType type, Fifo fifo)
+    {
+        super(fifo);
+        this.type = type;
+    }
+
+    public CaptureEdge(CaptureType type)
+    {
+        this(type, new Fifo());
+    }
+
+    public Fifo getFifo()
+    {
+        return this.label;
+    }
+
+    public CaptureType getType()
+    {
+        return this.type;
+    }
+
+    @Override
+    public String toString()
+    {
+        return (this.type == CaptureType.START ? "start" : "end") + " capture " + this.label;
+    }
+
+    @Override
+    public LabeledEdge<Fifo> copy() 
+    {
+        return new CaptureEdge(this.type, this.label);
     }
 
     @Override

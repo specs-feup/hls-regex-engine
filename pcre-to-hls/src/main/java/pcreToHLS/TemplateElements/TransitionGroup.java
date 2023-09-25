@@ -2,14 +2,17 @@ package pcreToHLS.TemplateElements;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 import pcreToHLS.CounterInfo;
+import pcreToHLS.Fifo;
 
 public class TransitionGroup {
     private List<Transition> transitions;
     private boolean intercept;
     private List<CounterInfo> counter_infos;
     private String anchor_info;
+    private Set<Fifo> fifos_info;
 
     public TransitionGroup(){}
 
@@ -70,5 +73,13 @@ public class TransitionGroup {
 
     public void setAnchor_info(String anchor_info) {
         this.anchor_info = anchor_info;
+    }
+
+    public Set<Fifo> getFifos_info() {
+        return fifos_info;
+    }
+
+    public void setFifos_info(Set<Fifo> fifos_info) {
+        this.fifos_info = fifos_info;
     }
 }

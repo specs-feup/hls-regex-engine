@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -32,18 +33,21 @@ import PCREgrammar.PCREgrammarParser.Quantifier_typeContext;
 import PCREgrammar.PCREgrammarParser.Shared_atomContext;
 import PCREgrammar.PCREgrammarParser.Shared_literalContext;
 import PCREgrammar.PCREgrammarParser.Subroutine_referenceContext;
+import pcreToHLS.CaptureEdge.CaptureType;
 
 public class RegexListener extends PCREgrammarBaseListener {
 
     private LockedStack<EpsilonNFA> stack;
     private RulesAnalyzer analyzer;
     private String flags;
+    private Stack<Fifo> fifos;
 
     public RegexListener(RulesAnalyzer analyzer, String flags)
     {
         this.stack = new LockedStack<>();
         this.analyzer = analyzer;
         this.flags = flags;
+        this.fifos = new Stack<>();
     }
 
     private boolean hasAnchoredFlag()
@@ -512,7 +516,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
         if (!is_first && concat())
-                addOccurrence("Concatenations");
+            addOccurrence("Concatenations");
     }
 
     public void exitAlternation(AlternationContext ctx)
@@ -562,8 +566,26 @@ public class RegexListener extends PCREgrammarBaseListener {
         }
     }
 
+    public void enterCapture(CaptureContext ctx)
+    {
+        addOccurrence("Capture Groups");
+        CaptureEdge capture_edge = new CaptureEdge(CaptureType.START);
+        stack.push(new EpsilonNFA(capture_edge));
+        fifos.push(capture_edge.getFifo());
+        if (stack.size() > 1)
+            concat();
+    }
+
+    public void exitCapture(CaptureContext ctx)
+    {
+        stack.push(new EpsilonNFA(new CaptureEdge(CaptureType.END, fifos.pop())));
+        concat();
+    }
+
     public EpsilonNFA getEpsilonNFA()
     {
+        if (this.stack.size() == 2) //in case there's a capture edge in the stack
+            concat();
         EpsilonNFA top = this.stack.pop(true);
         if (this.hasAnchoredFlag())
             top = EpsilonNFA.concat(new EpsilonNFA(new StartAnchorEdge()), top);
@@ -593,11 +615,6 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void enterBackreference(BackreferenceContext ctx)
     {
         addOccurrence("Backreferences");
-    }
-
-    public void enterCapture(CaptureContext ctx)
-    {
-        addOccurrence("Capture Groups");
     }
 
     public void enterNon_capture(Non_captureContext ctx)

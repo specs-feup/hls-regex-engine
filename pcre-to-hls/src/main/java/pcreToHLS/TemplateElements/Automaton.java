@@ -6,17 +6,19 @@ public class Automaton {
     private String expression;
     private String flags;
     private Set<String> counter_ids;
+    private Set<String> fifo_ids;
     private Set<State> states;
     private State start_state;
     private Set<State> end_states;
 
     public Automaton() {}
 
-    public Automaton(String expression, String flags, Set<String> counter_ids, Set<State> states, State start_state, Set<State> end_states)
+    public Automaton(String expression, String flags, Set<String> counter_ids, Set<String> fifo_ids, Set<State> states, State start_state, Set<State> end_states)
     {
         this.expression = expression;
         this.flags = flags;
         this.counter_ids = counter_ids;
+        this.fifo_ids = fifo_ids;
         this.states = states;
         this.start_state = start_state;
         this.end_states = end_states;
@@ -40,6 +42,14 @@ public class Automaton {
 
     public void setFlags(String flags) {
         this.flags = flags;
+    }
+
+    public Set<String> getFifo_ids() {
+        return fifo_ids;
+    }
+
+    public void setFifo_ids(Set<String> fifo_ids) {
+        this.fifo_ids = fifo_ids;
     }
 
     public void setCounter_ids(Set<String> counter_ids) {

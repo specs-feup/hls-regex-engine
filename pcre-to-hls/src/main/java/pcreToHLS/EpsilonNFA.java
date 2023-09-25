@@ -17,9 +17,11 @@ import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.MultiGraph;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
+import org.jgrapht.traverse.BreadthFirstIterator;
 import org.jgrapht.traverse.DepthFirstIterator;
 import org.jgrapht.traverse.GraphIterator;
 
+import pcreToHLS.CaptureEdge.CaptureType;
 import pcreToHLS.Counter.CounterOperation;
 import pcreToHLS.LabeledEdge.AnchorType;
 
@@ -461,8 +463,48 @@ public class EpsilonNFA {
         this.graph = new_graph;
     }
 
+    private void propagateFifos()
+    {
+        Graph<String, DefaultEdge> new_graph = new DirectedMultigraph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+
+        for (DefaultEdge edge : this.graph.edgeSet())
+        {
+            if (edge.getClass() != CaptureEdge.class || ((CaptureEdge)edge).getType() != CaptureType.START)
+                continue;
+
+            Fifo current_fifo = ((CaptureEdge)edge).getFifo();
+            String edge_source = this.graph.getEdgeSource(edge);
+            String edge_target = this.graph.getEdgeTarget(edge);
+            new_graph.removeEdge(edge);
+            new_graph.addEdge(edge_source, edge_target, new EpsilonEdge());
+            GraphIterator<String, DefaultEdge> iterator = new BreadthFirstIterator<String, DefaultEdge>(this.graph, edge_target);
+            boolean found_corresponding_end = false;
+            while (iterator.hasNext() && !found_corresponding_end) 
+            {
+                String current_vertex = iterator.next(); 
+                for (DefaultEdge outgoing : this.graph.outgoingEdgesOf(current_vertex))
+                {
+                    found_corresponding_end = outgoing.getClass() == CaptureEdge.class && ((CaptureEdge)outgoing).getType() == CaptureType.END && ((CaptureEdge)outgoing).getFifo().equals(current_fifo); 
+                    if (found_corresponding_end)
+                    {
+                        String outgoing_target = this.graph.getEdgeTarget(outgoing);
+                        new_graph.removeEdge(outgoing);
+                        new_graph.addEdge(current_vertex, outgoing_target, new EpsilonEdge());
+                        this.graph = new_graph;
+                        break;
+                    }
+
+                    ((LabeledEdge<?>)outgoing).addFifosInfo(((CaptureEdge)edge).getFifo());
+                }
+            }
+            
+        }
+    }
+
     public NFA toRegularNFA(boolean multiline) 
     {
+        propagateFifos();
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         removeCounterEdges();

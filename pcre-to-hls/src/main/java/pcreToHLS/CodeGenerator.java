@@ -73,7 +73,7 @@ public class CodeGenerator {
                     automaton = new NFA(tree, this.analyzer, regex.flags, debug);
                 this.regexes.put(regex, automaton);
             }
-            catch (EmptyStackException e) { System.out.println("Failed to parse: " + regex); }
+            catch (EmptyStackException e) { System.out.println("Failed to parse: " + regex); e.printStackTrace();}
             
         }
     }
@@ -109,6 +109,7 @@ public class CodeGenerator {
             Map<String, State> vertex_ids = new HashMap<>();
             Set<State> end_states = new HashSet<>();
             Set<String> counter_ids = new HashSet<>();
+            Set<String> fifo_ids = new HashSet<>();
 
             for (String vertex : automaton_graph.vertexSet())
             {
@@ -124,8 +125,11 @@ public class CodeGenerator {
                         List<CounterInfo> group_counter_infos = edge_transitions.getCounter_infos();
                         for (CounterInfo info : group_counter_infos)
                             counter_ids.add(info.counter.getId());
+                        for (Fifo fifo : edge_transitions.getFifos_info())
+                            fifo_ids.add(fifo.getId());
                     } catch (UnsupportedOperationException e) {
-                        System.out.println("error because of bounded quantifier (to remove)"); //TODO REMOVE THIS AFTER FIX
+                        e.printStackTrace();
+                        // System.out.println("error because of bounded quantifier (to remove)"); //TODO REMOVE THIS AFTER FIX
                         continue;
                     }
 
@@ -138,7 +142,7 @@ public class CodeGenerator {
             Set<State> states = new HashSet<>(vertex_ids.values());
             State start_state = vertex_ids.get(automaton.getStart());
 
-            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, states, start_state, end_states));
+            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, states, start_state, end_states));
         }
         
         Map<String, Object> root = new HashMap<>();

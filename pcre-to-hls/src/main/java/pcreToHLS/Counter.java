@@ -7,21 +7,18 @@ public class Counter {
     private int target_value;
     private int target_value2;
     private String id;
-    private static int id_no;
+    private static int id_no = 0;
     
     public Counter(int target_value)
     {
         this.target_value = target_value;
-        this.id = "c" + Counter.id_no;
-        Counter.id_no++;
+        this.id = "c" + Counter.id_no++;
     }
 
     public Counter(int target_value1, int target_value2)
     {
-        this.target_value = target_value1;
+        this(target_value1);
         this.target_value2 = target_value2;
-        this.id = "c" + Counter.id_no;
-        Counter.id_no++;
     }
 
     public Counter copy(int target_value)

@@ -50,4 +50,9 @@ public class LockedStack<T> {
         if (!this.locked || force)
             this.stack.push(new_element);
     }
+
+    public int size()
+    {
+        return this.stack.size();
+    }
 }
