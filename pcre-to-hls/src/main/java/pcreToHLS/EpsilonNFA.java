@@ -387,13 +387,13 @@ public class EpsilonNFA {
         }
     }
 
-    public void removeAnchorEdges()
+    public void removeAnchorEdges(boolean multiline)
     {
-        this.removeStartAnchors();
-        this.removeEndAnchors();
+        this.removeStartAnchors(multiline);
+        this.removeEndAnchors(multiline);
     }
 
-    public void removeEndAnchors()
+    public void removeEndAnchors(boolean multiline)
     {
         Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
         Graphs.addGraph(new_graph, this.graph);
@@ -415,6 +415,8 @@ public class EpsilonNFA {
                     new_edge.setAnchorInfo(AnchorType.END);
                     new_graph.addEdge(joinable, reachable, new_edge);
                 }
+                if (!multiline)
+                    new_graph.removeAllEdges(graph.outgoingEdgesOf(reachable));
             }
         }                
 
@@ -425,7 +427,7 @@ public class EpsilonNFA {
         this.graph = new_graph;
     }
 
-    public void removeStartAnchors()
+    public void removeStartAnchors(boolean multiline)
     {        
         Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
         Graphs.addGraph(new_graph, this.graph);
@@ -447,6 +449,8 @@ public class EpsilonNFA {
                     new_edge.setAnchorInfo(AnchorType.START);
                     new_graph.addEdge(current_vertex, joinable, new_edge);
                 }
+                if (!multiline)
+                    new_graph.removeAllEdges(graph.incomingEdgesOf(reachable));
             }
         }                
 
@@ -457,12 +461,12 @@ public class EpsilonNFA {
         this.graph = new_graph;
     }
 
-    public NFA toRegularNFA() 
+    public NFA toRegularNFA(boolean multiline) 
     {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         removeCounterEdges();
-        removeAnchorEdges();
+        removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         return new NFA(this.graph, this.start, new_ends);
     }

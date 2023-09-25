@@ -19,7 +19,7 @@ public class DFA extends FinalAutomaton {
     public DFA(ParseTree root, RulesAnalyzer analyzer, String flags, boolean debug) throws EmptyStackException 
     {
         EpsilonNFA eNFA = new EpsilonNFA(root, analyzer, flags);
-        NFA nfa = eNFA.toRegularNFA();
+        NFA nfa = eNFA.toRegularNFA(flags.contains("m"));
         DFA dfa = nfa.toDFA();
         if (debug)
         {
