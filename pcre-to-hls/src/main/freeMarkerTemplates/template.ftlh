@@ -2,6 +2,30 @@
 #include <string.h>
 #include <ctype.h>
 
+typedef struct {
+    int data[64];
+    int *head;
+    int size;
+} Queue;
+
+void initQueue(Queue *queue) 
+{
+    queue->head = queue->data;
+    queue->size = 0;
+}
+
+void enqueue(Queue *queue, int item) 
+{
+    *(queue->data + queue->size++) = item;
+}
+
+int dequeue(Queue *queue) 
+{
+    int ret = *queue->head;
+    queue->head++;
+    return ret;
+}
+
 <#list automata as automaton>
 //kernel for /${automaton.expression}/
 int kernel${automaton?counter}(char stream[], int stream_size)
@@ -10,6 +34,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
     int next[${automaton.states?size}] = {0};
     curr[${automaton.start_state.id}] = 1;
     ${declareCounters(automaton.counter_ids)}
+    ${declareFifos(automaton.fifo_ids)}
 
     for (int i = 0; i < stream_size; i++)
     {
@@ -143,6 +168,11 @@ int main()
     </#if>
   </#list>
 
+  <#list group.fifos_info as fifo_info>
+    <#assign id = fifo_info.id>
+    <#assign result = result + " enqueue(&${id}, c);"?no_esc>
+  </#list>
+
   <#return result>
 </#function>
 
@@ -151,6 +181,17 @@ int main()
     <#list counter_ids as counter_id>
       <#assign result = result + "int ${counter_id}[] = {0, 0};">
        <#if !counter_id?is_last>
+        <#assign result = result + "\n\t\t">
+       </#if>
+    </#list>
+  <#return result>
+</#function>
+
+<#function declareFifos fifo_ids>
+  <#assign result = "">
+    <#list fifo_ids as fifo_id>
+      <#assign result = result + "Queue ${fifo_id}; initQueue(&${fifo_id});"?no_esc>
+       <#if !fifo_id?is_last>
         <#assign result = result + "\n\t\t">
        </#if>
     </#list>
