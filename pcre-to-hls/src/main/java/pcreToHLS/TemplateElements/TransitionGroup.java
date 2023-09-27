@@ -13,6 +13,7 @@ public class TransitionGroup {
     private List<CounterInfo> counter_infos;
     private String anchor_info;
     private Set<Fifo> fifos_info;
+    private Fifo fifo_to_match;
 
     public TransitionGroup(){}
 
@@ -81,5 +82,13 @@ public class TransitionGroup {
 
     public void setFifos_info(Set<Fifo> fifos_info) {
         this.fifos_info = fifos_info;
+    }
+
+    public Fifo getFifo_to_match() {
+        return fifo_to_match;
+    }
+
+    public void setFifo_to_match(Fifo fifo_to_match) {
+        this.fifo_to_match = fifo_to_match;
     }
 }

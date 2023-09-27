@@ -48,6 +48,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.analyzer = analyzer;
         this.flags = flags;
         this.fifos = new Stack<>();
+        Fifo.resetIdNo();
     }
 
     private boolean hasAnchoredFlag()
@@ -582,6 +583,13 @@ public class RegexListener extends PCREgrammarBaseListener {
         concat();
     }
 
+    public void enterBackreference(BackreferenceContext ctx)
+    {
+        addOccurrence("Backreferences");
+        int digit = Integer.parseInt(ctx.backreference_or_octal().digit().getText());
+        stack.push(new EpsilonNFA(new BackreferenceEdge(digit)));
+    }
+
     public EpsilonNFA getEpsilonNFA()
     {
         if (this.stack.size() == 2) //in case there's a capture edge in the stack
@@ -610,11 +618,6 @@ public class RegexListener extends PCREgrammarBaseListener {
             addOccurrence("Possessive Quantifiers");
         else if (ctx.QuestionMark() != null)
             addOccurrence("Lazy Quantifiers");
-    }
-
-    public void enterBackreference(BackreferenceContext ctx)
-    {
-        addOccurrence("Backreferences");
     }
 
     public void enterNon_capture(Non_captureContext ctx)

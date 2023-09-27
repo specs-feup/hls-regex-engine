@@ -3,27 +3,43 @@
 #include <ctype.h>
 
 typedef struct {
-    int data[64];
-    int *head;
-    int size;
+  int data[64];
+  int *head;
+  int size;
 } Queue;
 
 void initQueue(Queue *queue) 
 {
-    queue->head = queue->data;
-    queue->size = 0;
+  queue->head = queue->data;
+  queue->size = 0;
 }
 
-void enqueue(Queue *queue, int item) 
+void enqueue(Queue *queue, int item, int clear) 
 {
-    *(queue->data + queue->size++) = item;
+  if (clear)
+    initQueue(queue);
+    
+  *(queue->data + queue->size++) = item;
 }
 
-int dequeue(Queue *queue) 
+int checkQueue(Queue *queue, char *stream, int *stream_counter)
 {
-    int ret = *queue->head;
-    queue->head++;
-    return ret;
+  if (queue->size == 0)
+    return -1;
+
+  int valid = 1;
+  int size_copy = queue->size;
+  int i = 0;
+  while (size_copy != 0 && valid)
+  {
+    int *head_copy = queue->head + i;
+    char c = stream[++*stream_counter];
+    valid = c == *head_copy;
+    size_copy--;
+    i++;
+  }
+  
+  return valid;
 }
 
 <#list automata as automaton>
@@ -158,7 +174,15 @@ int main()
 </#function>
 
 <#function getBody group>
-  <#assign result = "next[${group.transitions[0].target.id}] = 1;">
+  <#assign result = "">
+
+  <#if group.fifo_to_match??>
+  <#assign queue_ref = "&${group.fifo_to_match.id}"?no_esc>
+  <#assign result = result + "int is_valid = checkQueue(${queue_ref}, stream," + " &i);"?no_esc>
+  <#assign result = result + "if (is_valid) {">
+  </#if>
+
+  <#assign result = result + "next[${group.transitions[0].target.id}] = 1;">
   <#list group.counter_infos as counter_info>
     <#assign id = counter_info.counter.id>
     <#if counter_info.operation != "SET">
@@ -170,8 +194,12 @@ int main()
 
   <#list group.fifos_info as fifo_info>
     <#assign id = fifo_info.id>
-    <#assign result = result + " enqueue(&${id}, c);"?no_esc>
+    <#assign result = result + " enqueue(&${id}, c, 0);"?no_esc>
   </#list>
+
+  <#if group.fifo_to_match??>
+  <#assign result = result + "}">
+  </#if>
 
   <#return result>
 </#function>

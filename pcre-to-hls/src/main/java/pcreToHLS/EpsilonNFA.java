@@ -502,11 +502,40 @@ public class EpsilonNFA {
         }
     }
 
+    private void removeBackreferenceEdges()
+    {
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+
+        for (DefaultEdge edge : this.graph.edgeSet())
+        {
+            if (edge.getClass() != BackreferenceEdge.class)
+                continue;
+            
+            String backreference_source = this.graph.getEdgeSource(edge);
+            String backreference_target = this.graph.getEdgeTarget(edge);
+
+            for (DefaultEdge incoming : this.graph.incomingEdgesOf(backreference_source))
+            {
+                String transfer_source = this.graph.getEdgeSource(incoming);
+                LabeledEdge<?> transfer_edge = ((LabeledEdge<?>)incoming).copy();
+                transfer_edge.setFifoToMatch(((BackreferenceEdge)edge).getFifo());
+                new_graph.addEdge(transfer_source, backreference_target, transfer_edge);
+                new_graph.removeEdge(incoming);
+            }
+
+            new_graph.removeEdge(edge);
+        }
+
+        this.graph = new_graph;
+    }
+
     public NFA toRegularNFA(boolean multiline) 
     {
         propagateFifos();
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        removeBackreferenceEdges();
         removeCounterEdges();
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
