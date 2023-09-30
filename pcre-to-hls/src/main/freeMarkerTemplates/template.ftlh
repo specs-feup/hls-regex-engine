@@ -1,73 +1,155 @@
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
+#include <array>
+#include <iterator>
 
-typedef struct {
-  int data[64];
-  int *head;
-  int size;
-} Queue;
+class State {
+    private:
+    bool active;
+    int stream_index;
 
-void initQueue(Queue *queue) 
-{
-  queue->head = queue->data;
-  queue->size = 0;
-}
+    public:
+    State() {
+        this->active = false;
+        this->stream_index = 0;
+    }
 
-void enqueue(Queue *queue, int item, int clear) 
-{
-  if (clear)
-    initQueue(queue);
-    
-  *(queue->data + queue->size++) = item;
-}
+    bool isActive() { return this->active; }
+    void setActive(bool activation_state) { this->active = activation_state; }
+    int getStreamIndex() { return this->stream_index; }
+    void setStreamIndex(int stream_index) { this->stream_index = stream_index; }
+};
 
-int checkQueue(Queue *queue, char *stream, int *stream_counter)
-{
-  if (queue->size == 0)
-    return -1;
+enum TransitionType { Character, CharacterClass, Wildcard };
 
-  int valid = 1;
-  int size_copy = queue->size;
-  int i = 0;
-  while (size_copy != 0 && valid)
-  {
-    int *head_copy = queue->head + i;
-    char c = stream[++*stream_counter];
-    valid = c == *head_copy;
-    size_copy--;
-    i++;
-  }
-  
-  return valid;
-}
+template <size_t N>
+class Transition {
+    protected:
+    TransitionType type;
+    std::array<int, N> tokens;
+    State* current;
+    State* next;
+    int stream_increment;
+
+    /* Type Specific */
+    bool negated = false;
+    bool padding = false;
+
+    Transition(TransitionType type, const std::array<int, N> tokens, State *current, State *next, int stream_increment) {
+        this->type = type;
+        this->tokens = tokens;
+        this->current = current;
+        this->next = next;
+        this->stream_increment = stream_increment;
+    }
+
+    private:
+    void execute()
+    {
+        this->next->setActive(true);
+        this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);
+    }
+
+    bool testToken(int token, char *stream)
+    {
+        if (token == stream[this->current->getStreamIndex()])
+        {
+            this->execute();
+            return true;
+        }
+
+        return false;
+    }
+
+    public:
+    bool test(char *stream, int stream_size)
+    {
+        if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size)
+            return false;
+
+        if (this->type == TransitionType::Character)
+        {
+            return this->testToken(this->tokens[0], stream);
+        }
+        else if (this->type == TransitionType::CharacterClass)
+        {
+            for (size_t i = 0; i < sizeof(this->tokens) / sizeof(this->tokens[0]); i++)
+                if (this->testToken(this->tokens[i], stream))
+                    return true;
+        }
+        else if (this->type == TransitionType::Wildcard)
+        {
+            this->execute();
+            return true;
+        }
+
+        return false;
+    }
+};
+
+class CharacterTransition : public Transition<1> {
+    public:
+    CharacterTransition(int token, State *current, State *next) : Transition(TransitionType::Character, std::array<int, 1>({token}), current, next, 1)
+    { }
+};
+
+template <size_t N>
+class CharacterClassTransition : public Transition<N> {
+    public:
+    CharacterClassTransition(const std::array<int, N> tokens, bool negated, State *current, State *next) : Transition<N>(TransitionType::CharacterClass, tokens, current, next, 1)
+    { 
+        this->negated = negated;
+    }
+};
+
+class WildcardTransition : public Transition<0> {
+    public:
+    WildcardTransition(bool padding, State *current, State *next) : Transition(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1)
+    { 
+        this->padding = padding;
+    }
+};
 
 <#list automata as automaton>
 //kernel for /${automaton.expression}/
 int kernel${automaton?counter}(char stream[], int stream_size)
 {
-    int curr[${automaton.states?size}] = {0};
-    int next[${automaton.states?size}] = {0};
-    curr[${automaton.start_state.id}] = 1;
-    ${declareCounters(automaton.counter_ids)}
-    ${declareFifos(automaton.fifo_ids)}
+    State current[${automaton.states?size}];
+    State next[${automaton.states?size}];
+    current[${automaton.start_state.id}].setActive(true);
 
-    for (int i = 0; i < stream_size; i++)
-    {
-        char c = ${setCurrentCharVar(automaton)};
-        <#list automaton.states as state>
-        <#list state.transition_groups as group>
-        if (curr[${state.id}] && ${getAnchorComparisons(group, automaton)}(${getCharacterComparisons(group, automaton)})${getCounterComparisons(group)})
-          {${getBody(group)}}
-        </#list>
-        </#list>
-        
-        ${resetCounterGuards(automaton.counter_ids)}
-        memcpy(curr, next, ${automaton.states?size} * sizeof(int));
-        memset(next, 0, ${automaton.states?size} * sizeof(int));
-    }
+    <#assign transition_counter = 0>
+    <#list automaton.transitions as transition>
+      <#if transition.type == "Character">
+    CharacterTransition t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}]);
+      <#elseif transition.type == "CharacterClass">
+    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({97, 98}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}]);
+      <#elseif transition.type == "Wildcard">
+    WildcardTransition t${transition_counter}(${transition.padding?c}, &current[${transition.source.id}], &next[${transition.target.id}]);
+      </#if>
+    <#assign transition_counter += 1>
+    </#list>
 
-    return <#list automaton.end_states as end_state>curr[${end_state.id}]<#if !end_state?is_last> || </#if></#list>;
+    int transitions_occurred;
+
+    do {
+        transitions_occurred = 0;
+     
+        <#assign transition_counter = 0>
+        <#list automaton.transitions as transition>
+        transitions_occurred += t${transition_counter}.test(stream, stream_size);
+        <#assign transition_counter += 1>
+        </#list>
+
+        if (transitions_occurred)
+        {
+            memcpy(current, next, ${automaton.states?size} * sizeof(State));
+            memset(next, 0, ${automaton.states?size} * sizeof(State));
+        }
+      
+    } while (transitions_occurred);
+
+    return <#list automaton.end_states as end_state>current[${end_state.id}].isActive()<#if !end_state?is_last> || </#if></#list>;
 }
 
 </#list>

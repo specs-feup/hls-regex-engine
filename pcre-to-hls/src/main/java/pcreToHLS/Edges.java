@@ -9,9 +9,11 @@ import java.util.Set;
 
 import org.jgrapht.graph.DefaultEdge;
 
+import pcreToHLS.TemplateElements.CharacterClassTransition;
+import pcreToHLS.TemplateElements.CharacterTransition;
 import pcreToHLS.TemplateElements.State;
 import pcreToHLS.TemplateElements.Transition;
-import pcreToHLS.TemplateElements.TransitionGroup;
+import pcreToHLS.TemplateElements.WildcardTransition;
 
 abstract class LabeledEdge<T> extends DefaultEdge
 {
@@ -162,7 +164,7 @@ abstract class LabeledEdge<T> extends DefaultEdge
     }
 
     abstract public LabeledEdge<T> copy();
-    abstract public TransitionGroup generateTransitions(State target);
+    abstract public Transition generateTransition(State source, State target);
 }
 
 class WildcardEdge extends LabeledEdge<Integer>
@@ -212,17 +214,18 @@ class WildcardEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public WildcardTransition generateTransition(State source, State target) 
     {
-        Transition transition = new Transition();
-        transition.setWildcard(true);
-        transition.setTarget(target);
-        transition.setPadding(padding);
-        TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
-        group.setAnchor_info(this.anchor_info.name());
-        group.setFifos_info(this.fifos_info);
-        group.setFifo_to_match(this.fifo_to_match);
-        return group;
+        WildcardTransition transition = new WildcardTransition(source, target, padding);
+        return transition;
+        // transition.setWildcard(true);
+        // transition.setTarget(target);
+        // transition.setPadding(padding);
+        // TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
+        // group.setAnchor_info(this.anchor_info.name());
+        // group.setFifos_info(this.fifos_info);
+        // group.setFifo_to_match(this.fifo_to_match);
+        // return group;
     }
 } 
 
@@ -253,7 +256,7 @@ class EpsilonEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
@@ -302,16 +305,18 @@ class CharacterEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public CharacterTransition generateTransition(State source, State target) 
     {
-        Transition transition = new Transition();
-        transition.setTarget(target);
-        transition.setToken(this.label);
-        TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
-        group.setAnchor_info(this.anchor_info.name());
-        group.setFifos_info(this.fifos_info);
-        group.setFifo_to_match(this.fifo_to_match);
-        return group;
+        CharacterTransition transition = new CharacterTransition(source, target, label);
+        return transition;
+        // Transition transition = new Transition();
+        // transition.setTarget(target);
+        // transition.setToken(this.label);
+        // TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
+        // group.setAnchor_info(this.anchor_info.name());
+        // group.setFifos_info(this.fifos_info);
+        // group.setFifo_to_match(this.fifo_to_match);
+        // return group;
     }
 }
 
@@ -354,7 +359,7 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");  
     }
@@ -421,22 +426,24 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public CharacterClassTransition generateTransition(State source, State target) 
     {
-        List<Transition> transitions = new LinkedList<>();
-        for (int code_point : this.label)
-        {
-            Transition transition = new Transition();
-            transition.setTarget(target);
-            transition.setToken(code_point);
-            transition.setNegated(this.negated);
-            transitions.add(transition);
-        }
-        TransitionGroup group = new TransitionGroup(transitions, this.negated, this.counter_infos);
-        group.setAnchor_info(this.anchor_info.name());
-        group.setFifos_info(this.fifos_info);
-        group.setFifo_to_match(this.fifo_to_match);
-        return group;
+        CharacterClassTransition transition = new CharacterClassTransition(source, target, label, negated);
+        return transition;
+        // List<Transition> transitions = new LinkedList<>();
+        // for (int code_point : this.label)
+        // {
+        //     Transition transition = new Transition();
+        //     transition.setTarget(target);
+        //     transition.setToken(code_point);
+        //     transition.setNegated(this.negated);
+        //     transitions.add(transition);
+        // }
+        // TransitionGroup group = new TransitionGroup(transitions, this.negated, this.counter_infos);
+        // group.setAnchor_info(this.anchor_info.name());
+        // group.setFifos_info(this.fifos_info);
+        // group.setFifo_to_match(this.fifo_to_match);
+        // return group;
     }
 }
 
@@ -467,7 +474,7 @@ class CounterEdge extends LabeledEdge<CounterInfo>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) {
+    public Transition generateTransition(State source, State target) {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
 }
@@ -494,7 +501,7 @@ class StartAnchorEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
@@ -523,7 +530,7 @@ class EndAnchorEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
@@ -570,7 +577,7 @@ class CaptureEdge extends LabeledEdge<Fifo>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
@@ -603,7 +610,7 @@ class BackreferenceEdge extends LabeledEdge<Fifo>
     }
 
     @Override
-    public TransitionGroup generateTransitions(State target) 
+    public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }

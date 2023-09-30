@@ -32,7 +32,7 @@ public class App extends TApplication {
     {
         super(TApplication.BackendType.SWING);
         this.setColors();
-        String generation_path = System.getProperty("user.home") + "\\Desktop\\generated.c";
+        String generation_path = System.getProperty("user.home") + "\\Desktop\\generated.cpp";
         UnescapedWindow window = new UnescapedWindow(this, "PCRE to HLS", this.getDesktop().getWidth(), this.getDesktop().getHeight(), TWindow.NOCLOSEBOX + TWindow.NOZOOMBOX);
         TRadioGroup group = window.addRadioGroup(0, 0, "PCRE Source");
 

@@ -1,5 +1,6 @@
 package pcreToHLS.TemplateElements;
 
+import java.util.List;
 import java.util.Set;
 
 public class Automaton {
@@ -8,18 +9,20 @@ public class Automaton {
     private Set<String> counter_ids;
     private Set<String> fifo_ids;
     private Set<State> states;
+    private List<Transition> transitions;
     private State start_state;
     private Set<State> end_states;
 
     public Automaton() {}
 
-    public Automaton(String expression, String flags, Set<String> counter_ids, Set<String> fifo_ids, Set<State> states, State start_state, Set<State> end_states)
+    public Automaton(String expression, String flags, Set<String> counter_ids, Set<String> fifo_ids, Set<State> states, List<Transition> transitions, State start_state, Set<State> end_states)
     {
         this.expression = expression;
         this.flags = flags;
         this.counter_ids = counter_ids;
         this.fifo_ids = fifo_ids;
         this.states = states;
+        this.transitions = transitions;
         this.start_state = start_state;
         this.end_states = end_states;
     }
@@ -62,6 +65,14 @@ public class Automaton {
 
     public void setStates(Set<State> states) {
         this.states = states;
+    }
+
+    public List<Transition> getTransitions() {
+        return transitions;
+    }
+
+    public void setTransitions(List<Transition> transitions) {
+        this.transitions = transitions;
     }
 
     public State getStart_state() {
