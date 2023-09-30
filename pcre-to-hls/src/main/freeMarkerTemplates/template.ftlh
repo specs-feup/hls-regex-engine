@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <array>
-#include <iterator>
+#include <ctype.h>
 
 class State {
     private:
@@ -77,17 +77,23 @@ class Transition {
         }
     }
 
-    bool testTokens(std::array<int, N> tokens, char *stream)
+    bool testTokens(std::array<int, N> tokens, char *stream, bool insensitive)
     {
-        int stream_token = stream[this->current->getStreamIndex()];
+        int stream_token = insensitive ? toupper(stream[this->current->getStreamIndex()]) : stream[this->current->getStreamIndex()];
+        
         bool has_match = false;
 
         for (int token : tokens)
+        {
+            if (insensitive)
+                token = toupper(token);
+
             if (token == stream_token)
             {
                 has_match = true;
                 break;
             }
+        }
 
         if ((this->negated && !has_match) || (!this->negated && has_match))
         {
@@ -98,9 +104,13 @@ class Transition {
         return false; 
     }
 
-    bool testToken(int token, char *stream)
+    bool testToken(int token, char *stream, bool insensitive)
     {
-        if (token == stream[this->current->getStreamIndex()])
+        int stream_token = insensitive ? toupper(stream[this->current->getStreamIndex()]) : stream[this->current->getStreamIndex()];
+        if (insensitive)
+            token = toupper(token);
+
+        if (token == stream_token)
         {
             this->execute();
             return true;
@@ -110,18 +120,18 @@ class Transition {
     }
 
     public:
-    bool test(char *stream, int stream_size, bool multiline)
+    bool test(char *stream, int stream_size, bool multiline, bool insensitive)
     {
         if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size || !this->testAnchor(stream, stream_size, multiline))
             return false;
 
         if (this->type == TransitionType::Character)
         {
-            return this->testToken(this->tokens[0], stream);
+            return this->testToken(this->tokens[0], stream, insensitive);
         }
         else if (this->type == TransitionType::CharacterClass)
         {
-            return this->testTokens(this->tokens, stream);
+            return this->testTokens(this->tokens, stream, insensitive);
         }
         else if (this->type == TransitionType::Wildcard)
         {
@@ -183,7 +193,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
      
         <#assign transition_counter = 0>
         <#list automaton.transitions as transition>
-        transitions_occurred += t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c});
+        transitions_occurred += t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c});
         <#assign transition_counter += 1>
         </#list>
 
@@ -341,12 +351,4 @@ int main()
 
 <#function hasSinglelineFlag automaton>
   <#return automaton.flags?contains("s")>
-</#function>
-
-<#function setCurrentCharVar automaton>
-  <#if hasCaseInsensitiveFlag(automaton)>
-    <#return "toupper(stream[i])">
-  <#else>
-    <#return "stream[i]">
-  </#if>
 </#function>
