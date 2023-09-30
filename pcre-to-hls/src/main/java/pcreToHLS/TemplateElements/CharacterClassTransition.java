@@ -6,9 +6,9 @@ public class CharacterClassTransition extends Transition {
     private Set<Integer> tokens;
     private boolean negated;
 
-    public CharacterClassTransition(State source, State target, Set<Integer> tokens, boolean negated)
+    public CharacterClassTransition(String anchor_info, State source, State target, Set<Integer> tokens, boolean negated)
     {
-        super(TransitionType.CharacterClass, source, target);
+        super(TransitionType.CharacterClass, anchor_info, source, target);
         this.tokens = tokens;
         this.negated = negated;
     }

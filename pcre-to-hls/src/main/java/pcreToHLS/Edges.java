@@ -216,7 +216,7 @@ class WildcardEdge extends LabeledEdge<Integer>
     @Override
     public WildcardTransition generateTransition(State source, State target) 
     {
-        WildcardTransition transition = new WildcardTransition(source, target, padding);
+        WildcardTransition transition = new WildcardTransition(this.anchor_info.name(), source, target, padding);
         return transition;
         // transition.setWildcard(true);
         // transition.setTarget(target);
@@ -307,7 +307,7 @@ class CharacterEdge extends LabeledEdge<Integer>
     @Override
     public CharacterTransition generateTransition(State source, State target) 
     {
-        CharacterTransition transition = new CharacterTransition(source, target, label);
+        CharacterTransition transition = new CharacterTransition(this.anchor_info.name(), source, target, label);
         return transition;
         // Transition transition = new Transition();
         // transition.setTarget(target);
@@ -428,7 +428,7 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     @Override
     public CharacterClassTransition generateTransition(State source, State target) 
     {
-        CharacterClassTransition transition = new CharacterClassTransition(source, target, label, negated);
+        CharacterClassTransition transition = new CharacterClassTransition(this.anchor_info.name(), source, target, label, negated);
         return transition;
         // List<Transition> transitions = new LinkedList<>();
         // for (int code_point : this.label)

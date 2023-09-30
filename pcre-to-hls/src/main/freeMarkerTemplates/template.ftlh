@@ -21,6 +21,7 @@ class State {
 };
 
 enum TransitionType { Character, CharacterClass, Wildcard };
+enum AnchorType { NONE, START, END };
 
 template <size_t N>
 class Transition {
@@ -31,16 +32,20 @@ class Transition {
     State* next;
     int stream_increment;
 
+    /* Additional Info */
+    AnchorType anchor_type;
+
     /* Type Specific */
     bool negated = false;
     bool padding = false;
 
-    Transition(TransitionType type, const std::array<int, N> tokens, State *current, State *next, int stream_increment) {
+    Transition(TransitionType type, const std::array<int, N> tokens, State *current, State *next, int stream_increment, AnchorType anchor_type) {
         this->type = type;
         this->tokens = tokens;
         this->current = current;
         this->next = next;
         this->stream_increment = stream_increment;
+        this->anchor_type = anchor_type;
     }
 
     private:
@@ -48,6 +53,28 @@ class Transition {
     {
         this->next->setActive(true);
         this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);
+    }
+
+    bool testAnchor(char *stream, int stream_size, bool multiline)
+    {
+        int current_index = this->current->getStreamIndex();
+        switch (this->anchor_type)
+        {
+            case AnchorType::START:
+                if (multiline)
+                    return current_index == 0 || stream[current_index - 1] == '\n';
+                else
+                    return current_index == 0;
+            case AnchorType::END:
+                if (multiline)
+                    return current_index == stream_size - 1 || stream[current_index + 1] == '\n';
+                else
+                    return current_index == stream_size - 1;
+                break;
+
+            default:
+                return true;
+        }
     }
 
     bool testTokens(std::array<int, N> tokens, char *stream)
@@ -83,9 +110,9 @@ class Transition {
     }
 
     public:
-    bool test(char *stream, int stream_size)
+    bool test(char *stream, int stream_size, bool multiline)
     {
-        if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size)
+        if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size || !this->testAnchor(stream, stream_size, multiline))
             return false;
 
         if (this->type == TransitionType::Character)
@@ -108,14 +135,14 @@ class Transition {
 
 class CharacterTransition : public Transition<1> {
     public:
-    CharacterTransition(int token, State *current, State *next) : Transition(TransitionType::Character, std::array<int, 1>({token}), current, next, 1)
+    CharacterTransition(int token, State *current, State *next, AnchorType anchor_type) : Transition(TransitionType::Character, std::array<int, 1>({token}), current, next, 1, anchor_type)
     { }
 };
 
 template <size_t N>
 class CharacterClassTransition : public Transition<N> {
     public:
-    CharacterClassTransition(const std::array<int, N> tokens, bool negated, State *current, State *next) : Transition<N>(TransitionType::CharacterClass, tokens, current, next, 1)
+    CharacterClassTransition(const std::array<int, N> tokens, bool negated, State *current, State *next, AnchorType anchor_type) : Transition<N>(TransitionType::CharacterClass, tokens, current, next, 1, anchor_type)
     { 
         this->negated = negated;
     }
@@ -123,7 +150,7 @@ class CharacterClassTransition : public Transition<N> {
 
 class WildcardTransition : public Transition<0> {
     public:
-    WildcardTransition(bool padding, State *current, State *next) : Transition(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1)
+    WildcardTransition(bool padding, State *current, State *next, AnchorType anchor_type) : Transition(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1, anchor_type)
     { 
         this->padding = padding;
     }
@@ -140,11 +167,11 @@ int kernel${automaton?counter}(char stream[], int stream_size)
     <#assign transition_counter = 0>
     <#list automaton.transitions as transition>
       <#if transition.type == "Character">
-    CharacterTransition t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}]);
+    CharacterTransition t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}], AnchorType::${transition.anchor_info});
       <#elseif transition.type == "CharacterClass">
-    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}]);
+    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], AnchorType::${transition.anchor_info});
       <#elseif transition.type == "Wildcard">
-    WildcardTransition t${transition_counter}(${transition.padding?c}, &current[${transition.source.id}], &next[${transition.target.id}]);
+    WildcardTransition t${transition_counter}(${transition.padding?c}, &current[${transition.source.id}], &next[${transition.target.id}], AnchorType::${transition.anchor_info});
       </#if>
     <#assign transition_counter += 1>
     </#list>
@@ -156,7 +183,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
      
         <#assign transition_counter = 0>
         <#list automaton.transitions as transition>
-        transitions_occurred += t${transition_counter}.test(stream, stream_size);
+        transitions_occurred += t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c});
         <#assign transition_counter += 1>
         </#list>
 
@@ -211,25 +238,6 @@ int main()
     </#if>
 
   </#list>
-  <#return result>
-</#function>
-
-<#function getAnchorComparisons group automaton>
-  <#assign is_line_comparison = hasMultilineFlag(automaton)>
-  <#assign result = "">
-  <#if group.anchor_info == "START">
-    <#if is_line_comparison>
-      <#assign result = "(i == 0 || stream[i - 1] == 10) && "?no_esc>
-    <#else>
-      <#assign result = "i == 0 && "?no_esc>
-    </#if>
-  <#elseif group.anchor_info == "END">
-      <#if is_line_comparison>
-      <#assign result = "(i == stream_size - 1 || stream[i + 1] == 10) && "?no_esc>
-    <#else>
-      <#assign result = "i == stream_size - 1 && "?no_esc>
-    </#if>
-  </#if>
   <#return result>
 </#function>
 

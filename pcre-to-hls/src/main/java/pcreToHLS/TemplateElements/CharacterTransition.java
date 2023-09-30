@@ -3,9 +3,9 @@ package pcreToHLS.TemplateElements;
 public class CharacterTransition extends Transition {
     private int token;
 
-    public CharacterTransition(State source, State target, int token)
+    public CharacterTransition(String anchor_info, State source, State target, int token)
     {
-        super(TransitionType.Character, source, target);
+        super(TransitionType.Character, anchor_info, source, target);
         this.token = token;
     }
 

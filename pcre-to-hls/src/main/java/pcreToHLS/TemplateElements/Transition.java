@@ -5,11 +5,13 @@ public abstract class Transition {
     protected TransitionType type;
     protected State source;
     protected State target;
+    protected String anchor_info;
 
-    protected Transition(TransitionType type, State source, State target) {
+    protected Transition(TransitionType type, String anchor_info, State source, State target) {
         this.source = source;
         this.target = target;
         this.type = type;
+        this.anchor_info = anchor_info;
     }
 
     public TransitionType getType() {
@@ -36,5 +38,13 @@ public abstract class Transition {
     public void setTarget(State target) 
     {
         this.target = target;
+    }
+
+    public String getAnchor_info() {
+        return anchor_info;
+    }
+
+    public void setAnchor_info(String anchor_info) {
+        this.anchor_info = anchor_info;
     }
 }
