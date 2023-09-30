@@ -123,7 +123,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
       <#if transition.type == "Character">
     CharacterTransition t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}]);
       <#elseif transition.type == "CharacterClass">
-    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({97, 98}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}]);
+    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}]);
       <#elseif transition.type == "Wildcard">
     WildcardTransition t${transition_counter}(${transition.padding?c}, &current[${transition.source.id}], &next[${transition.target.id}]);
       </#if>
@@ -168,21 +168,6 @@ int main()
 
     return 0;
 }
-<#function getComparator transition>
-  <#if transition.negated>
-    <#return "!=">
-  <#else>
-    <#return "==">
-  </#if>
-</#function>
-
-<#function getJoinOperator group>
-  <#if group.intercept>
-    <#return " &"?no_esc+"& "?no_esc>
-  <#else>
-    <#return " || ">
-  </#if>
-</#function>
 
 <#function getCounterComparisons group>
   <#assign result = "">
