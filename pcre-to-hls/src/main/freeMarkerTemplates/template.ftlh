@@ -120,7 +120,7 @@ class Transition {
     }
 
     public:
-    bool test(char *stream, int stream_size, bool multiline, bool insensitive)
+    bool test(char *stream, int stream_size, bool multiline, bool insensitive, bool singleline)
     {
         if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size || !this->testAnchor(stream, stream_size, multiline))
             return false;
@@ -135,11 +135,14 @@ class Transition {
         }
         else if (this->type == TransitionType::Wildcard)
         {
-            this->execute();
-            return true;
+            if (this->padding || singleline || stream[this->current->getStreamIndex()] != '\n')
+            {
+                this->execute();
+                return true;
+            }
         }
 
-        return this->negated;
+        return false;
     }
 };
 
@@ -193,7 +196,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
      
         <#assign transition_counter = 0>
         <#list automaton.transitions as transition>
-        transitions_occurred += t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c});
+        transitions_occurred += t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c}, ${hasSinglelineFlag(automaton)?c});
         <#assign transition_counter += 1>
         </#list>
 
