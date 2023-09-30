@@ -50,6 +50,27 @@ class Transition {
         this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);
     }
 
+    bool testTokens(std::array<int, N> tokens, char *stream)
+    {
+        int stream_token = stream[this->current->getStreamIndex()];
+        bool has_match = false;
+
+        for (int token : tokens)
+            if (token == stream_token)
+            {
+                has_match = true;
+                break;
+            }
+
+        if ((this->negated && !has_match) || (!this->negated && has_match))
+        {
+            this->execute();
+            return true;
+        }
+        
+        return false; 
+    }
+
     bool testToken(int token, char *stream)
     {
         if (token == stream[this->current->getStreamIndex()])
@@ -73,9 +94,7 @@ class Transition {
         }
         else if (this->type == TransitionType::CharacterClass)
         {
-            for (size_t i = 0; i < sizeof(this->tokens) / sizeof(this->tokens[0]); i++)
-                if (this->testToken(this->tokens[i], stream))
-                    return true;
+            return this->testTokens(this->tokens, stream);
         }
         else if (this->type == TransitionType::Wildcard)
         {
@@ -83,7 +102,7 @@ class Transition {
             return true;
         }
 
-        return false;
+        return this->negated;
     }
 };
 
