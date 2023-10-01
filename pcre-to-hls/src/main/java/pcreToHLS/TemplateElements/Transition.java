@@ -1,17 +1,23 @@
 package pcreToHLS.TemplateElements;
 
+import java.util.Set;
+
+import pcreToHLS.FifoInfo;
+
 public abstract class Transition {
-    protected enum TransitionType { Character, CharacterClass, Wildcard};
+    protected enum TransitionType { Character, CharacterClass, Wildcard, Backreference};
     protected TransitionType type;
     protected State source;
     protected State target;
     protected String anchor_info;
+    protected Set<FifoInfo> fifos_info;
 
-    protected Transition(TransitionType type, String anchor_info, State source, State target) {
+    protected Transition(TransitionType type, String anchor_info, Set<FifoInfo> fifos_info, State source, State target) {
         this.source = source;
         this.target = target;
         this.type = type;
         this.anchor_info = anchor_info;
+        this.fifos_info = fifos_info;
     }
 
     public TransitionType getType() {
@@ -46,5 +52,13 @@ public abstract class Transition {
 
     public void setAnchor_info(String anchor_info) {
         this.anchor_info = anchor_info;
+    }
+
+    public Set<FifoInfo> getFifos_info() {
+        return fifos_info;
+    }
+
+    public void setFifos_info(Set<FifoInfo> fifos_info) {
+        this.fifos_info = fifos_info;
     }
 }

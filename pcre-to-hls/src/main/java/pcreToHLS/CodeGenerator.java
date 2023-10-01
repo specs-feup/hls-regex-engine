@@ -4,6 +4,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ import PCREgrammar.PCREgrammarParser;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import pcreToHLS.TemplateElements.Automaton;
+import pcreToHLS.TemplateElements.BackreferenceTransition;
 import pcreToHLS.TemplateElements.State;
 import pcreToHLS.TemplateElements.Transition;
 
@@ -120,11 +122,25 @@ public class CodeGenerator {
                 Transition edge_transition;
                 try {
                     edge_transition = ((LabeledEdge<?>) edge).generateTransition(source_state, target_state);
+                    for (FifoInfo fifo_info : edge_transition.getFifos_info())
+                        fifo_ids.add(fifo_info.getFifo().getId());
                     transitions.add(edge_transition);
                 } catch (UnsupportedOperationException e) {
                     e.printStackTrace();
                 }
             }
+
+            Collections.sort(transitions, (transition1, transition2) -> {
+                if (transition1 instanceof BackreferenceTransition
+                        && !(transition2 instanceof BackreferenceTransition)) {
+                    return -1;
+                } else if (!(transition1 instanceof BackreferenceTransition)
+                        && transition2 instanceof BackreferenceTransition) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            });
 
             // for (String vertex : automaton_graph.vertexSet())
             // {
