@@ -570,17 +570,17 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void enterCapture(CaptureContext ctx)
     {
         addOccurrence("Capture Groups");
-        CaptureEdge capture_edge = new CaptureEdge(CaptureType.START);
-        stack.push(new EpsilonNFA(capture_edge));
-        fifos.push(capture_edge.getFifo());
-        if (stack.size() > 1)
-            concat();
+        fifos.push(new Fifo());
     }
 
     public void exitCapture(CaptureContext ctx)
     {
-        stack.push(new EpsilonNFA(new CaptureEdge(CaptureType.END, fifos.pop())));
-        concat();
+        Fifo fifo = fifos.pop();
+        EpsilonNFA top = this.stack.pop();
+        EpsilonNFA with_start = EpsilonNFA.concat(new EpsilonNFA(new CaptureEdge(CaptureType.START, fifo)), top);
+        EpsilonNFA with_start_end = EpsilonNFA.concat(with_start, new EpsilonNFA(new CaptureEdge(CaptureType.END, fifo)));
+
+        stack.push(with_start_end);
     }
 
     public void enterBackreference(BackreferenceContext ctx)

@@ -326,6 +326,11 @@ public class EpsilonNFA {
 
     private Set<String> removeEpsilons()
     {
+        return this.removeEpsilons(new HashSet<>(Arrays.asList(this.end)));
+    }
+
+    private Set<String> removeEpsilons(Set<String> current_ends)
+    {
         Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
         Graphs.addGraph(new_graph, this.graph);
         Set<String> new_ends = new HashSet<>();
@@ -333,7 +338,10 @@ public class EpsilonNFA {
         {
             Set<String> closure = new HashSet<>();
             getEpsilonClosure(this.graph, vertex, closure);
-            if (closure.contains(this.end))
+            Set<String> intersection = new HashSet<>(closure);
+            intersection.retainAll(current_ends);
+
+            if (!intersection.isEmpty())
                 new_ends.add(vertex);
 
             for (String reachable : closure) 
@@ -472,10 +480,10 @@ public class EpsilonNFA {
 
     private void propagateFifos()
     {
-        Graph<String, DefaultEdge> new_graph = new DirectedMultigraph<>(LabeledEdge.class);
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
         Graphs.addGraph(new_graph, this.graph);
-        Map<Fifo, CaptureEdge> capture_starts = new HashMap<>();
-        Map<Fifo, CaptureEdge> capture_ends = new HashMap<>();
+        Map<Fifo, Set<String>> capture_starts = new HashMap<>();
+        Map<Fifo, Set<String>> capture_ends = new HashMap<>();
 
         for (DefaultEdge edge : this.graph.edgeSet())
         {
@@ -484,36 +492,50 @@ public class EpsilonNFA {
 
             CaptureEdge capture_edge = (CaptureEdge) edge;
             Fifo current_fifo = capture_edge.getFifo();
-            if (capture_edge.getType() == CaptureType.START)
-                capture_starts.put(current_fifo, capture_edge);
-            else 
-                capture_ends.put(current_fifo, capture_edge);
+            Map<Fifo, Set<String>> map_to_put = capture_edge.getType() == CaptureType.START ? capture_starts : capture_ends;
+            Set<String> set_to_add = map_to_put.get(current_fifo); 
+            
+            if (set_to_add == null)
+                set_to_add = new HashSet<>();
+            set_to_add.add(this.graph.getEdgeTarget(capture_edge));
+            map_to_put.put(current_fifo, set_to_add);
 
             new_graph.removeEdge(edge);
             new_graph.addEdge(this.graph.getEdgeSource(edge), this.graph.getEdgeTarget(edge), new EpsilonEdge());
         }
 
-        for (Entry<Fifo, CaptureEdge> start_entries : capture_starts.entrySet())
+        for (Entry<Fifo, Set<String>> start_entries : capture_starts.entrySet())
         {
-            String path_start_vertex = this.graph.getEdgeTarget(start_entries.getValue());
-            String path_end_vertex = this.graph.getEdgeSource(capture_ends.get(start_entries.getKey()));
+            Set<String> path_start_vertices = start_entries.getValue();
+            Set<String> path_end_vertices = capture_ends.get(start_entries.getKey());
             AllDirectedPaths<String, DefaultEdge> all_paths = new AllDirectedPaths<>(this.graph);
-            List<GraphPath<String, DefaultEdge>> paths = all_paths.getAllPaths(path_start_vertex, path_end_vertex, true, Integer.MAX_VALUE);
+            List<GraphPath<String, DefaultEdge>> paths = all_paths.getAllPaths(path_start_vertices, path_end_vertices, true, Integer.MAX_VALUE);
 
-            for (GraphPath<String, DefaultEdge> path : paths)
+            for (GraphPath<String, DefaultEdge> path : paths) 
             {
                 int i = 0;
-                for (DefaultEdge path_edge : path.getEdgeList())
+                boolean increment = false;
+
+                for (String path_vertex : path.getVertexList()) 
                 {
-                    if (!isFinalEdge(path_edge))
-                        continue;
-                    
-                    Fifo fifo = ((CaptureEdge)start_entries.getValue()).getFifo();
-                    boolean clear = i++ == 0;
-                    FifoInfo fifo_info = new FifoInfo(fifo, clear);
-                    ((LabeledEdge<?>)path_edge).addFifosInfo(fifo_info);
+                    if (increment)
+                        i++;
+
+                    for (DefaultEdge outgoing : this.graph.outgoingEdgesOf(path_vertex)) 
+                    {
+                        if (!isFinalEdge(outgoing))
+                            continue;
+                        else
+                            increment = true;
+
+                        Fifo fifo = start_entries.getKey();
+                        boolean clear = i == 0;
+                        FifoInfo fifo_info = new FifoInfo(fifo, clear);
+                        ((LabeledEdge<?>) outgoing).addFifosInfo(fifo_info);
+                    }
                 }
             }
+
         }
 
         this.graph = new_graph;
@@ -521,8 +543,11 @@ public class EpsilonNFA {
 
     public NFA toRegularNFA(boolean multiline) 
     {
-        propagateFifos();
         Set<String> new_ends = this.removeEpsilons();
+        removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        new NFA(this.graph, this.start, new_ends).display();
+        propagateFifos();
+        new_ends = this.removeEpsilons(new_ends);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         // removeCounterEdges();
         removeAnchorEdges(multiline);
