@@ -19,7 +19,6 @@ import org.graphstream.graph.implementations.MultiGraph;
 import org.jgrapht.*;
 import org.jgrapht.alg.shortestpath.AllDirectedPaths;
 import org.jgrapht.graph.*;
-import org.jgrapht.traverse.BreadthFirstIterator;
 import org.jgrapht.traverse.DepthFirstIterator;
 import org.jgrapht.traverse.GraphIterator;
 
@@ -465,6 +464,12 @@ public class EpsilonNFA {
         this.graph = new_graph;
     }
 
+    private boolean isFinalEdge(DefaultEdge edge)
+    {
+        List<Class<?>>not_final = Arrays.asList(EpsilonEdge.class, CaptureEdge.class, StartAnchorEdge.class, EndAnchorEdge.class, CounterEdge.class);
+        return !not_final.contains(edge.getClass());
+    }
+
     private void propagateFifos()
     {
         Graph<String, DefaultEdge> new_graph = new DirectedMultigraph<>(LabeledEdge.class);
@@ -500,7 +505,7 @@ public class EpsilonNFA {
                 int i = 0;
                 for (DefaultEdge path_edge : path.getEdgeList())
                 {
-                    if (path_edge.getClass() == EpsilonEdge.class)
+                    if (!isFinalEdge(path_edge))
                         continue;
                     
                     Fifo fifo = ((CaptureEdge)start_entries.getValue()).getFifo();

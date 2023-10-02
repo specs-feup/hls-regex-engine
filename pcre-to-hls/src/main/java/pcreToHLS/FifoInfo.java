@@ -11,6 +11,18 @@ public class FifoInfo {
     }
 
     @Override
+    public boolean equals(Object other)
+    {
+        return this.fifo.equals(((FifoInfo) other).getFifo());
+    }
+
+    @Override
+    public int hashCode()
+    {
+        return this.fifo.hashCode();
+    }
+
+    @Override
     public String toString()
     {
         return this.fifo.toString() + this.clear;
