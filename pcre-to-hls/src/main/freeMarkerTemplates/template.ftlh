@@ -44,9 +44,9 @@ class Fifo {
         this->data[this->size++] = element;
     }
 
-    int checkQueue(char *stream, int stream_index, bool insensitive) {
-        if (this->size == 0)
-            return 0;
+    bool checkQueue(char *stream, int stream_size, int stream_index, bool insensitive, int *transition_increment) {
+        if ((stream_index == stream_size && this->size != 0) || stream_index > stream_size)
+            return false;
 
         bool valid = true;
         for (size_t i = 0; i < this->size && valid; i++)
@@ -56,7 +56,10 @@ class Fifo {
             valid = stream_char == fifo_char;
         }
 
-        return valid ? this->size : 0;
+        if (valid)
+            *transition_increment = this->size;
+
+        return valid;
     }
 };
 
@@ -180,14 +183,13 @@ class Transition {
         if (this->type != TransitionType::Backreference)
             return false;
 
-        if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size)
+        if (!this->current->isActive() || this->current->getStreamIndex() > stream_size)
             return false;
 
         if (this->anchor_type == AnchorType::START && !this->testStartAnchor(stream, multiline))
             return false;
 
-        this->stream_increment = fifo->checkQueue(stream, this->current->getStreamIndex(), insensitive);
-        if (!this->stream_increment)
+        if (!fifo->checkQueue(stream, stream_size, this->current->getStreamIndex(), insensitive, &this->stream_increment))
             return false;
         
         this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);

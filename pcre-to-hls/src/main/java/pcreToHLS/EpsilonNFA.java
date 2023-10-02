@@ -492,13 +492,15 @@ public class EpsilonNFA {
 
             CaptureEdge capture_edge = (CaptureEdge) edge;
             Fifo current_fifo = capture_edge.getFifo();
-            Map<Fifo, Set<String>> map_to_put = capture_edge.getType() == CaptureType.START ? capture_starts : capture_ends;
-            Set<String> set_to_add = map_to_put.get(current_fifo); 
+            Map<Fifo, Set<String>> capture_map = capture_edge.getType() == CaptureType.START ? capture_starts : capture_ends;
+            String capture_vertex = capture_edge.getType() == CaptureType.START ? this.graph.getEdgeTarget(capture_edge) : this.graph.getEdgeSource(capture_edge);
+            Set<String> capture_set = capture_map.get(current_fifo); 
             
-            if (set_to_add == null)
-                set_to_add = new HashSet<>();
-            set_to_add.add(this.graph.getEdgeTarget(capture_edge));
-            map_to_put.put(current_fifo, set_to_add);
+            if (capture_set == null)
+                capture_set = new HashSet<>();
+            
+            capture_set.add(capture_vertex);
+            capture_map.put(current_fifo, capture_set);
 
             new_graph.removeEdge(edge);
             new_graph.addEdge(this.graph.getEdgeSource(edge), this.graph.getEdgeTarget(edge), new EpsilonEdge());
