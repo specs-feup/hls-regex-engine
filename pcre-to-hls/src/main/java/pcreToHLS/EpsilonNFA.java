@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.Map.Entry;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.graphstream.graph.Edge;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.MultiGraph;
 import org.jgrapht.*;
+import org.jgrapht.alg.shortestpath.AllDirectedPaths;
 import org.jgrapht.graph.*;
 import org.jgrapht.traverse.BreadthFirstIterator;
 import org.jgrapht.traverse.DepthFirstIterator;
@@ -467,46 +469,49 @@ public class EpsilonNFA {
     {
         Graph<String, DefaultEdge> new_graph = new DirectedMultigraph<>(LabeledEdge.class);
         Graphs.addGraph(new_graph, this.graph);
+        Map<Fifo, CaptureEdge> capture_starts = new HashMap<>();
+        Map<Fifo, CaptureEdge> capture_ends = new HashMap<>();
 
         for (DefaultEdge edge : this.graph.edgeSet())
         {
-            if (edge.getClass() != CaptureEdge.class || ((CaptureEdge)edge).getType() != CaptureType.START)
-                continue;
+            if (edge.getClass() != CaptureEdge.class)
+                    continue;
 
-            Fifo current_fifo = ((CaptureEdge)edge).getFifo();
-            String edge_source = this.graph.getEdgeSource(edge);
-            String edge_target = this.graph.getEdgeTarget(edge);
+            CaptureEdge capture_edge = (CaptureEdge) edge;
+            Fifo current_fifo = capture_edge.getFifo();
+            if (capture_edge.getType() == CaptureType.START)
+                capture_starts.put(current_fifo, capture_edge);
+            else 
+                capture_ends.put(current_fifo, capture_edge);
+
             new_graph.removeEdge(edge);
-            new_graph.addEdge(edge_source, edge_target, new EpsilonEdge());
-            GraphIterator<String, DefaultEdge> iterator = new BreadthFirstIterator<String, DefaultEdge>(this.graph, edge_target);
-            boolean found_corresponding_end = false;
-            int i = 0;
-            while (iterator.hasNext() && !found_corresponding_end) 
-            {
-                String current_vertex = iterator.next(); 
-                for (DefaultEdge outgoing : this.graph.outgoingEdgesOf(current_vertex))
-                {
-                    if (outgoing.getClass() == EpsilonEdge.class)
-                        continue;
-                    found_corresponding_end = outgoing.getClass() == CaptureEdge.class && ((CaptureEdge)outgoing).getType() == CaptureType.END && ((CaptureEdge)outgoing).getFifo().equals(current_fifo);
-                    i++;
-                    if (found_corresponding_end)
-                    {
-                        String outgoing_target = this.graph.getEdgeTarget(outgoing);
-                        new_graph.removeEdge(outgoing);
-                        new_graph.addEdge(current_vertex, outgoing_target, new EpsilonEdge());
-                        this.graph = new_graph;
-                        break;
-                    }
+            new_graph.addEdge(this.graph.getEdgeSource(edge), this.graph.getEdgeTarget(edge), new EpsilonEdge());
+        }
 
-                    Fifo fifo = ((CaptureEdge)edge).getFifo();
-                    boolean clear = i == 1;
+        for (Entry<Fifo, CaptureEdge> start_entries : capture_starts.entrySet())
+        {
+            String path_start_vertex = this.graph.getEdgeTarget(start_entries.getValue());
+            String path_end_vertex = this.graph.getEdgeSource(capture_ends.get(start_entries.getKey()));
+            AllDirectedPaths<String, DefaultEdge> all_paths = new AllDirectedPaths<>(this.graph);
+            List<GraphPath<String, DefaultEdge>> paths = all_paths.getAllPaths(path_start_vertex, path_end_vertex, true, Integer.MAX_VALUE);
+
+            for (GraphPath<String, DefaultEdge> path : paths)
+            {
+                int i = 0;
+                for (DefaultEdge path_edge : path.getEdgeList())
+                {
+                    if (path_edge.getClass() == EpsilonEdge.class)
+                        continue;
+                    
+                    Fifo fifo = ((CaptureEdge)start_entries.getValue()).getFifo();
+                    boolean clear = i++ == 0;
                     FifoInfo fifo_info = new FifoInfo(fifo, clear);
-                    ((LabeledEdge<?>)outgoing).addFifosInfo(fifo_info);
+                    ((LabeledEdge<?>)path_edge).addFifosInfo(fifo_info);
                 }
             }
-            
         }
+
+        this.graph = new_graph;
     }
 
     public NFA toRegularNFA(boolean multiline) 

@@ -29,13 +29,13 @@ class Fifo {
     private:
     void clear() {
         this->data = {};
-        this->head = this->data.begin();
         this->size = 0;
     }
 
     public:
     Fifo() { 
         this->clear();
+        this->head = this->data.begin();
     }
 
     void enqueue(int element, bool clear) {

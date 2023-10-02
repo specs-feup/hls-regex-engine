@@ -598,7 +598,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (this.hasAnchoredFlag())
             top = EpsilonNFA.concat(new EpsilonNFA(new StartAnchorEdge()), top);
         EpsilonNFA padded_start = EpsilonNFA.concat(EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge(true))), top);
-        return EpsilonNFA.concat(padded_start, EpsilonNFA.zeroOrMore(new EpsilonNFA(new WildcardEdge(true))));
+        return padded_start;
     }
 
     // ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ====
