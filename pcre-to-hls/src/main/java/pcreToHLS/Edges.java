@@ -24,7 +24,6 @@ abstract class LabeledEdge<T> extends DefaultEdge
     protected List<CounterInfo> counter_infos;
     protected AnchorType anchor_info;
     protected Set<FifoInfo> fifos_info;
-    protected Fifo fifo_to_match;
 
     public LabeledEdge(T label, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
     {
@@ -92,16 +91,6 @@ abstract class LabeledEdge<T> extends DefaultEdge
         this.anchor_info = anchor_info;
     }
 
-    public Fifo getFifoToMatch() 
-    {
-        return fifo_to_match;
-    }
-
-    public void setFifoToMatch(Fifo fifo_to_match) 
-    {
-        this.fifo_to_match = fifo_to_match;
-    }
-
     @Override
     public int hashCode() 
     {
@@ -161,7 +150,7 @@ abstract class LabeledEdge<T> extends DefaultEdge
         String str = "add_to[";
         for (FifoInfo fifo : this.fifos_info)
             str += fifo;
-        return str + "] " + "match[" + this.fifo_to_match +"]";
+        return str + "]";
     }
 
     abstract public LabeledEdge<T> copy();
@@ -210,7 +199,6 @@ class WildcardEdge extends LabeledEdge<Integer>
     public LabeledEdge<Integer> copy() 
     {
         WildcardEdge copy = new WildcardEdge(this.padding, this.counter_infos, this.anchor_info, this.fifos_info);
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -252,7 +240,6 @@ class EpsilonEdge extends LabeledEdge<Integer>
     public LabeledEdge<Integer> copy() 
     {
         EpsilonEdge copy = new EpsilonEdge(this.counter_infos, this.anchor_info, this.fifos_info);
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -301,7 +288,6 @@ class CharacterEdge extends LabeledEdge<Integer>
     public LabeledEdge<Integer> copy() 
     {
         CharacterEdge copy = new CharacterEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -355,7 +341,6 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     public LabeledEdge<Integer[]> copy() 
     {
         CharacterBlockEdge copy = new CharacterBlockEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -422,7 +407,6 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     public LabeledEdge<Set<Integer>> copy() 
     {
         CharacterClassEdge copy = new CharacterClassEdge(this.label, this.negated, this.counter_infos, this.anchor_info, this.fifos_info);
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -470,7 +454,6 @@ class CounterEdge extends LabeledEdge<CounterInfo>
     public LabeledEdge<CounterInfo> copy() 
     {
         CounterEdge copy = new CounterEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -497,7 +480,6 @@ class StartAnchorEdge extends LabeledEdge<Integer>
     public LabeledEdge<Integer> copy() 
     {
         StartAnchorEdge copy = new StartAnchorEdge();
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -526,7 +508,6 @@ class EndAnchorEdge extends LabeledEdge<Integer>
     public LabeledEdge<Integer> copy() 
     {
         EndAnchorEdge copy = new EndAnchorEdge();
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -573,7 +554,6 @@ class CaptureEdge extends LabeledEdge<Fifo>
     public LabeledEdge<Fifo> copy() 
     {
         CaptureEdge copy = new CaptureEdge(this.type, this.label);
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
@@ -606,7 +586,6 @@ class BackreferenceEdge extends LabeledEdge<Fifo>
     public LabeledEdge<Fifo> copy() 
     {
         BackreferenceEdge copy = new BackreferenceEdge(this.label.getIdNo());
-        copy.setFifoToMatch(this.fifo_to_match);
         return copy;
     }
 
