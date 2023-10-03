@@ -346,14 +346,21 @@ public class EpsilonNFA {
 
             for (String reachable : closure) 
             {
-                Set<DefaultEdge> edges = graph.outgoingEdgesOf(reachable);
+                if (reachable.equals(vertex))
+                    continue;
+
+                Set<DefaultEdge> edges = this.graph.outgoingEdgesOf(reachable);
                 for (DefaultEdge edge : edges) {
                     if (edge.getClass() == EpsilonEdge.class)
                         continue;
 
                     String joinable = graph.getEdgeTarget(edge);
                     LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
-                    new_graph.addEdge(vertex, joinable, new_edge);
+                    if (!new_graph.addEdge(vertex, joinable, new_edge))
+                    {
+                        new_graph.removeEdge(new_edge);
+                        new_graph.addEdge(vertex, joinable, new_edge);
+                    }
                 }
             }
         }
