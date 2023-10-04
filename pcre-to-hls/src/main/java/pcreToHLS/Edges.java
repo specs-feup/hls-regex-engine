@@ -31,6 +31,8 @@ abstract class LabeledEdge<T> extends DefaultEdge
         this.counter_infos = new LinkedList<>(counter_infos);
         this.anchor_info = anchor_info;
         this.fifos_info = new HashSet<>(fifos_info);
+        for (FifoInfo fi : fifos_info)
+            this.fifos_info.add(new FifoInfo(fi.getFifo(), fi.isClear()));
     }
 
     public LabeledEdge(T label, List<CounterInfo> counter_infos, Set<FifoInfo> fifos_info)
@@ -180,6 +182,11 @@ abstract class LabeledEdge<T> extends DefaultEdge
         return new HashSet<>();
     }
 
+    public boolean isSuperset(DefaultEdge other)
+    {
+        return false;
+    }
+
     abstract public LabeledEdge<T> copy();
     abstract public Transition generateTransition(State source, State target);
 }
@@ -271,6 +278,12 @@ class WildcardEdge extends LabeledEdge<Integer>
             unambigous_edges.add(this);
 
         return unambigous_edges;
+    }
+
+    @Override
+    public boolean isSuperset(DefaultEdge other)
+    {
+        return true;
     }
 } 
 
@@ -375,7 +388,8 @@ class CharacterEdge extends LabeledEdge<Integer>
         else if (other.getClass() == CharacterClassEdge.class)
         {
             Set<Integer> other_code_points = ((CharacterClassEdge) other).getCodePoints();
-            if (other_code_points.contains(this.getCodePoint()))
+            boolean contains = other_code_points.contains(this.getCodePoint());
+            if ((((CharacterClassEdge) other).isNegated() && !contains) || (!((CharacterClassEdge) other).isNegated() && contains))
             {
                 ambiguity_sources.add(this.getCodePoint());
                 return true;
@@ -414,6 +428,24 @@ class CharacterEdge extends LabeledEdge<Integer>
             unambigous_edges.add(this);
 
         return unambigous_edges;
+    }
+
+    @Override
+    public boolean isSuperset(DefaultEdge other)
+    {
+        if (other.getClass() == WildcardEdge.class)
+            return false;
+        else if (other.getClass() == CharacterClassEdge.class)
+        {
+            CharacterClassEdge other_edge = (CharacterClassEdge) other;
+            if (other_edge.getCodePoints().size() != 1)
+                return false;
+
+            boolean contains = other_edge.getCodePoints().contains(this.getCodePoint());
+            return other_edge.isNegated() ? !contains : contains;
+        }
+        else 
+            return ((CharacterEdge)other).getCodePoint() == this.getCodePoint();
     }
 }
 
@@ -573,7 +605,7 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         {
             Set<Integer> common = new HashSet<>(((CharacterClassEdge) other).getCodePoints());
             common.retainAll(this.getCodePoints());
-            if (!common.isEmpty()) 
+            if (!common.isEmpty() && this.negated == ((CharacterClassEdge)other).negated) 
             {
                 ambiguity_sources.addAll(common);
                 return true;
@@ -620,6 +652,26 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         }
 
         return unambigous_edges;
+    }
+
+    @Override
+    public boolean isSuperset(DefaultEdge other)
+    {
+        if (other.getClass() == WildcardEdge.class)
+            return false;
+        else if (other.getClass() == CharacterClassEdge.class)
+        {
+            Set<Integer> intersection = new HashSet<>(this.getCodePoints());
+            Set<Integer> other_code_points = ((CharacterClassEdge)other).getCodePoints();
+            intersection.retainAll(other_code_points);
+            return intersection.equals(other_code_points) && this.negated == ((CharacterClassEdge)other).negated;
+        }
+        else 
+        {
+            int other_code_point = ((CharacterEdge)other).getCodePoint();
+            return this.getCodePoints().contains(other_code_point);
+        }
+        
     }
 
 }

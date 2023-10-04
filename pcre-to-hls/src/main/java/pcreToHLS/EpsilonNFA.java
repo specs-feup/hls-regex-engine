@@ -2,6 +2,7 @@ package pcreToHLS;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Stack;
@@ -552,10 +553,9 @@ public class EpsilonNFA {
         this.graph = new_graph;
     }
 
-    private void disambiguateCaptureStarts()
+    private Set<String> disambiguateCaptureStarts(Set<String> current_ends)
     {
-        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
-        Graphs.addGraph(new_graph, this.graph);
+        Map<String, Set<LabeledEdge<?>>> disambiguities = new HashMap<>();
 
         for (String vertex : this.graph.vertexSet())
         {
@@ -566,19 +566,84 @@ public class EpsilonNFA {
                 for (int j = i + 1; j < outgoing_edges.size(); j++)
                 {
                     LabeledEdge<?> edge2 = (LabeledEdge<?>) outgoing_edges.get(j);
+                    if (!edge1.isCaptureStart() && !edge2.isCaptureStart())
+                        continue;
+
                     Set<Integer> ambiguous_tokens = new HashSet<>();
                     boolean ambiguous = edge1.checkAmbiguity(edge2, ambiguous_tokens);
                     
                     if (!ambiguous)
                         continue;
-                    
-                    System.out.println("\n==> AMBIGOUS " + vertex + "<==");
-                    System.out.println("==> UNAMBIGOUS EDGES:");
-                    System.out.println(edge1.getUnambiguousEdges(edge2, ambiguous_tokens));
+
+                    disambiguities.put(vertex, edge1.getUnambiguousEdges(edge2, ambiguous_tokens));
                 }
             }
         }
 
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Stack<List<String>> outer_states = new Stack<>();
+        Map<List<String>, String> outer_state_map = new HashMap<>();
+        Set<String> new_ends = new HashSet<>();
+        String new_start_id = VertexIDFactory.getNewVertexID();
+        outer_states.push(Arrays.asList(this.start));
+        outer_state_map.put(Arrays.asList(this.start), new_start_id);
+        new_graph.addVertex(new_start_id);
+
+        while (!outer_states.isEmpty())
+        {
+            List<String> outer_state = outer_states.pop();
+
+            if (!Collections.disjoint(outer_state, current_ends))
+                new_ends.add(outer_state_map.get(outer_state));
+    
+            Map<LabeledEdge<?>, List<String>> new_sub_states = new HashMap<>();
+            for (String sub_state : outer_state)
+            {
+                for (DefaultEdge edge : this.graph.outgoingEdgesOf(sub_state))
+                {
+                    LabeledEdge<?> edge_copy = ((LabeledEdge<?>) edge).copy();
+                    String edge_target = this.graph.getEdgeTarget(edge);
+                    if (disambiguities.containsKey(sub_state))
+                    {
+                        for (LabeledEdge<?> disambiguity_edge : disambiguities.get(sub_state))
+                        {
+                            LabeledEdge<?> disambiguity_edge_copy = disambiguity_edge.copy();
+                            if (edge_copy.isSuperset(disambiguity_edge_copy))
+                                if (new_sub_states.putIfAbsent(disambiguity_edge_copy, new LinkedList<>(Arrays.asList(edge_target))) != null)
+                                    new_sub_states.get(disambiguity_edge_copy).add(edge_target);
+                        }
+                    }
+                    else
+                    {
+                        if (new_sub_states.putIfAbsent(edge_copy, new LinkedList<>(Arrays.asList(edge_target))) != null)
+                            new_sub_states.get(edge_copy).set(0, edge_target);
+                    }
+                }
+            }
+
+            for (Entry<LabeledEdge<?>, List<String>>  entry : new_sub_states.entrySet())
+            {
+                List<String> inner_state = entry.getValue();
+                String source_state_id = outer_state_map.get(outer_state);
+                String destination_state_id = "";
+
+                if (outer_state_map.containsKey(inner_state))
+                    destination_state_id = outer_state_map.get(inner_state);
+                else
+                {
+                    destination_state_id = VertexIDFactory.getNewVertexID();
+                    outer_state_map.put(inner_state, destination_state_id);
+                    new_graph.addVertex(destination_state_id);
+                    outer_states.push(inner_state);
+                }
+
+                new_graph.addEdge(source_state_id, destination_state_id, entry.getKey().copy());
+            }
+        }      
+
+        this.start = new_start_id;
+        this.graph = new_graph;
+        return new_ends;
     }
 
     public NFA toRegularNFA(boolean multiline) 
@@ -589,7 +654,8 @@ public class EpsilonNFA {
         propagateFifos();
         new_ends = this.removeEpsilons(new_ends);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        disambiguateCaptureStarts();
+        new NFA(this.graph, this.start, new_ends).display();
+        new_ends = disambiguateCaptureStarts(new_ends);
         // removeCounterEdges();
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
