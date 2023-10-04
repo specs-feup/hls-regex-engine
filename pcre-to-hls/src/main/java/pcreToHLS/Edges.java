@@ -153,20 +153,9 @@ abstract class LabeledEdge<T> extends DefaultEdge
         return str + "]";
     }
 
-    protected boolean isValidAmbiguityComparison(DefaultEdge other) 
-    {
-        List<Class<?>> valid_ambiguity_checks = Arrays.asList(WildcardEdge.class, CharacterClassEdge.class, CharacterEdge.class);
-        return valid_ambiguity_checks.contains(other.getClass()) && valid_ambiguity_checks.contains(this.getClass());
-    }
-
-    public boolean checkAmbiguity(DefaultEdge other, Set<Integer> ambiguity_sources)
-    {
-        return false;
-    }
 
     abstract public LabeledEdge<T> copy();
     abstract public Transition generateTransition(State source, State target);
-    abstract public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources);
 }
 
 class WildcardEdge extends LabeledEdge<Integer>
@@ -228,24 +217,6 @@ class WildcardEdge extends LabeledEdge<Integer>
         // group.setFifo_to_match(this.fifo_to_match);
         // return group;
     }
-
-    @Override
-    public boolean checkAmbiguity(DefaultEdge other, Set<Integer> ambiguity_sources) {
-        if (!this.isValidAmbiguityComparison(other))
-            return false;
-        
-        if (other.getClass() == CharacterEdge.class)
-            ambiguity_sources.add(((CharacterEdge) other).getCodePoint());
-        else if (other.getClass() == CharacterClassEdge.class)
-            ambiguity_sources.addAll(((CharacterClassEdge) other).getCodePoints());
-
-        return true;
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        return new CharacterClassEdge(new HashSet<>(ambiguity_sources), true, this.counter_infos, this.anchor_info, this.fifos_info);
-    }
 } 
 
 class EpsilonEdge extends LabeledEdge<Integer>
@@ -277,11 +248,6 @@ class EpsilonEdge extends LabeledEdge<Integer>
     public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
     }
 }
 
@@ -341,42 +307,6 @@ class CharacterEdge extends LabeledEdge<Integer>
         // return group;
     }
 
-    @Override
-    public boolean checkAmbiguity(DefaultEdge other, Set<Integer> ambiguity_sources) {
-        if (!this.isValidAmbiguityComparison(other))
-            return false;
-        
-        if (other.getClass() == CharacterEdge.class)
-        {
-            int other_code_point = ((CharacterEdge) other).getCodePoint();
-            if (other_code_point == this.getCodePoint())
-            {
-                ambiguity_sources.add(this.getCodePoint());
-                return true;
-            }
-        }
-        else if (other.getClass() == CharacterClassEdge.class)
-        {
-            Set<Integer> other_code_points = ((CharacterClassEdge) other).getCodePoints();
-            if (other_code_points.contains(this.getCodePoint()))
-            {
-                ambiguity_sources.add(this.getCodePoint());
-                return true;
-            }
-        }
-        else if (other.getClass() == WildcardEdge.class)
-        {
-            ambiguity_sources.add(this.getCodePoint());
-            return true;
-        }
-
-        return false;
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        return new CharacterClassEdge(new HashSet<>(), false, this.counter_infos, this.anchor_info, this.fifos_info);
-    }
 }
 
 class CharacterBlockEdge extends LabeledEdge<Integer[]>
@@ -420,11 +350,6 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");  
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
     }
 }
 
@@ -507,46 +432,6 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         // group.setFifo_to_match(this.fifo_to_match);
         // return group;
     }
-
-    @Override
-    public boolean checkAmbiguity(DefaultEdge other, Set<Integer> ambiguity_sources) {
-        if (!this.isValidAmbiguityComparison(other))
-            return false;
-
-        if (other.getClass() == CharacterEdge.class) 
-        {
-            int other_code_point = ((CharacterEdge) other).getCodePoint();
-            if (this.getCodePoints().contains(other_code_point)) 
-            {
-                ambiguity_sources.add(other_code_point);
-                return true;
-            }
-        } 
-        else if (other.getClass() == CharacterClassEdge.class) 
-        {
-            Set<Integer> other_code_points = ((CharacterClassEdge) other).getCodePoints();
-            other_code_points.retainAll(this.getCodePoints());
-            if (!other_code_points.isEmpty()) 
-            {
-                ambiguity_sources.addAll(other_code_points);
-                return true;
-            }
-        } 
-        else if (other.getClass() == WildcardEdge.class) 
-        {
-            ambiguity_sources.addAll(this.getCodePoints());
-            return true;
-        }
-
-        return false;
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        Set<Integer> unambiguous_code_points = new HashSet<>(this.getCodePoints()); 
-        unambiguous_code_points.removeAll(ambiguity_sources);
-        return new CharacterClassEdge(unambiguous_code_points, this.negated, this.counter_infos, this.anchor_info, this.fifos_info);
-    }
 }
 
 class CounterEdge extends LabeledEdge<CounterInfo>
@@ -578,11 +463,6 @@ class CounterEdge extends LabeledEdge<CounterInfo>
     public Transition generateTransition(State source, State target) {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
-    }
 }
 
 class StartAnchorEdge extends LabeledEdge<Integer>
@@ -609,11 +489,6 @@ class StartAnchorEdge extends LabeledEdge<Integer>
     public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
     }
 }
 
@@ -644,10 +519,6 @@ class EndAnchorEdge extends LabeledEdge<Integer>
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
 
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
-    }
 }
 
 class CaptureEdge extends LabeledEdge<Fifo>
@@ -694,11 +565,6 @@ class CaptureEdge extends LabeledEdge<Fifo>
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
-    }
 }
 
 class BackreferenceEdge extends LabeledEdge<Fifo>
@@ -737,10 +603,5 @@ class BackreferenceEdge extends LabeledEdge<Fifo>
     {
         BackreferenceTransition transition = new BackreferenceTransition(this.anchor_info.name(), this.fifos_info, source, target, label);
         return transition;
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
     }
 }

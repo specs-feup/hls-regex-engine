@@ -550,11 +550,6 @@ public class EpsilonNFA {
         this.graph = new_graph;
     }
 
-    private void disambiguateCaptureStarts()
-    {
-
-    }
-
     public NFA toRegularNFA(boolean multiline) 
     {
         Set<String> new_ends = this.removeEpsilons();
