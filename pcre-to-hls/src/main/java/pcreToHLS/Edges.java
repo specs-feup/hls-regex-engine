@@ -159,14 +159,29 @@ abstract class LabeledEdge<T> extends DefaultEdge
         return valid_ambiguity_checks.contains(other.getClass()) && valid_ambiguity_checks.contains(this.getClass());
     }
 
+    public boolean isCaptureStart()
+    {
+        for (FifoInfo fi : this.fifos_info)
+        {
+            if (fi.isClear())
+                return true;
+        }
+
+        return false;
+    }
+
     public boolean checkAmbiguity(DefaultEdge other, Set<Integer> ambiguity_sources)
     {
         return false;
     }
 
+    public Set<LabeledEdge<?>> getUnambiguousEdges(DefaultEdge other, Set<Integer> ambiguity_sources)
+    {
+        return new HashSet<>();
+    }
+
     abstract public LabeledEdge<T> copy();
     abstract public Transition generateTransition(State source, State target);
-    abstract public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources);
 }
 
 class WildcardEdge extends LabeledEdge<Integer>
@@ -243,8 +258,19 @@ class WildcardEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        return new CharacterClassEdge(new HashSet<>(ambiguity_sources), true, this.counter_infos, this.anchor_info, this.fifos_info);
+    public Set<LabeledEdge<?>> getUnambiguousEdges(DefaultEdge other, Set<Integer> ambiguity_sources)
+    {
+        Set<LabeledEdge<?>> unambigous_edges = new HashSet<>();
+
+        if (!ambiguity_sources.isEmpty())
+        {
+            unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, false, this.counter_infos, this.anchor_info, this.fifos_info));
+            unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, true, this.counter_infos, this.anchor_info, this.fifos_info));
+        }
+        else 
+            unambigous_edges.add(this);
+
+        return unambigous_edges;
     }
 } 
 
@@ -277,11 +303,6 @@ class EpsilonEdge extends LabeledEdge<Integer>
     public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
     }
 }
 
@@ -349,11 +370,7 @@ class CharacterEdge extends LabeledEdge<Integer>
         if (other.getClass() == CharacterEdge.class)
         {
             int other_code_point = ((CharacterEdge) other).getCodePoint();
-            if (other_code_point == this.getCodePoint())
-            {
-                ambiguity_sources.add(this.getCodePoint());
-                return true;
-            }
+            return other_code_point == this.getCodePoint();
         }
         else if (other.getClass() == CharacterClassEdge.class)
         {
@@ -374,8 +391,29 @@ class CharacterEdge extends LabeledEdge<Integer>
     }
 
     @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        return new CharacterClassEdge(new HashSet<>(), false, this.counter_infos, this.anchor_info, this.fifos_info);
+    public Set<LabeledEdge<?>> getUnambiguousEdges(DefaultEdge other, Set<Integer> ambiguity_sources)
+    {
+        Set<LabeledEdge<?>> unambigous_edges = new HashSet<>();
+
+        if (!ambiguity_sources.isEmpty())
+        {
+            if (other.getClass() == WildcardEdge.class)
+            {
+                unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, false, this.counter_infos, this.anchor_info, this.fifos_info));
+                unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, true, this.counter_infos, this.anchor_info, this.fifos_info));
+            }
+            else if (other.getClass() == CharacterClassEdge.class)
+            {
+                unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, false, this.counter_infos, this.anchor_info, this.fifos_info));
+                Set<Integer> difference = new HashSet<>(((CharacterClassEdge)other).getCodePoints()); 
+                difference.removeAll(ambiguity_sources);
+                unambigous_edges.add(new CharacterClassEdge(difference, false, this.counter_infos, this.anchor_info, this.fifos_info));
+            }
+        }
+        else 
+            unambigous_edges.add(this);
+
+        return unambigous_edges;
     }
 }
 
@@ -421,11 +459,6 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");  
     }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
-    }
 }
 
 class CharacterClassEdge extends LabeledEdge<Set<Integer>>
@@ -464,6 +497,20 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     public boolean isNegated()
     {
         return this.negated;
+    }
+
+    @Override
+    public boolean equals(Object other)
+    {
+        boolean super_check = super.equals(other);
+        if (super_check)
+        {
+            CharacterClassEdge other_edge = (CharacterClassEdge) other;
+            boolean negated_check = this.negated == other_edge.negated;
+            return negated_check;
+        }
+
+        return false;
     }
 
     @Override
@@ -524,11 +571,11 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         } 
         else if (other.getClass() == CharacterClassEdge.class) 
         {
-            Set<Integer> other_code_points = ((CharacterClassEdge) other).getCodePoints();
-            other_code_points.retainAll(this.getCodePoints());
-            if (!other_code_points.isEmpty()) 
+            Set<Integer> common = new HashSet<>(((CharacterClassEdge) other).getCodePoints());
+            common.retainAll(this.getCodePoints());
+            if (!common.isEmpty()) 
             {
-                ambiguity_sources.addAll(other_code_points);
+                ambiguity_sources.addAll(common);
                 return true;
             }
         } 
@@ -542,11 +589,39 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     }
 
     @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        Set<Integer> unambiguous_code_points = new HashSet<>(this.getCodePoints()); 
-        unambiguous_code_points.removeAll(ambiguity_sources);
-        return new CharacterClassEdge(unambiguous_code_points, this.negated, this.counter_infos, this.anchor_info, this.fifos_info);
+    public Set<LabeledEdge<?>> getUnambiguousEdges(DefaultEdge other, Set<Integer> ambiguity_sources)
+    {
+        Set<LabeledEdge<?>> unambigous_edges = new HashSet<>();
+
+        if (!ambiguity_sources.isEmpty())
+        {
+            if (other.getClass() == WildcardEdge.class)
+            {
+                unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, false, this.counter_infos, this.anchor_info, this.fifos_info));
+                unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, true, this.counter_infos, this.anchor_info, this.fifos_info));
+            }
+            else if (other.getClass() == CharacterClassEdge.class)
+            {
+                unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, false, this.counter_infos, this.anchor_info, this.fifos_info));
+                Set<Integer> this_difference = new HashSet<>(this.getCodePoints());
+                Set<Integer> other_difference = new HashSet<>(((CharacterClassEdge)other).getCodePoints());  
+                this_difference.removeAll(ambiguity_sources);
+                other_difference.removeAll(ambiguity_sources);
+                unambigous_edges.add(new CharacterClassEdge(this_difference, false, this.counter_infos, this.anchor_info, this.fifos_info));
+                unambigous_edges.add(new CharacterClassEdge(other_difference, false, this.counter_infos, this.anchor_info, this.fifos_info));
+            }
+            else if (other.getClass() == CharacterEdge.class)
+            {
+                unambigous_edges.add(new CharacterClassEdge(ambiguity_sources, false, this.counter_infos, this.anchor_info, this.fifos_info));
+                Set<Integer> difference = new HashSet<>(this.getCodePoints());
+                difference.removeAll(ambiguity_sources);
+                unambigous_edges.add(new CharacterClassEdge(difference, false, this.counter_infos, this.anchor_info, this.fifos_info));
+            }
+        }
+
+        return unambigous_edges;
     }
+
 }
 
 class CounterEdge extends LabeledEdge<CounterInfo>
@@ -579,10 +654,6 @@ class CounterEdge extends LabeledEdge<CounterInfo>
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
 
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
-    }
 }
 
 class StartAnchorEdge extends LabeledEdge<Integer>
@@ -609,11 +680,6 @@ class StartAnchorEdge extends LabeledEdge<Integer>
     public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
     }
 }
 
@@ -642,11 +708,6 @@ class EndAnchorEdge extends LabeledEdge<Integer>
     public Transition generateTransition(State source, State target) 
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
-    }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
     }
 }
 
@@ -694,11 +755,6 @@ class CaptureEdge extends LabeledEdge<Fifo>
     {
         throw new UnsupportedOperationException("Unimplemented method 'generateTransitions'");
     }
-
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
-    }
 }
 
 class BackreferenceEdge extends LabeledEdge<Fifo>
@@ -739,8 +795,4 @@ class BackreferenceEdge extends LabeledEdge<Fifo>
         return transition;
     }
 
-    @Override
-    public CharacterClassEdge unambiguousCopy(Set<Integer> ambiguity_sources) {
-        throw new UnsupportedOperationException("Unimplemented method 'unambiguousCopy'");
-    }
 }

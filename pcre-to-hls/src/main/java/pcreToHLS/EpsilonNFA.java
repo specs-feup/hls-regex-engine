@@ -1,11 +1,13 @@
 package pcreToHLS;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.Stack;
 import java.util.Map.Entry;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -552,6 +554,30 @@ public class EpsilonNFA {
 
     private void disambiguateCaptureStarts()
     {
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+
+        for (String vertex : this.graph.vertexSet())
+        {
+            List<DefaultEdge> outgoing_edges = new ArrayList<>(this.graph.outgoingEdgesOf(vertex));
+            for (int i = 0; i < outgoing_edges.size(); i++)
+            {
+                LabeledEdge<?> edge1 = (LabeledEdge<?>) outgoing_edges.get(i);
+                for (int j = i + 1; j < outgoing_edges.size(); j++)
+                {
+                    LabeledEdge<?> edge2 = (LabeledEdge<?>) outgoing_edges.get(j);
+                    Set<Integer> ambiguous_tokens = new HashSet<>();
+                    boolean ambiguous = edge1.checkAmbiguity(edge2, ambiguous_tokens);
+                    
+                    if (!ambiguous)
+                        continue;
+                    
+                    System.out.println("\n==> AMBIGOUS " + vertex + "<==");
+                    System.out.println("==> UNAMBIGOUS EDGES:");
+                    System.out.println(edge1.getUnambiguousEdges(edge2, ambiguous_tokens));
+                }
+            }
+        }
 
     }
 
@@ -563,6 +589,7 @@ public class EpsilonNFA {
         propagateFifos();
         new_ends = this.removeEpsilons(new_ends);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        disambiguateCaptureStarts();
         // removeCounterEdges();
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
