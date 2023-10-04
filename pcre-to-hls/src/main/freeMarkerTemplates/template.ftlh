@@ -44,6 +44,11 @@ class Fifo {
         this->data[this->size++] = element;
     }
 
+    void enqueueFifo(Fifo &fifo, bool clear) {
+        for (size_t i = 0; i < fifo.size; i++)
+            this->enqueue(*(fifo.head + i), clear && i == 0);
+    }
+
     bool checkQueue(char *stream, int stream_size, int stream_index, bool insensitive, int *transition_increment) {
         if ((stream_index == stream_size && this->size != 0) || stream_index > stream_size)
             return false;
@@ -140,8 +145,12 @@ class Transition {
     }
 
     public:
-    State * getCurrent() {
+    State *getCurrent() {
         return this->current;
+    }
+
+    State *getNext() {
+        return this->next;
     }
 
     bool test(char *stream, int stream_size, bool multiline, bool insensitive, bool singleline)
@@ -178,7 +187,7 @@ class Transition {
         return true;
     }
 
-    bool testFifo(char *stream, int stream_size, Fifo* fifo, bool multiline, bool insensitive)
+    bool testFifo(char *stream, int stream_size, Fifo &fifo, bool multiline, bool insensitive)
     {
         if (this->type != TransitionType::Backreference)
             return false;
@@ -189,7 +198,7 @@ class Transition {
         if (this->anchor_type == AnchorType::START && !this->testStartAnchor(stream, multiline))
             return false;
 
-        if (!fifo->checkQueue(stream, stream_size, this->current->getStreamIndex(), insensitive, &this->stream_increment))
+        if (!fifo.checkQueue(stream, stream_size, this->current->getStreamIndex(), insensitive, &this->stream_increment))
             return false;
         
         this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);
@@ -264,7 +273,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
         <#list automaton.transitions as transition>
         <#assign callTest = "">
         <#if transition.type == "Backreference">
-          <#assign callTest = "t${transition_counter}.testFifo(stream, stream_size, " +  "&${transition.fifo_to_match}"?no_esc + ", ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c})">
+          <#assign callTest = "t${transition_counter}.testFifo(stream, stream_size, ${transition.fifo_to_match}, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c})">
         <#else>
           <#assign callTest = "t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c}, ${hasSinglelineFlag(automaton)?c})">
         </#if>
@@ -275,7 +284,11 @@ int kernel${automaton?counter}(char stream[], int stream_size)
           {
             transitions_occurred++;
             <#list transition.fifos_info as fifo_info>
+            <#if transition.type == "Backreference">
+            ${fifo_info.fifo.id}.enqueueFifo(${transition.fifo_to_match}, ${fifo_info.clear?c});
+            <#else>
             ${fifo_info.fifo.id}.enqueue(stream[t${transition_counter}.getCurrent()->getStreamIndex()], ${fifo_info.clear?c});
+            </#if>
             </#list>
           }
         </#if>
