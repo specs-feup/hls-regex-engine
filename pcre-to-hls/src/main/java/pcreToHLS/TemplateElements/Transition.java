@@ -1,11 +1,44 @@
 package pcreToHLS.TemplateElements;
 
-public class Transition {
-    private State target;
-    private int token;
-    private boolean wildcard = false;
-    private boolean negated = false;
-    private boolean padding = false;
+import java.util.List;
+import java.util.Set;
+
+import pcreToHLS.CounterInfo;
+import pcreToHLS.FifoInfo;
+
+public abstract class Transition {
+    protected enum TransitionType { Character, CharacterClass, Wildcard, Backreference};
+    protected TransitionType type;
+    protected State source;
+    protected State target;
+    protected String anchor_info;
+    protected Set<FifoInfo> fifos_info;
+    protected List<CounterInfo> counters_info;
+
+    protected Transition(TransitionType type, String anchor_info, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target) {
+        this.source = source;
+        this.target = target;
+        this.type = type;
+        this.anchor_info = anchor_info;
+        this.fifos_info = fifos_info;
+        this.counters_info = counters_info;
+    }
+
+    public TransitionType getType() {
+        return type;
+    }
+
+    public void setType(TransitionType type) {
+        this.type = type;
+    }
+
+    public State getSource() {
+        return source;
+    }
+
+    public void setSource(State source) {
+        this.source = source;
+    }
 
     public State getTarget() 
     {
@@ -17,42 +50,27 @@ public class Transition {
         this.target = target;
     }
 
-    public int getToken() 
-    {
-        return token;
+    public String getAnchor_info() {
+        return anchor_info;
     }
 
-    public void setToken(int token) 
-    {
-        this.token = token;
+    public void setAnchor_info(String anchor_info) {
+        this.anchor_info = anchor_info;
     }
 
-    public boolean isWildcard() 
-    {
-        return wildcard;
+    public Set<FifoInfo> getFifos_info() {
+        return fifos_info;
     }
 
-    public void setWildcard(boolean wildcard) 
-    {
-        this.wildcard = wildcard;
-    }
-    
-    public boolean isNegated() 
-    {
-        return negated;
+    public void setFifos_info(Set<FifoInfo> fifos_info) {
+        this.fifos_info = fifos_info;
     }
 
-    public void setNegated(boolean negated) 
-    {
-        this.negated = negated;
+    public List<CounterInfo> getCounters_info() {
+        return counters_info;
     }
 
-    public boolean isPadding() {
-        return padding;
+    public void setCounters_info(List<CounterInfo> counter_info) {
+        this.counters_info = counter_info;
     }
-
-    public void setPadding(boolean padding) {
-        this.padding = padding;
-    }
-
 }

@@ -4,9 +4,11 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.util.Collections;
 import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +26,9 @@ import PCREgrammar.PCREgrammarParser;
 import freemarker.template.Template;
 import freemarker.template.TemplateException;
 import pcreToHLS.TemplateElements.Automaton;
+import pcreToHLS.TemplateElements.BackreferenceTransition;
 import pcreToHLS.TemplateElements.State;
-import pcreToHLS.TemplateElements.TransitionGroup;
+import pcreToHLS.TemplateElements.Transition;
 
 public class CodeGenerator {
 
@@ -110,39 +113,44 @@ public class CodeGenerator {
             Set<State> end_states = new HashSet<>();
             Set<String> counter_ids = new HashSet<>();
             Set<String> fifo_ids = new HashSet<>();
+            List<Transition> transitions = new LinkedList<>();
 
-            for (String vertex : automaton_graph.vertexSet())
+            for (DefaultEdge edge : automaton_graph.edgeSet())
             {
-                State curr_state = getState(vertex, vertex_ids);
-                Set<DefaultEdge> outgoing = automaton_graph.outgoingEdgesOf(vertex);
-                for (DefaultEdge edge : outgoing) 
-                {
-                    String target = automaton_graph.getEdgeTarget(edge);
-                    State target_state = getState(target, vertex_ids);
-                    try {
-                        TransitionGroup edge_transitions = ((LabeledEdge<?>) edge).generateTransitions(target_state);
-                        curr_state.addTransitionGroup(edge_transitions);
-                        List<CounterInfo> group_counter_infos = edge_transitions.getCounter_infos();
-                        for (CounterInfo info : group_counter_infos)
-                            counter_ids.add(info.counter.getId());
-                        for (Fifo fifo : edge_transitions.getFifos_info())
-                            fifo_ids.add(fifo.getId());
-                    } catch (UnsupportedOperationException e) {
-                        e.printStackTrace();
-                        // System.out.println("error because of bounded quantifier (to remove)"); //TODO REMOVE THIS AFTER FIX
-                        continue;
-                    }
-
+                State source_state = getState(automaton_graph.getEdgeSource(edge), vertex_ids);
+                State target_state = getState(automaton_graph.getEdgeTarget(edge), vertex_ids);
+                Transition edge_transition;
+                try {
+                    edge_transition = ((LabeledEdge<?>) edge).generateTransition(source_state, target_state);
+                    for (FifoInfo fifo_info : edge_transition.getFifos_info())
+                        fifo_ids.add(fifo_info.getFifo().getId());
+                    for (CounterInfo counter_info : edge_transition.getCounters_info())
+                        counter_ids.add(counter_info.getCounter().getId());
+                    transitions.add(edge_transition);
+                } catch (UnsupportedOperationException e) {
+                    e.printStackTrace();
                 }
-
-                if (automaton.getEnds().contains(vertex))
-                    end_states.add(curr_state);
             }
+
+            Collections.sort(transitions, (transition1, transition2) -> {
+                if (transition1 instanceof BackreferenceTransition
+                        && !(transition2 instanceof BackreferenceTransition)) {
+                    return -1;
+                } else if (!(transition1 instanceof BackreferenceTransition)
+                        && transition2 instanceof BackreferenceTransition) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            });
+
+            for (String end_vertex : automaton.getEnds())
+                end_states.add(getState(end_vertex, vertex_ids));
 
             Set<State> states = new HashSet<>(vertex_ids.values());
             State start_state = vertex_ids.get(automaton.getStart());
 
-            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, states, start_state, end_states));
+            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, states, transitions, start_state, end_states));
         }
         
         Map<String, Object> root = new HashMap<>();
