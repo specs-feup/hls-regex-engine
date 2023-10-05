@@ -28,9 +28,13 @@ abstract class LabeledEdge<T> extends DefaultEdge
     public LabeledEdge(T label, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
     {
         this.label = label;
-        this.counter_infos = new LinkedList<>(counter_infos);
+        this.counter_infos = new LinkedList<>();
+        for (CounterInfo ci : counter_infos)
+            this.counter_infos.add(new CounterInfo(ci.getCounter(), ci.getOperation()));
         this.anchor_info = anchor_info;
-        this.fifos_info = new HashSet<>(fifos_info);
+        this.fifos_info = new HashSet<>();
+         for (FifoInfo fi : fifos_info)
+            this.fifos_info.add(new FifoInfo(fi.getFifo(), fi.isClear()));
     }
 
     public LabeledEdge(T label, List<CounterInfo> counter_infos, Set<FifoInfo> fifos_info)
