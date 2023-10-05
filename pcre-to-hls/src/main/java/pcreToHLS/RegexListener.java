@@ -525,7 +525,8 @@ public class RegexListener extends PCREgrammarBaseListener {
         for(int i = 0; i < ctx.Pipe().size(); i++)
         {
             addOccurrence("Alternations");
-            alternate();
+            if (this.stack.size() >= 2) //not empty alternation like a| or a||b
+                alternate();
         }
     }
 
