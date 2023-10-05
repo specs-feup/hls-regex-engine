@@ -124,6 +124,8 @@ public class CodeGenerator {
                     edge_transition = ((LabeledEdge<?>) edge).generateTransition(source_state, target_state);
                     for (FifoInfo fifo_info : edge_transition.getFifos_info())
                         fifo_ids.add(fifo_info.getFifo().getId());
+                    for (CounterInfo counter_info : edge_transition.getCounters_info())
+                        counter_ids.add(counter_info.getCounter().getId());
                     transitions.add(edge_transition);
                 } catch (UnsupportedOperationException e) {
                     e.printStackTrace();
@@ -141,34 +143,6 @@ public class CodeGenerator {
                     return 0;
                 }
             });
-
-            // for (String vertex : automaton_graph.vertexSet())
-            // {
-            //     State curr_state = getState(vertex, vertex_ids);
-            //     Set<DefaultEdge> outgoing = automaton_graph.outgoingEdgesOf(vertex);
-            //     for (DefaultEdge edge : outgoing) 
-            //     {
-            //         String target = automaton_graph.getEdgeTarget(edge);
-            //         State target_state = getState(target, vertex_ids);
-            //         try {
-            //             // TransitionGroup edge_transitions = ((LabeledEdge<?>) edge).generateTransition(target_state);
-            //             // curr_state.addTransitionGroup(edge_transitions);
-            //             // List<CounterInfo> group_counter_infos = edge_transitions.getCounter_infos();
-            //             // for (CounterInfo info : group_counter_infos)
-            //             //     counter_ids.add(info.counter.getId());
-            //             // for (Fifo fifo : edge_transitions.getFifos_info())
-            //             //     fifo_ids.add(fifo.getId());
-            //         } catch (UnsupportedOperationException e) {
-            //             e.printStackTrace();
-            //             // System.out.println("error because of bounded quantifier (to remove)"); //TODO REMOVE THIS AFTER FIX
-            //             continue;
-            //         }
-
-            //     }
-
-                // if (automaton.getEnds().contains(vertex))
-                //     end_states.add(curr_state);
-            // }
 
             for (String end_vertex : automaton.getEnds())
                 end_states.add(getState(end_vertex, vertex_ids));

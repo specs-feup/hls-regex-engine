@@ -200,10 +200,10 @@ public class EpsilonNFA {
         new_graph.addEdge(new_start, duplicated.start, new EpsilonEdge());
         new_graph.addEdge(new_mid, automata.start, new EpsilonEdge());
 
-        if (counter.getTarget_value() == 1)
+        if (counter.getTarget_value1() == 1)
             new_graph.addEdge(duplicated.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.SET)));
 
-        if (counter.getTarget_value() == 0)
+        if (counter.getTarget_value1() == 0)
         {
             new_graph.addEdge(new_start, new_end, new EpsilonEdge());
             if (read_on_zero)
@@ -485,7 +485,7 @@ public class EpsilonNFA {
         return !not_final.contains(edge.getClass());
     }
 
-    private void propagateFifos()
+    private Set<String> propagateFifos(Set<String> current_ends)
     {
         Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
         Graphs.addGraph(new_graph, this.graph);
@@ -548,17 +548,15 @@ public class EpsilonNFA {
         }
 
         this.graph = new_graph;
+        return this.removeEpsilons(current_ends);
     }
 
     public NFA toRegularNFA(boolean multiline) 
     {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        new NFA(this.graph, this.start, new_ends).display();
-        propagateFifos();
-        new_ends = this.removeEpsilons(new_ends);
-        removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        // removeCounterEdges();
+        removeCounterEdges();
+        new_ends = propagateFifos(new_ends);
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         return new NFA(this.graph, this.start, new_ends);

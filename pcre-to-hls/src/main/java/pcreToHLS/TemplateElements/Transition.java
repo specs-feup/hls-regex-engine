@@ -1,7 +1,9 @@
 package pcreToHLS.TemplateElements;
 
+import java.util.List;
 import java.util.Set;
 
+import pcreToHLS.CounterInfo;
 import pcreToHLS.FifoInfo;
 
 public abstract class Transition {
@@ -11,13 +13,15 @@ public abstract class Transition {
     protected State target;
     protected String anchor_info;
     protected Set<FifoInfo> fifos_info;
+    protected List<CounterInfo> counters_info;
 
-    protected Transition(TransitionType type, String anchor_info, Set<FifoInfo> fifos_info, State source, State target) {
+    protected Transition(TransitionType type, String anchor_info, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target) {
         this.source = source;
         this.target = target;
         this.type = type;
         this.anchor_info = anchor_info;
         this.fifos_info = fifos_info;
+        this.counters_info = counters_info;
     }
 
     public TransitionType getType() {
@@ -60,5 +64,13 @@ public abstract class Transition {
 
     public void setFifos_info(Set<FifoInfo> fifos_info) {
         this.fifos_info = fifos_info;
+    }
+
+    public List<CounterInfo> getCounters_info() {
+        return counters_info;
+    }
+
+    public void setCounters_info(List<CounterInfo> counter_info) {
+        this.counters_info = counter_info;
     }
 }

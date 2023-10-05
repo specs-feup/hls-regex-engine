@@ -32,7 +32,7 @@ public class CounterInfo
     @Override
     public String toString()
     {
-        return this.counter.getId() + " " + this.operation + " " + this.counter.getTarget_value();
+        return this.counter.getId() + " " + this.operation + " " + this.counter.getTarget_value1();
     }
 
     @Override

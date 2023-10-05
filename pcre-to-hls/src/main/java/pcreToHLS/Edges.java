@@ -206,16 +206,8 @@ class WildcardEdge extends LabeledEdge<Integer>
     @Override
     public WildcardTransition generateTransition(State source, State target) 
     {
-        WildcardTransition transition = new WildcardTransition(this.anchor_info.name(), this.fifos_info, source, target, padding);
+        WildcardTransition transition = new WildcardTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, padding);
         return transition;
-        // transition.setWildcard(true);
-        // transition.setTarget(target);
-        // transition.setPadding(padding);
-        // TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
-        // group.setAnchor_info(this.anchor_info.name());
-        // group.setFifos_info(this.fifos_info);
-        // group.setFifo_to_match(this.fifo_to_match);
-        // return group;
     }
 } 
 
@@ -295,16 +287,8 @@ class CharacterEdge extends LabeledEdge<Integer>
     @Override
     public CharacterTransition generateTransition(State source, State target) 
     {
-        CharacterTransition transition = new CharacterTransition(this.anchor_info.name(), this.fifos_info, source, target, label);
+        CharacterTransition transition = new CharacterTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, label);
         return transition;
-        // Transition transition = new Transition();
-        // transition.setTarget(target);
-        // transition.setToken(this.label);
-        // TransitionGroup group = new TransitionGroup(Arrays.asList(transition), this.counter_infos);
-        // group.setAnchor_info(this.anchor_info.name());
-        // group.setFifos_info(this.fifos_info);
-        // group.setFifo_to_match(this.fifo_to_match);
-        // return group;
     }
 
 }
@@ -415,22 +399,8 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     @Override
     public CharacterClassTransition generateTransition(State source, State target) 
     {
-        CharacterClassTransition transition = new CharacterClassTransition(this.anchor_info.name(), this.fifos_info, source, target, label, negated);
+        CharacterClassTransition transition = new CharacterClassTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, label, negated);
         return transition;
-        // List<Transition> transitions = new LinkedList<>();
-        // for (int code_point : this.label)
-        // {
-        //     Transition transition = new Transition();
-        //     transition.setTarget(target);
-        //     transition.setToken(code_point);
-        //     transition.setNegated(this.negated);
-        //     transitions.add(transition);
-        // }
-        // TransitionGroup group = new TransitionGroup(transitions, this.negated, this.counter_infos);
-        // group.setAnchor_info(this.anchor_info.name());
-        // group.setFifos_info(this.fifos_info);
-        // group.setFifo_to_match(this.fifo_to_match);
-        // return group;
     }
 }
 
@@ -601,7 +571,7 @@ class BackreferenceEdge extends LabeledEdge<Fifo>
     @Override
     public BackreferenceTransition generateTransition(State source, State target) 
     {
-        BackreferenceTransition transition = new BackreferenceTransition(this.anchor_info.name(), this.fifos_info, source, target, label);
+        BackreferenceTransition transition = new BackreferenceTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, label);
         return transition;
     }
 }

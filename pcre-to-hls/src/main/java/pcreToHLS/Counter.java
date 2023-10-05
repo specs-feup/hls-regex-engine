@@ -2,17 +2,17 @@ package pcreToHLS;
 
 public class Counter {
 
-    public enum CounterOperation {SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_MORE, COMPARE_EQUALMORE, COMPARE_EQUALLESS, COMPARE_RANGE};
+    public enum CounterOperation {SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_EQUALMORE, COMPARE_RANGE};
 
-    private int target_value;
+    private int target_value1;
     private int target_value2;
     private String id;
     private static int id_no = 0;
     
     public Counter(int target_value)
     {
-        this.target_value = target_value;
-        this.id = "c" + Counter.id_no++;
+        this.target_value1 = target_value;
+        this.id = "counter" + Counter.id_no++;
     }
 
     public Counter(int target_value1, int target_value2)
@@ -28,16 +28,16 @@ public class Counter {
 
     private Counter(String id, int target_value)
     {
-        this.target_value = target_value;
+        this.target_value1 = target_value;
         this.id = id;
     }
 
-    public int getTarget_value() {
-        return target_value;
+    public int getTarget_value1() {
+        return target_value1;
     }
 
-    public void setTarget_value(int target_value) {
-        this.target_value = target_value;
+    public void setTarget_value1(int target_value) {
+        this.target_value1 = target_value;
     }
 
     public int getTarget_value2() {
