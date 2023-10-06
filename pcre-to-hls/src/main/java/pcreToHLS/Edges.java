@@ -18,20 +18,20 @@ import pcreToHLS.TemplateElements.WildcardTransition;
 
 abstract class LabeledEdge<T> extends DefaultEdge
 {
-    public enum AnchorType { NONE, START, END };
-
     protected T label;
     protected List<CounterInfo> counter_infos;
-    protected AnchorType anchor_info;
     protected Set<FifoInfo> fifos_info;
+    protected boolean at_start;
+    protected boolean at_end;
 
-    public LabeledEdge(T label, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    public LabeledEdge(T label, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
         this.label = label;
         this.counter_infos = new LinkedList<>();
         for (CounterInfo ci : counter_infos)
             this.counter_infos.add(new CounterInfo(ci.getCounter(), ci.getOperation()));
-        this.anchor_info = anchor_info;
+        this.at_start = at_start;
+        this.at_end = at_end;
         this.fifos_info = new HashSet<>();
          for (FifoInfo fi : fifos_info)
             this.fifos_info.add(new FifoInfo(fi.getFifo(), fi.isClear()));
@@ -39,7 +39,7 @@ abstract class LabeledEdge<T> extends DefaultEdge
 
     public LabeledEdge(T label, List<CounterInfo> counter_infos, Set<FifoInfo> fifos_info)
     {
-        this(label, counter_infos, AnchorType.NONE, fifos_info);
+        this(label, counter_infos, false, false, fifos_info);
     }
 
     public LabeledEdge(T label, List<CounterInfo> counter_infos)
@@ -85,14 +85,20 @@ abstract class LabeledEdge<T> extends DefaultEdge
         this.fifos_info.add(fifo_info);
     }
 
-    public AnchorType getAnchorInfo() 
-    {
-        return anchor_info;
+    public boolean isAtStart() {
+        return at_start;
     }
 
-    public void setAnchorInfo(AnchorType anchor_info) 
-    {
-        this.anchor_info = anchor_info;
+    public void setAtStart(boolean at_start) {
+        this.at_start = at_start;
+    }
+
+    public boolean isAtEnd() {
+        return at_end;
+    }
+
+    public void setAtEnd(boolean at_end) {
+        this.at_end = at_end;
     }
 
     @Override
@@ -111,7 +117,7 @@ abstract class LabeledEdge<T> extends DefaultEdge
             return false;
 
         LabeledEdge<?> other_edge = (LabeledEdge<?>) other;
-        boolean check_anchors = this.anchor_info.equals(other_edge.anchor_info);
+        boolean check_anchors = this.at_start == other_edge.at_start && this.at_end == other_edge.at_end;
         boolean check_counter_info = this.counter_infos.equals(other_edge.counter_infos);
         boolean check_source = this.getSource() != null ? this.getSource().equals(other_edge.getSource()) : other_edge.getSource() == null;
         boolean check_target = this.getTarget() != null ? this.getTarget().equals(other_edge.getTarget()) : other_edge.getTarget() == null;
@@ -132,19 +138,14 @@ abstract class LabeledEdge<T> extends DefaultEdge
 
     protected String getAnchorString()
     {
-        String str;
-        switch (this.anchor_info)
-        {
-            case END:
-                str = "@end";
-                break;
-            case START:
-                str = "@start";
-                break;
-            default:
-                str = "@any";
-                break;
-        }
+        if (!this.at_start && !this.at_end)
+            return "@any";
+
+        String str = "";
+        if (this.at_start)
+            str += "@start";
+        if (this.at_end)
+            str += "@end";
 
         return str;
     }
@@ -187,9 +188,9 @@ class WildcardEdge extends LabeledEdge<Integer>
         super(-1, counter_infos);
     }
 
-    private WildcardEdge(boolean padding, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    private WildcardEdge(boolean padding, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
-        super(-1, counter_infos, anchor_info, fifos_info);
+        super(-1, counter_infos, at_start, at_end, fifos_info);
         this.padding = padding;
     }
 
@@ -203,14 +204,14 @@ class WildcardEdge extends LabeledEdge<Integer>
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        WildcardEdge copy = new WildcardEdge(this.padding, this.counter_infos, this.anchor_info, this.fifos_info);
+        WildcardEdge copy = new WildcardEdge(this.padding, this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
     @Override
     public WildcardTransition generateTransition(State source, State target) 
     {
-        WildcardTransition transition = new WildcardTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, padding);
+        WildcardTransition transition = new WildcardTransition(this.at_start, this.at_end, this.counter_infos, this.fifos_info, source, target, padding);
         return transition;
     }
 } 
@@ -222,9 +223,9 @@ class EpsilonEdge extends LabeledEdge<Integer>
         super(-2);
     }
 
-    private EpsilonEdge(List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    private EpsilonEdge(List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
-        super(-2, counter_infos, anchor_info, fifos_info);
+        super(-2, counter_infos, at_start, at_end, fifos_info);
     }
 
     @Override
@@ -236,7 +237,7 @@ class EpsilonEdge extends LabeledEdge<Integer>
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        EpsilonEdge copy = new EpsilonEdge(this.counter_infos, this.anchor_info, this.fifos_info);
+        EpsilonEdge copy = new EpsilonEdge(this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
@@ -264,9 +265,9 @@ class CharacterEdge extends LabeledEdge<Integer>
         super(code_point, counter_infos);
     }
 
-    private CharacterEdge(int code_point, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    private CharacterEdge(int code_point, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
-        super(code_point, counter_infos, anchor_info, fifos_info);
+        super(code_point, counter_infos, at_start, at_end, fifos_info);
     }
 
     public int getCodePoint()
@@ -284,14 +285,14 @@ class CharacterEdge extends LabeledEdge<Integer>
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        CharacterEdge copy = new CharacterEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
+        CharacterEdge copy = new CharacterEdge(this.label, this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
     @Override
     public CharacterTransition generateTransition(State source, State target) 
     {
-        CharacterTransition transition = new CharacterTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, label);
+        CharacterTransition transition = new CharacterTransition(this.at_start, this.at_end, this.counter_infos, this.fifos_info, source, target, label);
         return transition;
     }
 
@@ -304,9 +305,9 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
         super(code_points);
     } 
 
-    private CharacterBlockEdge(Integer[] code_points, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    private CharacterBlockEdge(Integer[] code_points, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
-        super(code_points, counter_infos, anchor_info, fifos_info);
+        super(code_points, counter_infos, at_start, at_end, fifos_info);
     }
 
     public Integer[] getCodePoints()
@@ -330,7 +331,7 @@ class CharacterBlockEdge extends LabeledEdge<Integer[]>
     @Override
     public LabeledEdge<Integer[]> copy() 
     {
-        CharacterBlockEdge copy = new CharacterBlockEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
+        CharacterBlockEdge copy = new CharacterBlockEdge(this.label, this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
@@ -363,9 +364,9 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
         this.negated = negated;
     }
 
-    protected CharacterClassEdge(Set<Integer> code_points, boolean negated, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    protected CharacterClassEdge(Set<Integer> code_points, boolean negated, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
-        super(code_points, counter_infos, anchor_info, fifos_info);
+        super(code_points, counter_infos, at_start, at_end, fifos_info);
         this.negated = negated;
     }
 
@@ -396,14 +397,14 @@ class CharacterClassEdge extends LabeledEdge<Set<Integer>>
     @Override
     public LabeledEdge<Set<Integer>> copy() 
     {
-        CharacterClassEdge copy = new CharacterClassEdge(this.label, this.negated, this.counter_infos, this.anchor_info, this.fifos_info);
+        CharacterClassEdge copy = new CharacterClassEdge(this.label, this.negated, this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
     @Override
     public CharacterClassTransition generateTransition(State source, State target) 
     {
-        CharacterClassTransition transition = new CharacterClassTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, label, negated);
+        CharacterClassTransition transition = new CharacterClassTransition(this.at_start, this.at_end, this.counter_infos, this.fifos_info, source, target, label, negated);
         return transition;
     }
 }
@@ -415,9 +416,9 @@ class CounterEdge extends LabeledEdge<CounterInfo>
         super(counter_info, counter_info);
     }
 
-    private CounterEdge(CounterInfo counter_info, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    private CounterEdge(CounterInfo counter_info, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
-        super(counter_info, counter_infos, anchor_info, fifos_info);
+        super(counter_info, counter_infos, at_start, at_end, fifos_info);
     }
 
     @Override
@@ -429,7 +430,7 @@ class CounterEdge extends LabeledEdge<CounterInfo>
     @Override
     public LabeledEdge<CounterInfo> copy() 
     {
-        CounterEdge copy = new CounterEdge(this.label, this.counter_infos, this.anchor_info, this.fifos_info);
+        CounterEdge copy = new CounterEdge(this.label, this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
@@ -543,9 +544,9 @@ class CaptureEdge extends LabeledEdge<Fifo>
 
 class BackreferenceEdge extends LabeledEdge<Fifo>
 {
-    private BackreferenceEdge(int fifo_id, List<CounterInfo> counter_infos, AnchorType anchor_info, Set<FifoInfo> fifos_info)
+    private BackreferenceEdge(int fifo_id, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
-        super(new Fifo(fifo_id), counter_infos, anchor_info, fifos_info);
+        super(new Fifo(fifo_id), counter_infos, at_start, at_end, fifos_info);
     }
 
     public BackreferenceEdge(int fifo_id)
@@ -568,14 +569,14 @@ class BackreferenceEdge extends LabeledEdge<Fifo>
     @Override
     public LabeledEdge<Fifo> copy() 
     {
-        BackreferenceEdge copy = new BackreferenceEdge(this.label.getIdNo(), this.counter_infos, this.anchor_info, this.fifos_info);
+        BackreferenceEdge copy = new BackreferenceEdge(this.label.getIdNo(), this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
     @Override
     public BackreferenceTransition generateTransition(State source, State target) 
     {
-        BackreferenceTransition transition = new BackreferenceTransition(this.anchor_info.name(), this.counter_infos, this.fifos_info, source, target, label);
+        BackreferenceTransition transition = new BackreferenceTransition(this.at_start, this.at_end, this.counter_infos, this.fifos_info, source, target, label);
         return transition;
     }
 }

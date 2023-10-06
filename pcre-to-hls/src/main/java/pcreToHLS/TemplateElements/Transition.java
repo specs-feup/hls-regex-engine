@@ -11,15 +11,17 @@ public abstract class Transition {
     protected TransitionType type;
     protected State source;
     protected State target;
-    protected String anchor_info;
+    protected boolean at_start;
+    protected boolean at_end;
     protected Set<FifoInfo> fifos_info;
     protected List<CounterInfo> counters_info;
 
-    protected Transition(TransitionType type, String anchor_info, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target) {
+    protected Transition(TransitionType type, boolean at_start, boolean at_end, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target) {
         this.source = source;
         this.target = target;
         this.type = type;
-        this.anchor_info = anchor_info;
+        this.at_start = at_start;
+        this.at_end = at_end;
         this.fifos_info = fifos_info;
         this.counters_info = counters_info;
     }
@@ -50,12 +52,20 @@ public abstract class Transition {
         this.target = target;
     }
 
-    public String getAnchor_info() {
-        return anchor_info;
+    public boolean isAt_start() {
+        return at_start;
     }
 
-    public void setAnchor_info(String anchor_info) {
-        this.anchor_info = anchor_info;
+    public void setAt_start(boolean at_start) {
+        this.at_start = at_start;
+    }
+
+    public boolean isAt_end() {
+        return at_end;
+    }
+
+    public void setAt_end(boolean at_end) {
+        this.at_end = at_end;
     }
 
     public Set<FifoInfo> getFifos_info() {

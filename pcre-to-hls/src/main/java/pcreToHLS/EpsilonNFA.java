@@ -24,7 +24,6 @@ import org.jgrapht.traverse.GraphIterator;
 
 import pcreToHLS.CaptureEdge.CaptureType;
 import pcreToHLS.Counter.CounterOperation;
-import pcreToHLS.LabeledEdge.AnchorType;
 
 public class EpsilonNFA {
 
@@ -430,7 +429,7 @@ public class EpsilonNFA {
 
                     String joinable = graph.getEdgeSource(edge);
                     LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
-                    new_edge.setAnchorInfo(AnchorType.END);
+                    new_edge.setAtEnd(true);
                     new_graph.addEdge(joinable, reachable, new_edge);
                 }
                 if (!multiline)
@@ -464,7 +463,7 @@ public class EpsilonNFA {
 
                     String joinable = graph.getEdgeTarget(edge);
                     LabeledEdge<?> new_edge = ((LabeledEdge<?>) edge).copy();
-                    new_edge.setAnchorInfo(AnchorType.START);
+                    new_edge.setAtStart(true);
                     new_graph.addEdge(current_vertex, joinable, new_edge);
                 }
                 if (!multiline)

@@ -9,9 +9,9 @@ import pcreToHLS.FifoInfo;
 public class CharacterTransition extends Transition {
     private int token;
 
-    public CharacterTransition(String anchor_info, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target, int token)
+    public CharacterTransition(boolean at_start, boolean at_end, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target, int token)
     {
-        super(TransitionType.Character, anchor_info, counters_info, fifos_info, source, target);
+        super(TransitionType.Character, at_start, at_end, counters_info, fifos_info, source, target);
         this.token = token;
     }
 

@@ -111,7 +111,6 @@ class Counter {
 };
 
 enum TransitionType { Character, CharacterClass, Wildcard, Backreference};
-enum AnchorType { NONE, START, END };
 
 template <size_t N>
 class Transition {
@@ -123,19 +122,21 @@ class Transition {
     int stream_increment;
 
     /* Additional Info */
-    AnchorType anchor_type;
+    bool at_start;
+    bool at_end;
 
     /* Type Specific */
     bool negated = false;
     bool padding = false;
 
-    Transition(TransitionType type, const std::array<int, N> tokens, State *current, State *next, int stream_increment, AnchorType anchor_type) {
+    Transition(TransitionType type, const std::array<int, N> tokens, State *current, State *next, int stream_increment, bool at_start, bool at_end) {
         this->type = type;
         this->tokens = tokens;
         this->current = current;
         this->next = next;
         this->stream_increment = stream_increment;
-        this->anchor_type = anchor_type;
+        this->at_start = at_start;
+        this->at_end = at_end;
     }
 
     private:
@@ -204,7 +205,7 @@ class Transition {
         if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size)
             return false;
 
-        if (this->anchor_type == AnchorType::START && !this->testStartAnchor(this->current->getStreamIndex(), stream, multiline))
+        if (this->at_start && !this->testStartAnchor(this->current->getStreamIndex(), stream, multiline))
             return false;
 
         switch (this->type)
@@ -225,7 +226,7 @@ class Transition {
                 return false;
         }
 
-        if (this->anchor_type == AnchorType::END && !this->testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
+        if (this->at_end && !this->testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
             return false;
 
         return true;
@@ -239,13 +240,13 @@ class Transition {
         if (!this->current->isActive() || this->current->getStreamIndex() > stream_size)
             return false;
 
-        if (this->anchor_type == AnchorType::START && !this->testStartAnchor(this->current->getStreamIndex(), stream, multiline))
+        if (this->at_start && !this->testStartAnchor(this->current->getStreamIndex(), stream, multiline))
             return false;
 
         if (!fifo.checkQueue(stream, stream_size, this->current->getStreamIndex(), insensitive, &this->stream_increment))
             return false;
         
-        if (this->anchor_type == AnchorType::END && !this->testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
+        if (this->at_end && !this->testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
             return false;
 
         return true;
@@ -254,14 +255,14 @@ class Transition {
 
 class CharacterTransition : public Transition<1> {
     public:
-    CharacterTransition(int token, State *current, State *next, AnchorType anchor_type) : Transition<1>(TransitionType::Character, std::array<int, 1>({token}), current, next, 1, anchor_type)
+    CharacterTransition(int token, State *current, State *next, bool at_start, bool at_end) : Transition<1>(TransitionType::Character, std::array<int, 1>({token}), current, next, 1, at_start, at_end)
     { }
 };
 
 template <size_t N>
 class CharacterClassTransition : public Transition<N> {
     public:
-    CharacterClassTransition(const std::array<int, N> tokens, bool negated, State *current, State *next, AnchorType anchor_type) : Transition<N>(TransitionType::CharacterClass, tokens, current, next, 1, anchor_type)
+    CharacterClassTransition(const std::array<int, N> tokens, bool negated, State *current, State *next, bool at_start, bool at_end) : Transition<N>(TransitionType::CharacterClass, tokens, current, next, 1, at_start, at_end)
     { 
         this->negated = negated;
     }
@@ -269,7 +270,7 @@ class CharacterClassTransition : public Transition<N> {
 
 class WildcardTransition : public Transition<0> {
     public:
-    WildcardTransition(bool padding, State *current, State *next, AnchorType anchor_type) : Transition<0>(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1, anchor_type)
+    WildcardTransition(bool padding, State *current, State *next, bool at_start, bool at_end) : Transition<0>(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1, at_start, at_end)
     { 
         this->padding = padding;
     }
@@ -277,7 +278,7 @@ class WildcardTransition : public Transition<0> {
 
 class BackreferenceTransition : public Transition<0> {
     public:
-    BackreferenceTransition(State *current, State *next, AnchorType anchor_type) : Transition<0>(TransitionType::Backreference, std::array<int, 0>(), current, next, 0, anchor_type)
+    BackreferenceTransition(State *current, State *next, bool at_start, bool at_end) : Transition<0>(TransitionType::Backreference, std::array<int, 0>(), current, next, 0, at_start, at_end)
     { }
 };
 
@@ -295,13 +296,13 @@ int kernel${automaton?counter}(char stream[], int stream_size)
     <#assign transition_counter = 0>
     <#list automaton.transitions as transition>
       <#if transition.type == "Character">
-    CharacterTransition t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}], AnchorType::${transition.anchor_info});
+    CharacterTransition t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "CharacterClass">
-    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], AnchorType::${transition.anchor_info});
+    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Wildcard">
-    WildcardTransition t${transition_counter}(${transition.padding?c}, &current[${transition.source.id}], &next[${transition.target.id}], AnchorType::${transition.anchor_info});
+    WildcardTransition t${transition_counter}(${transition.padding?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Backreference">
-    BackreferenceTransition t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], AnchorType::${transition.anchor_info});
+    BackreferenceTransition t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       </#if>
     <#assign transition_counter += 1>
     </#list>
