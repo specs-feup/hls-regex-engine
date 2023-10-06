@@ -165,17 +165,9 @@ abstract class LabeledEdge<T> extends DefaultEdge
 
 class WildcardEdge extends LabeledEdge<Integer>
 {
-    boolean padding = false;
-
     public WildcardEdge()
     {
         super(-1);
-    }
-
-    public WildcardEdge(boolean padding)
-    {
-        super(-1);
-        this.padding = padding;
     }
 
     public WildcardEdge(CounterInfo counter_info)
@@ -188,30 +180,29 @@ class WildcardEdge extends LabeledEdge<Integer>
         super(-1, counter_infos);
     }
 
-    private WildcardEdge(boolean padding, List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
+    private WildcardEdge(List<CounterInfo> counter_infos, boolean at_start, boolean at_end, Set<FifoInfo> fifos_info)
     {
         super(-1, counter_infos, at_start, at_end, fifos_info);
-        this.padding = padding;
     }
 
     @Override
     public String toString()
     {
-        String name = "wildcard" + (this.padding ? "(padding)" : "");
+        String name = "wildcard";
         return name + getAnchorString() + getCountersString() + getFifosString();
     }
 
     @Override
     public LabeledEdge<Integer> copy() 
     {
-        WildcardEdge copy = new WildcardEdge(this.padding, this.counter_infos, this.at_start, this.at_end, this.fifos_info);
+        WildcardEdge copy = new WildcardEdge(this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 
     @Override
     public WildcardTransition generateTransition(State source, State target) 
     {
-        WildcardTransition transition = new WildcardTransition(this.at_start, this.at_end, this.counter_infos, this.fifos_info, source, target, padding);
+        WildcardTransition transition = new WildcardTransition(this.at_start, this.at_end, this.counter_infos, this.fifos_info, source, target);
         return transition;
     }
 } 

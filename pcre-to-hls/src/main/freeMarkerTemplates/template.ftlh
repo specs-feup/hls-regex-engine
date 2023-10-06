@@ -127,7 +127,6 @@ class Transition {
 
     /* Type Specific */
     bool negated = false;
-    bool padding = false;
 
     Transition(TransitionType type, const std::array<int, N> tokens, State *current, State *next, int stream_increment, bool at_start, bool at_end) {
         this->type = type;
@@ -219,7 +218,7 @@ class Transition {
                     return false;
                 break;
             case TransitionType::Wildcard:
-                if (!this->padding && !singleline && stream[this->current->getStreamIndex()] == '\n')
+                if (!singleline && stream[this->current->getStreamIndex()] == '\n')
                     return false;
                 break;
             default:
@@ -270,10 +269,8 @@ class CharacterClassTransition : public Transition<N> {
 
 class WildcardTransition : public Transition<0> {
     public:
-    WildcardTransition(bool padding, State *current, State *next, bool at_start, bool at_end) : Transition<0>(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1, at_start, at_end)
-    { 
-        this->padding = padding;
-    }
+    WildcardTransition(State *current, State *next, bool at_start, bool at_end) : Transition<0>(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1, at_start, at_end)
+    { }
 };
 
 class BackreferenceTransition : public Transition<0> {
@@ -288,7 +285,6 @@ int kernel${automaton?counter}(char stream[], int stream_size)
 {
     State current[${automaton.states?size}];
     State next[${automaton.states?size}];
-    current[${automaton.start_state.id}].setActive(true);
 
     ${declareFifos(automaton.fifo_ids)}
     ${declareCounters(automaton.counter_ids)}
@@ -300,7 +296,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
       <#elseif transition.type == "CharacterClass">
     CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Wildcard">
-    WildcardTransition t${transition_counter}(${transition.padding?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
+    WildcardTransition t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Backreference">
     BackreferenceTransition t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       </#if>
@@ -310,8 +306,14 @@ int kernel${automaton?counter}(char stream[], int stream_size)
     int transitions_occurred;
     bool in_end_state = false;
 
-    do {
-        transitions_occurred = 0;
+    for (int stream_offset = 0; stream_offset < stream_size; stream_offset++) 
+    {
+        memset(current, 0, ${automaton.states?size} * sizeof(State));
+        current[${automaton.start_state.id}].setActive(true);
+        current[${automaton.start_state.id}].setStreamIndex(stream_offset);
+
+        do {
+            transitions_occurred = 0;
      
         <#assign transition_counter = 0>
         <#list automaton.transitions as transition>
@@ -321,32 +323,35 @@ int kernel${automaton?counter}(char stream[], int stream_size)
         <#else>
           <#assign callTest = "t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c}, ${hasSinglelineFlag(automaton)?c})">
         </#if>
-          if (${callTest}<#list transition.counters_info as counter_info> && ${counter_info.counter.id}.performOperation(CounterOperation::${counter_info.operation}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2})</#list>) 
-          { 
-            t${transition_counter}.execute();
-            transitions_occurred++;
-            <#list transition.fifos_info as fifo_info>
-            <#if transition.type == "Backreference">
-            ${fifo_info.fifo.id}.enqueueFifo(${transition.fifo_to_match}, ${fifo_info.clear?c});
-            <#else>
-            ${fifo_info.fifo.id}.enqueue(stream[t${transition_counter}.getCurrent()->getStreamIndex()], ${fifo_info.clear?c});
-            </#if>
-            </#list>
-          }
+            if (${callTest}<#list transition.counters_info as counter_info> && ${counter_info.counter.id}.performOperation(CounterOperation::${counter_info.operation}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2})</#list>) 
+            { 
+                t${transition_counter}.execute();
+                transitions_occurred++;
+                <#list transition.fifos_info as fifo_info>
+                <#if transition.type == "Backreference">
+                ${fifo_info.fifo.id}.enqueueFifo(${transition.fifo_to_match}, ${fifo_info.clear?c});
+                <#else>
+                ${fifo_info.fifo.id}.enqueue(stream[t${transition_counter}.getCurrent()->getStreamIndex()], ${fifo_info.clear?c});
+                </#if>
+                </#list>
+            }
         <#assign transition_counter += 1>
         </#list>
-
-        <#list automaton.counter_ids as counter_id>${counter_id}.unlock();</#list>
-        if (transitions_occurred)
-        {
-            memcpy(current, next, ${automaton.states?size} * sizeof(State));
-            memset(next, 0, ${automaton.states?size} * sizeof(State));
-            in_end_state = <#list automaton.end_states as end_state>current[${end_state.id}].isActive()<#if !end_state?is_last> || </#if></#list>;
-        }
+            <#list automaton.counter_ids as counter_id>${counter_id}.unlock();</#list>
+            if (transitions_occurred)
+            {
+                memcpy(current, next, ${automaton.states?size} * sizeof(State));
+                memset(next, 0, ${automaton.states?size} * sizeof(State));
+                in_end_state = <#list automaton.end_states as end_state>current[${end_state.id}].isActive()<#if !end_state?is_last> || </#if></#list>;
+            }
       
-    } while (transitions_occurred && !in_end_state);
+        } while (transitions_occurred && !in_end_state);
 
-    return in_end_state;
+        if (in_end_state)
+            return true;
+    }
+
+    return false;
 }
 
 </#list>

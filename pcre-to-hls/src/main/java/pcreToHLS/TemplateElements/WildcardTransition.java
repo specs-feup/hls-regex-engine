@@ -7,20 +7,8 @@ import pcreToHLS.CounterInfo;
 import pcreToHLS.FifoInfo;
 
 public class WildcardTransition extends Transition{
-    private boolean padding;
-
-    public WildcardTransition(boolean at_start, boolean at_end, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target, boolean padding)
+    public WildcardTransition(boolean at_start, boolean at_end, List<CounterInfo> counters_info, Set<FifoInfo> fifos_info, State source, State target)
     {
         super(TransitionType.Wildcard, at_start, at_end, counters_info, fifos_info, source, target);
-        this.padding = padding;
-    }
-
-    public boolean isPadding() {
-        return padding;
-    }
-
-    public void setPadding(boolean padding) {
-        this.padding = padding;
-    }
-    
+    }    
 }
