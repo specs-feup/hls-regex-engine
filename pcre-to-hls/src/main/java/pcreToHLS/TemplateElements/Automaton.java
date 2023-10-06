@@ -12,10 +12,11 @@ public class Automaton {
     private List<Transition> transitions;
     private State start_state;
     private Set<State> end_states;
+    private boolean has_string_start_anchor;
 
     public Automaton() {}
 
-    public Automaton(String expression, String flags, Set<String> counter_ids, Set<String> fifo_ids, Set<State> states, List<Transition> transitions, State start_state, Set<State> end_states)
+    public Automaton(String expression, String flags, Set<String> counter_ids, Set<String> fifo_ids, Set<State> states, List<Transition> transitions, State start_state, Set<State> end_states, boolean has_string_start_anchor)
     {
         this.expression = expression;
         this.flags = flags;
@@ -25,6 +26,7 @@ public class Automaton {
         this.transitions = transitions;
         this.start_state = start_state;
         this.end_states = end_states;
+        this.has_string_start_anchor = has_string_start_anchor;
     }
 
     public String getExpression() {
@@ -89,6 +91,14 @@ public class Automaton {
 
     public void setEnd_states(Set<State> end_states) {
         this.end_states = end_states;
+    }
+
+    public boolean isHas_string_start_anchor() {
+        return has_string_start_anchor;
+    }
+
+    public void setHas_string_start_anchor(boolean has_string_start_anchor) {
+        this.has_string_start_anchor = has_string_start_anchor;
     }
 
 }

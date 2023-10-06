@@ -114,6 +114,7 @@ public class CodeGenerator {
             Set<String> counter_ids = new HashSet<>();
             Set<String> fifo_ids = new HashSet<>();
             List<Transition> transitions = new LinkedList<>();
+            boolean has_string_start_anchor = false;
 
             for (DefaultEdge edge : automaton_graph.edgeSet())
             {
@@ -122,11 +123,16 @@ public class CodeGenerator {
                 Transition edge_transition;
                 try {
                     edge_transition = ((LabeledEdge<?>) edge).generateTransition(source_state, target_state);
+                    transitions.add(edge_transition);
+
+                    if (edge_transition.isAt_start() && regex.flags.indexOf('m') == -1)
+                        has_string_start_anchor = true;
+
                     for (FifoInfo fifo_info : edge_transition.getFifos_info())
                         fifo_ids.add(fifo_info.getFifo().getId());
                     for (CounterInfo counter_info : edge_transition.getCounters_info())
                         counter_ids.add(counter_info.getCounter().getId());
-                    transitions.add(edge_transition);
+                        
                 } catch (UnsupportedOperationException e) {
                     e.printStackTrace();
                 }
@@ -150,7 +156,7 @@ public class CodeGenerator {
             Set<State> states = new HashSet<>(vertex_ids.values());
             State start_state = vertex_ids.get(automaton.getStart());
 
-            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, states, transitions, start_state, end_states));
+            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, states, transitions, start_state, end_states, has_string_start_anchor));
         }
         
         Map<String, Object> root = new HashMap<>();
