@@ -49,6 +49,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.flags = flags;
         this.fifos = new Stack<>();
         Fifo.resetIdNo();
+        Counter.resetIdNo();
     }
 
     private boolean hasAnchoredFlag()

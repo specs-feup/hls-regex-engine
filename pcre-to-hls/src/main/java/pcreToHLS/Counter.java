@@ -1,13 +1,13 @@
 package pcreToHLS;
 
 public class Counter {
-
-    public enum CounterOperation {SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_EQUALMORE, COMPARE_RANGE};
+    private static final int ID_NO_START = 0;
+    public enum CounterOperation {SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_MORE, COMPARE_EQUALMORE, COMPARE_RANGE};
 
     private int target_value1;
     private int target_value2;
     private String id;
-    private static int id_no = 0;
+    private static int id_no = ID_NO_START;
     
     public Counter(int target_value)
     {
@@ -32,6 +32,11 @@ public class Counter {
         this.id = id;
     }
 
+    public static void resetIdNo()
+    {
+        Counter.id_no = ID_NO_START;
+    }
+
     public int getTarget_value1() {
         return target_value1;
     }
@@ -50,6 +55,10 @@ public class Counter {
 
     public String getId() {
         return id;
+    }
+
+    public String getId_no() {
+        return this.id.substring("counter".length());
     }
 
     @Override

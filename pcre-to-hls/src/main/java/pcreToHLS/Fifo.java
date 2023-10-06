@@ -1,8 +1,9 @@
 package pcreToHLS;
 
 public class Fifo {
+    private static final int ID_NO_START = 1;
     private String id;
-    private static int id_no = 1;
+    private static int id_no = ID_NO_START;
 
     public Fifo()
     {
@@ -16,7 +17,7 @@ public class Fifo {
 
     public static void resetIdNo()
     {
-        Fifo.id_no = 1;
+        Fifo.id_no = ID_NO_START;
     }
 
     public String getId() {

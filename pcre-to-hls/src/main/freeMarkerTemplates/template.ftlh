@@ -3,21 +3,65 @@
 #include <array>
 #include <ctype.h>
 
+enum CounterOperation { SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_EQUALMORE, COMPARE_RANGE };
+
+struct CounterCheck {
+    CounterOperation op;
+    unsigned int val1;
+    unsigned int val2;
+};
+
+class Counter {
+    private:
+    unsigned int value = 0;
+    
+    public:
+    bool check(CounterCheck counter_check) {
+        switch (counter_check.op) {
+            case SET:
+                return true;
+            case COMPARE_EQUAL:
+                return this->value + 1 == counter_check.val1;
+            case COMPARE_LESS:
+                return this->value + 1 < counter_check.val1;
+            case COMPARE_EQUALMORE:
+                return this->value + 1 >= counter_check.val1;
+            case COMPARE_RANGE:
+                return this->value + 1 >= counter_check.val1 && this->value + 1 <= counter_check.val2;
+        }
+
+        return false;
+    }
+
+    void execute(CounterCheck counter_check)
+    {
+        if (counter_check.op == SET)
+            this->value = 1;
+        else
+            this->value++;
+    }
+};
+
 class State {
     private:
     bool active;
     int stream_index;
+    std::array<Counter, 10> counters;
 
     public:
     State() {
         this->active = false;
         this->stream_index = 0;
+        this->counters = {};
     }
 
     bool isActive() { return this->active; }
     void setActive(bool activation_state) { this->active = activation_state; }
     int getStreamIndex() { return this->stream_index; }
     void setStreamIndex(int stream_index) { this->stream_index = stream_index; }
+    std::array<Counter, 2> getCounters() { return this->counters; }
+    Counter getCounter(unsigned int index) { return this->counters[index]; }
+    void setCounter(unsigned int index, Counter counter) { this->counters[index] = counter; }
 };
 
 class Fifo {
@@ -65,48 +109,6 @@ class Fifo {
             *transition_increment = this->size;
 
         return valid;
-    }
-};
-
-enum CounterOperation { SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_EQUALMORE, COMPARE_RANGE };
-
-class Counter {
-    private:
-    unsigned int value = 0;
-    bool increment_lock = false;
-    
-    public:
-    bool performOperation(CounterOperation operation, unsigned int val1, unsigned int val2) {
-        bool valid = false;
-        switch (operation) {
-            case SET:
-                this->value = 1;
-                return true;
-            case COMPARE_EQUAL:
-                valid = this->value + !this->increment_lock == val1;
-                break;
-            case COMPARE_LESS:
-                valid = this->value + !this->increment_lock < val1;
-                break;
-            case COMPARE_EQUALMORE:
-                valid = this->value + !this->increment_lock >= val1;
-                break;
-            case COMPARE_RANGE:
-                valid = this->value + !this->increment_lock >= val1 && this->value <= val2;
-                break;
-        }
-
-        if (valid && !this->increment_lock)
-        {
-            this->value++;
-            this->increment_lock = true;
-        }
-
-        return valid;
-    }
-
-    void unlock() {
-        this->increment_lock = false;
     }
 };
 
@@ -184,6 +186,12 @@ class Transition {
         return token == stream_token;
     }
 
+    void transferCounters()
+    {
+        for (size_t i = 0; i < this->current->getCounters().size(); i++)
+            this->next->setCounter(i, this->current->getCounter(i));
+    }
+
     public:
     State *getCurrent() {
         return this->current;
@@ -193,10 +201,33 @@ class Transition {
         return this->next;
     }
 
-    void execute()
+    template <size_t C>
+    void execute(std::array<int,C> counters_to_check, std::array<CounterCheck, C> checks)
     {
         this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);        
         this->next->setActive(true);
+        this->transferCounters();
+
+        for(size_t i = 0; i < C; i++)
+        {
+            Counter c = this->current->getCounter(counters_to_check[i]);
+            c.execute(checks[i]);
+            this->next->setCounter(counters_to_check[i], c);
+        }
+
+    }
+
+    template <size_t C>
+    bool testCounters(std::array<int,C> counters_to_check, std::array<CounterCheck, C> checks)
+    {
+        for(size_t i = 0; i < C; i++)
+        {
+            Counter c = this->getCurrent()->getCounter(counters_to_check[i]);
+            if (!c.check(checks[i]))
+                return false;
+        }
+
+        return true;
     }
 
     bool test(char *stream, int stream_size, bool multiline, bool insensitive, bool singleline)
@@ -287,7 +318,6 @@ int kernel${automaton?counter}(char stream[], int stream_size)
     State next[${automaton.states?size}];
 
     ${declareFifos(automaton.fifo_ids)}
-    ${declareCounters(automaton.counter_ids)}
 
     <#assign transition_counter = 0>
     <#list automaton.transitions as transition>
@@ -323,9 +353,10 @@ int kernel${automaton?counter}(char stream[], int stream_size)
         <#else>
           <#assign callTest = "t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c}, ${hasSinglelineFlag(automaton)?c})">
         </#if>
-            if (${callTest}<#list transition.counters_info as counter_info> && ${counter_info.counter.id}.performOperation(CounterOperation::${counter_info.operation}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2})</#list>) 
+            <#assign counter_arguments = "">
+            if (${callTest} && t${transition_counter}.testCounters<${transition.counters_info?size}>({{<#list transition.counters_info as counter_info>${counter_info.counter.id_no}<#if !counter_info?is_last>, </#if></#list>}}, {{<#list transition.counters_info as counter_info>{CounterOperation::${counter_info.operation}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2}}<#if !counter_info?is_last>, </#if></#list>}})) 
             { 
-                t${transition_counter}.execute();
+                t${transition_counter}.execute<${transition.counters_info?size}>({{<#list transition.counters_info as counter_info>${counter_info.counter.id_no}<#if !counter_info?is_last>, </#if></#list>}}, {{<#list transition.counters_info as counter_info>{CounterOperation::${counter_info.operation}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2}}<#if !counter_info?is_last>, </#if></#list>}});
                 transitions_occurred++;
                 <#list transition.fifos_info as fifo_info>
                 <#if transition.type == "Backreference">
@@ -337,7 +368,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
             }
         <#assign transition_counter += 1>
         </#list>
-            <#list automaton.counter_ids as counter_id>${counter_id}.unlock();</#list>
+
             if (transitions_occurred)
             {
                 memcpy(current, next, ${automaton.states?size} * sizeof(State));
@@ -371,17 +402,6 @@ int main()
     return 0;
 }
 
-<#function declareCounters counter_ids>
-  <#assign result = "">
-    <#list counter_ids as counter_id>
-      <#assign result = result + "Counter ${counter_id};">
-       <#if !counter_id?is_last>
-        <#assign result = result + "\n\t\t">
-       </#if>
-    </#list>
-  <#return result>
-</#function>
-
 <#function declareFifos fifo_ids>
   <#assign result = "">
     <#list fifo_ids as fifo_id>
@@ -392,7 +412,6 @@ int main()
     </#list>
   <#return result>
 </#function>
-
 
 <#function hasCaseInsensitiveFlag automaton>
   <#return automaton.flags?contains("i")>
