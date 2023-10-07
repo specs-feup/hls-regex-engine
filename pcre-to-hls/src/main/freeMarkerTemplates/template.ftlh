@@ -42,11 +42,12 @@ class Counter {
     }
 };
 
+template <size_t C>
 class State {
     private:
     bool active;
     int stream_index;
-    std::array<Counter, 10> counters;
+    std::array<Counter, C> counters;
 
     public:
     State() {
@@ -59,7 +60,7 @@ class State {
     void setActive(bool activation_state) { this->active = activation_state; }
     int getStreamIndex() { return this->stream_index; }
     void setStreamIndex(int stream_index) { this->stream_index = stream_index; }
-    std::array<Counter, 2> getCounters() { return this->counters; }
+    std::array<Counter, C> getCounters() { return this->counters; }
     Counter getCounter(unsigned int index) { return this->counters[index]; }
     void setCounter(unsigned int index, Counter counter) { this->counters[index] = counter; }
 };
@@ -114,13 +115,13 @@ class Fifo {
 
 enum TransitionType { Character, CharacterClass, Wildcard, Backreference};
 
-template <size_t N>
+template <size_t T, size_t C>
 class Transition {
     protected:
     TransitionType type;
-    std::array<int, N> tokens;
-    State* current;
-    State* next;
+    std::array<int, T> tokens;
+    State<C>* current;
+    State<C>* next;
     int stream_increment;
 
     /* Additional Info */
@@ -130,7 +131,7 @@ class Transition {
     /* Type Specific */
     bool negated = false;
 
-    Transition(TransitionType type, const std::array<int, N> tokens, State *current, State *next, int stream_increment, bool at_start, bool at_end) {
+    Transition(TransitionType type, const std::array<int, T> tokens, State<C> *current, State<C> *next, int stream_increment, bool at_start, bool at_end) {
         this->type = type;
         this->tokens = tokens;
         this->current = current;
@@ -157,7 +158,7 @@ class Transition {
             return index == stream_size;
     }
 
-    bool testTokens(std::array<int, N> tokens, char *stream, bool insensitive)
+    bool testTokens(std::array<int, T> tokens, char *stream, bool insensitive)
     {
         int stream_token = insensitive ? toupper(stream[this->current->getStreamIndex()]) : stream[this->current->getStreamIndex()];
         bool has_match = false;
@@ -193,22 +194,22 @@ class Transition {
     }
 
     public:
-    State *getCurrent() {
+    State<C> *getCurrent() {
         return this->current;
     }
 
-    State *getNext() {
+    State<C> *getNext() {
         return this->next;
     }
 
-    template <size_t C>
-    void execute(std::array<int,C> counters_to_check, std::array<CounterCheck, C> checks)
+    template <size_t N>
+    void execute(std::array<int, N> counters_to_check, std::array<CounterCheck, N> checks)
     {
         this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);        
         this->next->setActive(true);
         this->transferCounters();
 
-        for(size_t i = 0; i < C; i++)
+        for(size_t i = 0; i < N; i++)
         {
             Counter c = this->current->getCounter(counters_to_check[i]);
             c.execute(checks[i]);
@@ -217,10 +218,10 @@ class Transition {
 
     }
 
-    template <size_t C>
-    bool testCounters(std::array<int,C> counters_to_check, std::array<CounterCheck, C> checks)
+    template <size_t N>
+    bool testCounters(std::array<int, N> counters_to_check, std::array<CounterCheck, N> checks)
     {
-        for(size_t i = 0; i < C; i++)
+        for(size_t i = 0; i < N; i++)
         {
             Counter c = this->getCurrent()->getCounter(counters_to_check[i]);
             if (!c.check(checks[i]))
@@ -283,30 +284,33 @@ class Transition {
     }
 };
 
-class CharacterTransition : public Transition<1> {
+template <size_t C>
+class CharacterTransition : public Transition<1, C> {
     public:
-    CharacterTransition(int token, State *current, State *next, bool at_start, bool at_end) : Transition<1>(TransitionType::Character, std::array<int, 1>({token}), current, next, 1, at_start, at_end)
+    CharacterTransition(int token, State<C> *current, State<C> *next, bool at_start, bool at_end) : Transition<1, C>(TransitionType::Character, std::array<int, 1>({token}), current, next, 1, at_start, at_end)
     { }
 };
 
-template <size_t N>
-class CharacterClassTransition : public Transition<N> {
+template <size_t T, size_t C>
+class CharacterClassTransition : public Transition<T, C> {
     public:
-    CharacterClassTransition(const std::array<int, N> tokens, bool negated, State *current, State *next, bool at_start, bool at_end) : Transition<N>(TransitionType::CharacterClass, tokens, current, next, 1, at_start, at_end)
+    CharacterClassTransition(const std::array<int, T> tokens, bool negated, State<C> *current, State<C> *next, bool at_start, bool at_end) : Transition<T, C>(TransitionType::CharacterClass, tokens, current, next, 1, at_start, at_end)
     { 
         this->negated = negated;
     }
 };
 
-class WildcardTransition : public Transition<0> {
+template <size_t C>
+class WildcardTransition : public Transition<0, C> {
     public:
-    WildcardTransition(State *current, State *next, bool at_start, bool at_end) : Transition<0>(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1, at_start, at_end)
+    WildcardTransition(State<C> *current, State<C> *next, bool at_start, bool at_end) : Transition<0, C>(TransitionType::Wildcard, std::array<int, 0>(), current, next, 1, at_start, at_end)
     { }
 };
 
-class BackreferenceTransition : public Transition<0> {
+template <size_t C>
+class BackreferenceTransition : public Transition<0, C> {
     public:
-    BackreferenceTransition(State *current, State *next, bool at_start, bool at_end) : Transition<0>(TransitionType::Backreference, std::array<int, 0>(), current, next, 0, at_start, at_end)
+    BackreferenceTransition(State<C> *current, State<C> *next, bool at_start, bool at_end) : Transition<0, C>(TransitionType::Backreference, std::array<int, 0>(), current, next, 0, at_start, at_end)
     { }
 };
 
@@ -314,21 +318,21 @@ class BackreferenceTransition : public Transition<0> {
 //kernel for /${automaton.expression}/
 int kernel${automaton?counter}(char stream[], int stream_size)
 {
-    State current[${automaton.states?size}];
-    State next[${automaton.states?size}];
+    State<${automaton.counter_ids?size}> current[${automaton.states?size}];
+    State<${automaton.counter_ids?size}> next[${automaton.states?size}];
 
     ${declareFifos(automaton.fifo_ids)}
 
     <#assign transition_counter = 0>
     <#list automaton.transitions as transition>
       <#if transition.type == "Character">
-    CharacterTransition t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
+    CharacterTransition<${automaton.counter_ids?size}> t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "CharacterClass">
-    CharacterClassTransition<${transition.tokens?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
+    CharacterClassTransition<${transition.tokens?size}, ${automaton.counter_ids?size}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Wildcard">
-    WildcardTransition t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
+    WildcardTransition<${automaton.counter_ids?size}> t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Backreference">
-    BackreferenceTransition t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
+    BackreferenceTransition<${automaton.counter_ids?size}> t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       </#if>
     <#assign transition_counter += 1>
     </#list>
@@ -338,7 +342,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
 
     for (int stream_offset = 0; stream_offset < stream_size; <#if automaton.has_string_start_anchor>stream_offset += stream_size<#else>stream_offset++</#if>) 
     {
-        memset(current, 0, ${automaton.states?size} * sizeof(State));
+        memset(current, 0, ${automaton.states?size} * sizeof(State<${automaton.counter_ids?size}>));
         current[${automaton.start_state.id}].setActive(true);
         current[${automaton.start_state.id}].setStreamIndex(stream_offset);
 
@@ -371,8 +375,8 @@ int kernel${automaton?counter}(char stream[], int stream_size)
 
             if (transitions_occurred)
             {
-                memcpy(current, next, ${automaton.states?size} * sizeof(State));
-                memset(next, 0, ${automaton.states?size} * sizeof(State));
+                memcpy(current, next, ${automaton.states?size} * sizeof(State<${automaton.counter_ids?size}>));
+                memset(next, 0, ${automaton.states?size} * sizeof(State<${automaton.counter_ids?size}>));
                 in_end_state = <#list automaton.end_states as end_state>current[${end_state.id}].isActive()<#if !end_state?is_last> || </#if></#list>;
             }
       
