@@ -560,7 +560,7 @@ class BackreferenceEdge extends LabeledEdge<Fifo>
     @Override
     public LabeledEdge<Fifo> copy() 
     {
-        BackreferenceEdge copy = new BackreferenceEdge(this.label.getIdNo(), this.counter_infos, this.at_start, this.at_end, this.fifos_info);
+        BackreferenceEdge copy = new BackreferenceEdge(this.label.getId_no(), this.counter_infos, this.at_start, this.at_end, this.fifos_info);
         return copy;
     }
 

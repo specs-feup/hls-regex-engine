@@ -1,18 +1,19 @@
 package pcreToHLS;
 
 public class Fifo {
-    private static final int ID_NO_START = 1;
+    private static final int ID_NO_START = 0;
+    private static final String ID_PREFIX = "fifo";
     private String id;
     private static int id_no = ID_NO_START;
 
     public Fifo()
     {
-        this.id = "fifo" + Fifo.id_no++;
+        this.id = ID_PREFIX + Fifo.id_no++;
     }
 
     public Fifo(int id_no)
     {
-        this.id = "fifo" + id_no;
+        this.id = ID_PREFIX + id_no;
     }
 
     public static void resetIdNo()
@@ -24,8 +25,8 @@ public class Fifo {
         return id;
     }
 
-    public int getIdNo() {
-        return Integer.parseInt(this.id.substring(4));
+    public int getId_no() {
+        return Integer.parseInt(this.id.substring(ID_PREFIX.length()));
     }
 
     @Override

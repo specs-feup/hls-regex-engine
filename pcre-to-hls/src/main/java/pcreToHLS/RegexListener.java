@@ -589,7 +589,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         addOccurrence("Backreferences");
         int digit = Integer.parseInt(ctx.backreference_or_octal().digit().getText());
-        stack.push(new EpsilonNFA(new BackreferenceEdge(digit)));
+        stack.push(new EpsilonNFA(new BackreferenceEdge(digit - 1)));
     }
 
     public EpsilonNFA getEpsilonNFA()
