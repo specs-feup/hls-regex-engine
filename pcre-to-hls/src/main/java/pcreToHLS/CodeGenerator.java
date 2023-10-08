@@ -20,6 +20,8 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.traverse.DepthFirstIterator;
+import org.jgrapht.traverse.GraphIterator;
 
 import PCREgrammar.PCREgrammarLexer;
 import PCREgrammar.PCREgrammarParser;
@@ -116,25 +118,30 @@ public class CodeGenerator {
             List<Transition> transitions = new LinkedList<>();
             boolean has_string_start_anchor = false;
 
-            for (DefaultEdge edge : automaton_graph.edgeSet())
+            GraphIterator<String, DefaultEdge> iterator = new DepthFirstIterator<String, DefaultEdge>(automaton_graph, automaton.start);
+            while (iterator.hasNext())
             {
-                State source_state = getState(automaton_graph.getEdgeSource(edge), vertex_ids);
-                State target_state = getState(automaton_graph.getEdgeTarget(edge), vertex_ids);
-                Transition edge_transition;
-                try {
-                    edge_transition = ((LabeledEdge<?>) edge).generateTransition(source_state, target_state);
-                    transitions.add(edge_transition);
+                String vertex = iterator.next();
+                for (DefaultEdge edge : automaton_graph.outgoingEdgesOf(vertex))
+                {
+                    State source_state = getState(automaton_graph.getEdgeSource(edge), vertex_ids);
+                    State target_state = getState(automaton_graph.getEdgeTarget(edge), vertex_ids);
+                    Transition edge_transition;
+                    try {
+                        edge_transition = ((LabeledEdge<?>) edge).generateTransition(source_state, target_state);
+                        transitions.add(edge_transition);
 
-                    if (edge_transition.isAt_start() && regex.flags.indexOf('m') == -1)
-                        has_string_start_anchor = true;
+                        if (edge_transition.isAt_start() && regex.flags.indexOf('m') == -1)
+                            has_string_start_anchor = true;
 
-                    for (FifoInfo fifo_info : edge_transition.getFifos_info())
-                        fifo_ids.add(fifo_info.getFifo().getId());
-                    for (CounterInfo counter_info : edge_transition.getCounters_info())
-                        counter_ids.add(counter_info.getCounter().getId());
-                        
-                } catch (UnsupportedOperationException e) {
-                    e.printStackTrace();
+                        for (FifoInfo fifo_info : edge_transition.getFifos_info())
+                            fifo_ids.add(fifo_info.getFifo().getId());
+                        for (CounterInfo counter_info : edge_transition.getCounters_info())
+                            counter_ids.add(counter_info.getCounter().getId());
+                            
+                    } catch (UnsupportedOperationException e) {
+                        e.printStackTrace();
+                    }
                 }
             }
 

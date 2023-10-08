@@ -47,17 +47,21 @@ class Fifo {
     private:
     std::array<int, 32> data;
     size_t size;
+    unsigned int allowed_offsets;
 
     void clear() 
     {
-        this->data = {};
         this->size = 0;
+        this->allowed_offsets = 0;
     }
 
     public:
-    Fifo() 
-    { 
-        this->clear();
+    Fifo() : data({}), size(0)
+    { }
+
+    void addOffset()
+    {
+        this->allowed_offsets++;
     }
 
     void enqueue(int element, bool clear) 
@@ -78,18 +82,24 @@ class Fifo {
         if ((stream_index == stream_size && this->size != 0) || stream_index > stream_size)
             return false;
 
-        bool valid = true;
-        for (size_t i = 0; i < this->size && valid; i++)
+        for (int i = 0; i <= this->allowed_offsets; i++)
         {
-            char stream_char = insensitive ? toupper(stream[stream_index++]) : stream[stream_index++];
-            char fifo_char = insensitive ? toupper(this->data[i]) : this->data[i];
-            valid = stream_char == fifo_char;
+            bool valid = true;
+            for(int j = 0; j + i < this->size && valid; j++)
+            {
+                char stream_char = stream[stream_index + j];
+                char fifo_char = this->data[j + i];
+                valid = insensitive ? toupper(stream_char) == toupper(fifo_char) : stream_char == fifo_char;
+            }
+
+            if (valid)
+            {
+                *transition_increment = this->size - i;
+                return true;
+            }
         }
 
-        if (valid)
-            *transition_increment = this->size;
-
-        return valid;
+        return false;
     }
 };
 
@@ -153,6 +163,11 @@ class State {
     void setFifo(unsigned int index, Fifo fifo) 
     {
         this->fifos[index] = fifo; 
+    }
+
+    void addOffsetToFifo(unsigned int index)
+    {
+        this->fifos[index].addOffset();
     }
 
 };
@@ -263,18 +278,24 @@ class Transition {
         }
     }
 
-    void addToFifo(int code_point, int fifo_index, bool clear) const
+    void addToFifo(int code_point, int fifo_index, bool clear, State<C, F> *target_current) const
     {
+        if (clear && target_current->isActive())
+            target_current->addOffsetToFifo(fifo_index);
+
         Fifo f = this->current->getFifo(fifo_index);
-        f.enqueue(code_point, clear);
+        f.enqueue(code_point, clear && !target_current->isActive());
         this->next->setFifo(fifo_index, f);
     }
 
-    void addFifoToFifo(int src_fifo_index, int dest_fifo_index, bool clear) const
+    void addFifoToFifo(int src_fifo_index, int dest_fifo_index, bool clear, State<C, F> *target_current) const
     {
+        if (clear && target_current->isActive())
+            target_current->addOffsetToFifo(dest_fifo_index);
+
         Fifo src_fifo = this->current->getFifo(src_fifo_index);
         Fifo dest_fifo = this->current->getFifo(dest_fifo_index);
-        dest_fifo.enqueueFifo(src_fifo, clear);
+        dest_fifo.enqueueFifo(src_fifo, clear && !target_current->isActive());
         this->next->setFifo(dest_fifo_index, dest_fifo);
     }
 
@@ -423,9 +444,9 @@ int kernel${automaton?counter}(char stream[], int stream_size)
                 t${transition_counter}.execute<${transition.counters_info?size}>({{<#list transition.counters_info as counter_info>${counter_info.counter.id_no}<#if !counter_info?is_last>, </#if></#list>}}, {{<#list transition.counters_info as counter_info>CounterOperation::${counter_info.operation}<#if !counter_info?is_last>, </#if></#list>}});
                 <#list transition.fifos_info as fifo_info>
                 <#if transition.type == "Backreference">
-                t${transition_counter}.addFifoToFifo(${transition.fifo_to_match.id_no}, ${fifo_info.fifo.id_no}, ${fifo_info.clear?c});
+                t${transition_counter}.addFifoToFifo(${transition.fifo_to_match.id_no}, ${fifo_info.fifo.id_no}, ${fifo_info.clear?c}, &current[${transition.target.id}]);
                 <#else>
-                t${transition_counter}.addToFifo(stream[t${transition_counter}.getCurrent()->getStreamIndex()], ${fifo_info.fifo.id_no}, ${fifo_info.clear?c});
+                t${transition_counter}.addToFifo(stream[t${transition_counter}.getCurrent()->getStreamIndex()], ${fifo_info.fifo.id_no}, ${fifo_info.clear?c}, &current[${transition.target.id}]);
                 </#if>
                 </#list>
             }
