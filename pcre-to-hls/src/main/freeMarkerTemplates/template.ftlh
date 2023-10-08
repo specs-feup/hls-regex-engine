@@ -14,32 +14,52 @@ struct CounterCheck {
 class Counter {
     private:
     unsigned int value = 0;
+    unsigned int value_offset = 0;
     
     public:
     bool check(CounterCheck counter_check) const 
     {
-        switch (counter_check.op) {
+        bool valid = false;
+        for (unsigned int i = 0; i <= this->value_offset && !valid; i++)
+        {
+            unsigned int possible_value = this->value - i;
+
+            switch (counter_check.op) {
             case SET:
-                return true;
+                valid = true;
+                break;
             case COMPARE_EQUAL:
-                return this->value + 1 == counter_check.val1;
+                valid = possible_value + 1 == counter_check.val1;
+                break;
             case COMPARE_LESS:
-                return this->value + 1 < counter_check.val1;
+                valid = possible_value + 1 < counter_check.val1;
+                break;
             case COMPARE_EQUALMORE:
-                return this->value + 1 >= counter_check.val1;
+                valid = possible_value + 1 >= counter_check.val1;
+                break;
             case COMPARE_RANGE:
-                return this->value + 1 >= counter_check.val1 && this->value + 1 <= counter_check.val2;
+                valid = possible_value + 1 >= counter_check.val1 && possible_value + 1 <= counter_check.val2;
+                break;
+            }
         }
 
-        return false;
+        return valid;
     }
 
-    void execute(CounterOperation operation)
+    void execute(CounterOperation operation, bool clear)
     {
-        if (operation == SET)
+        if (operation == SET && clear)
+        {
             this->value = 1;
+            this->value_offset = 0;
+        }
         else
             this->value++;
+    }
+
+    void addOffset() 
+    {
+        this->value_offset++;
     }
 };
 
@@ -170,6 +190,11 @@ class State {
         this->fifos[index].addOffset();
     }
 
+    void addOffsetToCounter(unsigned int index)
+    {
+        this->counters[index].addOffset();
+    }
+
 };
 
 enum TransitionType { Character, CharacterClass, Wildcard, Backreference};
@@ -262,18 +287,24 @@ class Transition {
         return this->next;
     }
 
-    template <size_t N>
-    void execute(std::array<int, N> counter_indices, std::array<CounterOperation, N> operations) const
+    void execute() const
     {
         this->next->setStreamIndex(this->current->getStreamIndex() + this->stream_increment);        
         this->next->setActive(true);
         this->transferCounters();
         this->transferFifos();
+    }
 
+    template<size_t N>
+    void updateCounters(std::array<int, N> counter_indices, std::array<CounterOperation, N> operations, State<C, F> *target_current) const
+    {
         for(size_t i = 0; i < N; i++)
         {
+            if (operations[i] == SET && target_current->isActive())
+                target_current->addOffsetToCounter(counter_indices[i]);
+
             Counter c = this->current->getCounter(counter_indices[i]);
-            c.execute(operations[i]);
+            c.execute(operations[i], !target_current->isActive());
             this->next->setCounter(counter_indices[i], c);
         }
     }
@@ -438,10 +469,13 @@ int kernel${automaton?counter}(char stream[], int stream_size)
           <#assign callTest = "t${transition_counter}.test(stream, stream_size, ${hasMultilineFlag(automaton)?c}, ${hasCaseInsensitiveFlag(automaton)?c}, ${hasSinglelineFlag(automaton)?c})">
         </#if>
             <#assign counter_arguments = "">
-            if (${callTest} && t${transition_counter}.testCounters<${transition.counters_info?size}>({{<#list transition.counters_info as counter_info>${counter_info.counter.id_no}<#if !counter_info?is_last>, </#if></#list>}}, {{<#list transition.counters_info as counter_info>{CounterOperation::${counter_info.operation}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2}}<#if !counter_info?is_last>, </#if></#list>}})) 
+            if (${callTest}<#if transition.counters_info?size != 0> && t${transition_counter}.testCounters<${transition.counters_info?size}>({{<#list transition.counters_info as counter_info>${counter_info.counter.id_no}<#if !counter_info?is_last>, </#if></#list>}}, {{<#list transition.counters_info as counter_info>{CounterOperation::${counter_info.operation}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2}}<#if !counter_info?is_last>, </#if></#list>}})</#if>) 
             { 
                 transitions_occurred++;
-                t${transition_counter}.execute<${transition.counters_info?size}>({{<#list transition.counters_info as counter_info>${counter_info.counter.id_no}<#if !counter_info?is_last>, </#if></#list>}}, {{<#list transition.counters_info as counter_info>CounterOperation::${counter_info.operation}<#if !counter_info?is_last>, </#if></#list>}});
+                t${transition_counter}.execute();
+                <#if transition.counters_info?size != 0>
+                t${transition_counter}.updateCounters<${transition.counters_info?size}>({{<#list transition.counters_info as counter_info>${counter_info.counter.id_no}<#if !counter_info?is_last>, </#if></#list>}}, {{<#list transition.counters_info as counter_info>CounterOperation::${counter_info.operation}<#if !counter_info?is_last>, </#if></#list>}}, &current[${transition.target.id}]);
+                </#if>
                 <#list transition.fifos_info as fifo_info>
                 <#if transition.type == "Backreference">
                 t${transition_counter}.addFifoToFifo(${transition.fifo_to_match.id_no}, ${fifo_info.fifo.id_no}, ${fifo_info.clear?c}, &current[${transition.target.id}]);
