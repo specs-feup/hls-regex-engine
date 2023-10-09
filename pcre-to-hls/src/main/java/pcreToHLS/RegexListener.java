@@ -4,6 +4,7 @@ package pcreToHLS;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -52,6 +53,8 @@ public class RegexListener extends PCREgrammarBaseListener {
     private RulesAnalyzer analyzer;
     private String flags;
     private Stack<Fifo> fifos;
+    private Map<String, Fifo> fifo_aliases;
+
     private double expression_length;
     private Map<Integer, Double> capture_groups_lengths;
     private Stack<DoubleWrapper> active_capture_groups_lengths;
@@ -62,6 +65,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.analyzer = analyzer;
         this.flags = flags;
         this.fifos = new Stack<>();
+        this.fifo_aliases = new HashMap<>();
         this.expression_length = 0;
         this.capture_groups_lengths = new LinkedHashMap<>();
         this.active_capture_groups_lengths = new Stack<>();
@@ -255,13 +259,8 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private void processCharacter_class(Character_classContext ctx)
     {
-        try {
-            if (ctx.getText().length() < 3)
-                throw new Exception("Invalid character class");
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
+        if (ctx.getText().length() < 3)
+            throw new RuntimeException("Invalid character class");
 
         AtomicBoolean negated = new AtomicBoolean(ctx.getText().charAt(1) == '^');
         List<Cc_atomContext> cc_atoms = ctx.cc_atom();
@@ -419,13 +418,8 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         char character = Character.toUpperCase(control_node.getText().charAt(2));
 
-        try {
-            if (character >= 0 && character <= 127) // ascii
-                throw new Exception("Invalid control character");
-        } catch (Exception e) {
-            e.printStackTrace();
-            System.exit(-1);
-        }
+        if (character >= 0 && character <= 127) // ascii
+            throw new RuntimeException("Invalid control character");
 
         BigInteger code = new BigInteger(Integer.toString(character));
         BigInteger flipped_code = code.flipBit(6);
@@ -492,12 +486,7 @@ public class RegexListener extends PCREgrammarBaseListener {
                 code_points.addAll(getCodePointsInRange('A', 'F'));
                 break;
             default:
-                try {
-                    throw new Exception("Invalid posix named set");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.exit(-1);
-                }
+                throw new RuntimeException("Invalid posix named set");
         }
 
         return code_points;
@@ -551,7 +540,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         {
             if (ctx.quantifier().QuestionMark() != null)
                 return length;
-            if (ctx.quantifier().Plus() != null || ctx.quantifier().QuestionMark() != null)
+            if (ctx.quantifier().Plus() != null || ctx.quantifier().Star() != null)
                 return Double.POSITIVE_INFINITY;
          
             if (ctx.quantifier().number().size() == 1)
@@ -568,10 +557,10 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void exitElement(ElementContext ctx)
     {
-        double element_length = getElementLength(ctx);
-        this.expression_length += element_length;
-        if (!active_capture_groups_lengths.isEmpty())
-            active_capture_groups_lengths.peek().value += element_length;
+        // double element_length = getElementLength(ctx);
+        // this.expression_length += element_length;
+        // if (!active_capture_groups_lengths.isEmpty())
+        //     active_capture_groups_lengths.peek().value += element_length;
 
         boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
         if (!is_first && concat())
@@ -629,7 +618,12 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void enterCapture(CaptureContext ctx)
     {
         addOccurrence("Capture Groups");
-        fifos.push(new Fifo());
+        Fifo fifo = new Fifo();
+        fifos.push(fifo);
+
+        if (ctx.name() != null)
+            this.fifo_aliases.put(ctx.name().getText(), fifo);
+
         active_capture_groups_lengths.push(new DoubleWrapper(0.0));
     }
 
@@ -649,9 +643,32 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterBackreference(BackreferenceContext ctx)
     {
-        addOccurrence("Backreferences");
-        int digit = Integer.parseInt(ctx.backreference_or_octal().digit().getText());
-        stack.push(new EpsilonNFA(new BackreferenceEdge(digit - 1)));
+        if (ctx.backreference_or_octal() != null && ctx.backreference_or_octal().OctalChar() != null)
+        {
+            int octal_code_point = getOctalCharCodePoint(ctx.backreference_or_octal().OctalChar().getText());
+            stack.push(new EpsilonNFA(new CharacterEdge(octal_code_point)));
+        }
+        else 
+        {
+            addOccurrence("Backreferences");
+            int backreference_index;
+
+            if (ctx.name() != null)
+            {
+                String name = ctx.name().getText();
+                if (this.fifo_aliases.containsKey(name))
+                    backreference_index = this.fifo_aliases.get(name).getId_no();
+                else
+                    throw new RuntimeException("No capture group named " + ctx.name().getText() + " found");
+            }
+            else if (ctx.number() != null)
+                backreference_index = Integer.parseInt(ctx.number().getText()) - 1;
+            else
+                backreference_index = Integer.parseInt(ctx.backreference_or_octal().digit().getText()) - 1;
+
+            stack.push(new EpsilonNFA(new BackreferenceEdge(backreference_index)));
+        }
+
     }
 
     public void exitParse(ParseContext ctx)

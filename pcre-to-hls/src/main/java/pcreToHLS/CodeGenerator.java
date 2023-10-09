@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.util.Collections;
-import java.util.EmptyStackException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -81,7 +80,9 @@ public class CodeGenerator {
                 this.regexes.put(regex, automaton);
                 this.analyzer.add(expression_analyzer);
             }
-            catch (EmptyStackException e) { System.out.println("Failed to parse: " + regex); e.printStackTrace();}
+            catch (Exception e) {
+                System.out.println("Failed to parse: " + regex + ". Error: " + e.getMessage());
+            }
             
         }
     }
