@@ -530,7 +530,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         
         if (atom_ctx.backreference() != null)
         {
-            int backreference_index = Integer.parseInt(atom_ctx.backreference().backreference_or_octal().digit().getText()) - 1;
+            int backreference_index = getBackreferenceIndex(atom_ctx.backreference());
             length = this.capture_groups_lengths.get(backreference_index);
         }
 
@@ -557,10 +557,10 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void exitElement(ElementContext ctx)
     {
-        // double element_length = getElementLength(ctx);
-        // this.expression_length += element_length;
-        // if (!active_capture_groups_lengths.isEmpty())
-        //     active_capture_groups_lengths.peek().value += element_length;
+        double element_length = getElementLength(ctx);
+        this.expression_length += element_length;
+        if (!active_capture_groups_lengths.isEmpty())
+            active_capture_groups_lengths.peek().value += element_length;
 
         boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
         if (!is_first && concat())
@@ -641,6 +641,25 @@ public class RegexListener extends PCREgrammarBaseListener {
             active_capture_groups_lengths.peek().value += current_group_length;
     }
 
+    private int getBackreferenceIndex(BackreferenceContext ctx)
+    {
+        int backreference_index;
+        if (ctx.name() != null)
+        {
+            String name = ctx.name().getText();
+            if (this.fifo_aliases.containsKey(name))
+                backreference_index = this.fifo_aliases.get(name).getId_no();
+            else
+                throw new RuntimeException("No capture group named " + ctx.name().getText() + " found");
+        }
+        else if (ctx.number() != null)
+            backreference_index = Integer.parseInt(ctx.number().getText()) - 1;
+        else
+            backreference_index = Integer.parseInt(ctx.backreference_or_octal().digit().getText()) - 1;
+
+        return backreference_index;
+    }
+
     public void enterBackreference(BackreferenceContext ctx)
     {
         if (ctx.backreference_or_octal() != null && ctx.backreference_or_octal().OctalChar() != null)
@@ -651,21 +670,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         else 
         {
             addOccurrence("Backreferences");
-            int backreference_index;
-
-            if (ctx.name() != null)
-            {
-                String name = ctx.name().getText();
-                if (this.fifo_aliases.containsKey(name))
-                    backreference_index = this.fifo_aliases.get(name).getId_no();
-                else
-                    throw new RuntimeException("No capture group named " + ctx.name().getText() + " found");
-            }
-            else if (ctx.number() != null)
-                backreference_index = Integer.parseInt(ctx.number().getText()) - 1;
-            else
-                backreference_index = Integer.parseInt(ctx.backreference_or_octal().digit().getText()) - 1;
-
+            int backreference_index = getBackreferenceIndex(ctx);
             stack.push(new EpsilonNFA(new BackreferenceEdge(backreference_index)));
         }
 
