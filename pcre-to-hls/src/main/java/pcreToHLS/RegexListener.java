@@ -41,7 +41,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     private RulesAnalyzer analyzer;
     private String flags;
     private Stack<Fifo> fifos;
-    private int expression_length;
+    private double expression_length;
 
     public RegexListener(RulesAnalyzer analyzer, String flags)
     {
@@ -93,7 +93,6 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterAtom(AtomContext ctx)
     {
-        this.expression_length++;
         LiteralContext literal = ctx.literal();
         Character_classContext character_class = ctx.character_class();
         Shared_atomContext shared_atom = ctx.shared_atom();
@@ -517,8 +516,33 @@ public class RegexListener extends PCREgrammarBaseListener {
         return Arrays.asList(ctx.getText().codePointAt(0));
     }
 
+    private double getElementLength(ElementContext ctx)
+    {
+        if (ctx.quantifier() == null)
+            return 1;
+        else
+        {
+            if (ctx.quantifier().QuestionMark() != null)
+                return 1;
+            if (ctx.quantifier().Plus() != null || ctx.quantifier().QuestionMark() != null)
+                return Double.POSITIVE_INFINITY;
+         
+            if (ctx.quantifier().number().size() == 1)
+            {
+                if (ctx.quantifier().Comma() != null)
+                    return Double.POSITIVE_INFINITY;
+                else 
+                    return Double.parseDouble(ctx.quantifier().number(0).getText());
+            }
+            else 
+                return Double.parseDouble(ctx.quantifier().number(1).getText());
+        }
+    }
+
     public void exitElement(ElementContext ctx)
     {
+        this.expression_length += getElementLength(ctx);
+
         boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
         if (!is_first && concat())
             addOccurrence("Concatenations");

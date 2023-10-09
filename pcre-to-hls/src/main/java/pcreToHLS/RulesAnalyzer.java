@@ -11,7 +11,7 @@ public class RulesAnalyzer {
     private Map<String, Integer> total_operator_occurrences;
     private Map<String, Integer> expression_operator_occurrences;
     private Map<Character, Integer> flag_occurrences;
-    private List<Integer> expression_lengths;
+    private List<Double> expression_lengths;
 
     public RulesAnalyzer()
     {
@@ -38,7 +38,7 @@ public class RulesAnalyzer {
             addFlagOccurrence(flag);
     }
 
-    public void addExpressionLength(int expression_length)
+    public void addExpressionLength(double expression_length)
     {
         this.expression_lengths.add(expression_length);
     }
@@ -51,40 +51,54 @@ public class RulesAnalyzer {
         other.flag_occurrences.forEach((key, value) -> this.flag_occurrences.merge(key, value, Integer::sum));
     }
 
-    private static float getAverage(List<Integer> data)
+    private static double getAverage(List<Double> data)
     {
         float sum = 0;
-        for(Integer value : data)
+        for(Double value : data)
             sum += value;
-
         return sum / data.size();
     }
 
-    private static float getMedian(List<Integer> data)
+    private static double getMedian(List<Double> data)
     {
         Collections.sort(data);
         if (data.size() % 2 == 0)
         {
-            int middle1 = data.get(data.size() / 2 - 1);
-            int middle2 = data.get(data.size() / 2);
-            return (float) (middle1 + middle2) / 2;
+            double middle1 = data.get(data.size() / 2 - 1);
+            double middle2 = data.get(data.size() / 2);
+            return (middle1 + middle2) / 2.0;
         }
         else 
             return data.get(data.size() / 2);
     }
 
-    private float getAverageExpressionLength()
+    private static int removeInfinities(List<Double> data)
+    {
+        int count = 0;
+        for (int i = 0; i < data.size(); i++)
+        {
+            if (Double.isInfinite(data.get(i)))
+            {
+                data.remove(i);
+                count++;
+            }
+        }        
+        return count;
+    }
+
+    private double getAverageExpressionLength()
     {
         return getAverage(this.expression_lengths);
     }
     
-    private float getMedianExpressionLength()
+    private double getMedianExpressionLength()
     {
         return getMedian(this.expression_lengths);
     }
 
     public void print()
     {
+        System.out.println("Expressions with Unknown Length: " + removeInfinities(this.expression_lengths));
         System.out.println("Average Expression Length: " + this.getAverageExpressionLength());
         System.out.println("Median Expression Length: " + this.getMedianExpressionLength());
 
