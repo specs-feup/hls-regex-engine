@@ -41,6 +41,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     private RulesAnalyzer analyzer;
     private String flags;
     private Stack<Fifo> fifos;
+    private int expression_length;
 
     public RegexListener(RulesAnalyzer analyzer, String flags)
     {
@@ -48,6 +49,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.analyzer = analyzer;
         this.flags = flags;
         this.fifos = new Stack<>();
+        this.expression_length = 0;
         Fifo.resetIdNo();
         Counter.resetIdNo();
     }
@@ -91,6 +93,7 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterAtom(AtomContext ctx)
     {
+        this.expression_length++;
         LiteralContext literal = ctx.literal();
         Character_classContext character_class = ctx.character_class();
         Shared_atomContext shared_atom = ctx.shared_atom();
@@ -590,6 +593,11 @@ public class RegexListener extends PCREgrammarBaseListener {
         addOccurrence("Backreferences");
         int digit = Integer.parseInt(ctx.backreference_or_octal().digit().getText());
         stack.push(new EpsilonNFA(new BackreferenceEdge(digit - 1)));
+    }
+
+    public void exitParse(ParseContext ctx)
+    {
+        this.analyzer.addExpressionLength(this.expression_length);
     }
 
     public EpsilonNFA getEpsilonNFA()
