@@ -7,4 +7,4 @@
 /Max-dotdot\d{3,}/
 /PASS\s+[^\n]*%/
 /^REGISTER.{5}/
-/abc/i
+/^^^^abc/i

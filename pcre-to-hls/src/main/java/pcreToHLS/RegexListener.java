@@ -537,7 +537,7 @@ public class RegexListener extends PCREgrammarBaseListener {
             return;
         
         EpsilonNFA top = stack.pop();
-        addOccurrence("Total Quantifiers");
+        addOccurrence("Quantifiers");
 
         if (ctx.Plus() != null) // +
             stack.push(EpsilonNFA.oneOrMore(top)); 

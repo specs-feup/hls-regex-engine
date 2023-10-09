@@ -70,13 +70,16 @@ public class CodeGenerator {
                 System.out.println(TreeUtils.toPrettyTree(tree, parser));
             }
 
+            RulesAnalyzer expression_analyzer = new RulesAnalyzer();
+
             try {
                 FinalAutomaton automaton;
                 if (dfas)
-                    automaton = new DFA(tree, this.analyzer, regex.flags, debug);
+                    automaton = new DFA(tree, expression_analyzer, regex.flags, debug);
                 else 
-                    automaton = new NFA(tree, this.analyzer, regex.flags, debug);
+                    automaton = new NFA(tree, expression_analyzer, regex.flags, debug);
                 this.regexes.put(regex, automaton);
+                this.analyzer.add(expression_analyzer);
             }
             catch (EmptyStackException e) { System.out.println("Failed to parse: " + regex); e.printStackTrace();}
             
