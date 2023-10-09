@@ -524,7 +524,6 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private double getElementLength(ElementContext ctx)
     {
-
         AtomContext atom_ctx = ctx.atom();
         double length = 0;
         if ((atom_ctx.literal() != null && atom_ctx.literal().shared_literal() != null) || atom_ctx.shared_atom() != null || atom_ctx.character_class() != null)
@@ -532,10 +531,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         
         if (atom_ctx.backreference() != null)
         {
-            Backreference_or_octalContext br_oct_ctx = atom_ctx.backreference().backreference_or_octal();
-            TerminalNode octal = br_oct_ctx.OctalChar();
-            DigitContext digit = br_oct_ctx.digit();
-            if (br_oct_ctx != null && (octal != null || (digit!=null && digit.getText().equals("0"))))
+            if (atom_ctx.backreference().backreference_or_octal() != null && (atom_ctx.backreference().backreference_or_octal().OctalChar() != null || (atom_ctx.backreference().backreference_or_octal().digit()!=null && atom_ctx.backreference().backreference_or_octal().digit().getText().equals("0"))))
                 length = 1;
             else 
             {
