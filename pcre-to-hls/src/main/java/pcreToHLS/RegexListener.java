@@ -93,7 +93,7 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private void alternate()
     {
-        if (this.stack.isLocked())
+        if (this.stack.isLocked() || this.stack.size() < 2)
             return;
 
         EpsilonNFA second = stack.pop();
@@ -103,7 +103,7 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private boolean concat()
     {
-        if (this.stack.isLocked())
+        if (this.stack.isLocked() || this.stack.size() < 2)
             return false;
         
         EpsilonNFA second = stack.pop();
@@ -572,8 +572,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (!active_capture_groups_lengths.isEmpty())
             active_capture_groups_lengths.peek().value += element_length;
 
-        boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
-        if (!is_first && concat())
+        if (concat())
             addOccurrence("Concatenations");
     }
 
@@ -582,8 +581,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         for(int i = 0; i < ctx.Pipe().size(); i++)
         {
             addOccurrence("Alternations");
-            if (this.stack.size() >= 2) //not empty alternation like a| or a||b
-                alternate();
+            alternate();
         }
     }
 
