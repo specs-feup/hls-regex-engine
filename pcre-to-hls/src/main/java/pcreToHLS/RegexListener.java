@@ -20,12 +20,14 @@ import PCREgrammar.PCREgrammarBaseListener;
 import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
 import PCREgrammar.PCREgrammarParser.BackreferenceContext;
+import PCREgrammar.PCREgrammarParser.Backreference_or_octalContext;
 import PCREgrammar.PCREgrammarParser.CalloutContext;
 import PCREgrammar.PCREgrammarParser.CaptureContext;
 import PCREgrammar.PCREgrammarParser.Cc_atomContext;
 import PCREgrammar.PCREgrammarParser.Cc_literalContext;
 import PCREgrammar.PCREgrammarParser.Character_classContext;
 import PCREgrammar.PCREgrammarParser.ConditionalContext;
+import PCREgrammar.PCREgrammarParser.DigitContext;
 import PCREgrammar.PCREgrammarParser.ElementContext;
 import PCREgrammar.PCREgrammarParser.ExprContext;
 import PCREgrammar.PCREgrammarParser.LiteralContext;
@@ -530,8 +532,16 @@ public class RegexListener extends PCREgrammarBaseListener {
         
         if (atom_ctx.backreference() != null)
         {
-            int backreference_index = getBackreferenceIndex(atom_ctx.backreference());
-            length = this.capture_groups_lengths.get(backreference_index);
+            Backreference_or_octalContext br_oct_ctx = atom_ctx.backreference().backreference_or_octal();
+            TerminalNode octal = br_oct_ctx.OctalChar();
+            DigitContext digit = br_oct_ctx.digit();
+            if (br_oct_ctx != null && (octal != null || (digit!=null && digit.getText().equals("0"))))
+                length = 1;
+            else 
+            {
+                int backreference_index = getBackreferenceIndex(atom_ctx.backreference());
+                length = this.capture_groups_lengths.get(backreference_index);
+            }
         }
 
         if (ctx.quantifier() == null)
@@ -662,9 +672,13 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterBackreference(BackreferenceContext ctx)
     {
-        if (ctx.backreference_or_octal() != null && ctx.backreference_or_octal().OctalChar() != null)
+        if (ctx.backreference_or_octal() != null && (ctx.backreference_or_octal().OctalChar() != null || (ctx.backreference_or_octal().digit() != null && ctx.backreference_or_octal().digit().getText().equals("0"))))
         {
-            int octal_code_point = getOctalCharCodePoint(ctx.backreference_or_octal().OctalChar().getText());
+            int octal_code_point;
+            if (ctx.backreference_or_octal().digit().getText().equals("0"))
+                octal_code_point = 0;
+            else
+                octal_code_point = getOctalCharCodePoint(ctx.backreference_or_octal().OctalChar().getText());
             stack.push(new EpsilonNFA(new CharacterEdge(octal_code_point)));
         }
         else 
