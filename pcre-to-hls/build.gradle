@@ -16,10 +16,11 @@ repositories {
     mavenCentral()
 }
 
+
 run {
     standardInput = System.in
     classpath += files('./src/main/freeMarkerTemplates')
-    classpath += files('./src/main/resources')
+    classpath += files('../common-resources')
 }
 
 dependencies {
