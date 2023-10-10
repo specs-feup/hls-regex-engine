@@ -78,7 +78,7 @@ style: "
 
 # Regular Expressions to HLS
 
-## Status as of the 28th of September
+## Status as of the 9th of October
 
 ### Pedro Miguel Ribeiro Alves - <https://github.com/specs-feup/hls-regex-engine>
 
@@ -103,8 +103,8 @@ Extracted **67996** regular expressions from:
 
 - ✅ Feature Count
 - ✅ Flag Count
-- ❌ Backreference Length
-- ❌ Expression Length
+- ✅ Backreference Length
+- ✅ Expression Length
 
 ---
 
@@ -121,7 +121,7 @@ Extracted **67996** regular expressions from:
 - ✅ Regular Quantifiers `*`, `+`, `?` (22098)
 - ✅ Bounded Quantifiers* (10657)
 - ✅ Capture/Non-Capture Groups (21981/8880)
-- 🔄 Backreferences (335)
+- ✅ Backreferences (335)
 - ✅ Flags (20517)
   - ✅ Case Insensitive Match `i` (7045)
   - ✅ Multi Line Match `m` (3202)
