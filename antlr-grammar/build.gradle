@@ -1,0 +1,18 @@
+plugins {
+    id 'antlr'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // https://mvnrepository.com/artifact/org.antlr/antlr4
+    antlr 'org.antlr:antlr4:4.12.0'  
+}
+
+// Specify your ANTLR source files
+generateGrammarSource {
+    arguments += ['-package', 'PCREgrammar']
+    outputDirectory = new File(buildDir.toString() + "/generated-src/antlr/main/PCREgrammar/")
+}
