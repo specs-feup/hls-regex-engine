@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.jgrapht.*;
 import org.jgrapht.graph.*;
 
+
 public class DFA extends FinalAutomaton {
 
     public DFA(Graph<String, DefaultEdge> graph, String start, Set<String> ends) 
@@ -16,9 +17,9 @@ public class DFA extends FinalAutomaton {
         this.ends = ends;
     }
 
-    public DFA(ParseTree root, RulesAnalyzer analyzer, String flags, boolean debug) throws EmptyStackException 
+    public DFA(ParseTree root, String flags, boolean debug) throws EmptyStackException 
     {
-        EpsilonNFA eNFA = new EpsilonNFA(root, analyzer, flags);
+        EpsilonNFA eNFA = new EpsilonNFA(root, flags);
         NFA nfa = eNFA.toRegularNFA(flags.contains("m"));
         DFA dfa = nfa.toDFA();
         if (debug)

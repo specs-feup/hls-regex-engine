@@ -46,11 +46,9 @@ public class CodeGenerator {
     };
 
     private Map<PCRE, FinalAutomaton> regexes;
-    private RulesAnalyzer analyzer;
 
     public CodeGenerator(Map<String, String> expressions, boolean debug, boolean dfas)
     {
-        this.analyzer = new RulesAnalyzer();
         this.regexes = new HashMap<>();
         for (Entry<String, String> expression_entry : expressions.entrySet())
         {
@@ -61,7 +59,6 @@ public class CodeGenerator {
             PCREgrammarParser parser = new PCREgrammarParser(tokens);
             ParseTree tree = parser.parse();
 
-            this.analyzer.addFlagsOccurrence(regex.flags);
 
             if (debug)
             {
@@ -69,16 +66,14 @@ public class CodeGenerator {
                 System.out.println(TreeUtils.toPrettyTree(tree, parser));
             }
 
-            RulesAnalyzer expression_analyzer = new RulesAnalyzer();
 
             try {
                 FinalAutomaton automaton;
                 if (dfas)
-                    automaton = new DFA(tree, expression_analyzer, regex.flags, debug);
+                    automaton = new DFA(tree, regex.flags, debug);
                 else 
-                    automaton = new NFA(tree, expression_analyzer, regex.flags, debug);
+                    automaton = new NFA(tree, regex.flags, debug);
                 this.regexes.put(regex, automaton);
-                this.analyzer.add(expression_analyzer);
             }
             catch (Exception e) {
                 System.out.println("Failed to parse: " + regex + ". Error: " + e.getMessage());
@@ -86,10 +81,6 @@ public class CodeGenerator {
             }
             
         }
-    }
-
-    public RulesAnalyzer getAnalyzer() {
-        return analyzer;
     }
 
     private State getState(String vertex, Map<String, State> vertices_mapping)

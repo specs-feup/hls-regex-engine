@@ -60,8 +60,6 @@ public class App extends TApplication {
                 ExpressionSource source = getExpressionSource(group);
                 Map<String, String> expressions = getExpressions(source, input_string);
                 CodeGenerator generator = new CodeGenerator(expressions, debug_check_box.isChecked(), dfa_check_box.isChecked());
-                System.out.println("\n === Analyzer ===");
-                generator.getAnalyzer().print();
                 generator.generate(generation_path);
                 System.out.println("\nMatcher generated in " + generation_path);
             }

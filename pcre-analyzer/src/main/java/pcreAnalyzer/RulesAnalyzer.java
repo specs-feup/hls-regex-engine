@@ -1,4 +1,4 @@
-package pcreToHLS;
+package pcreAnalyzer;
 
 import java.util.ArrayList;
 import java.util.Collections;

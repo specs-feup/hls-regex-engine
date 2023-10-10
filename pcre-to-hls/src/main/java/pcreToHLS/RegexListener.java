@@ -2,11 +2,9 @@
 package pcreToHLS;
 
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -20,57 +18,31 @@ import PCREgrammar.PCREgrammarBaseListener;
 import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
 import PCREgrammar.PCREgrammarParser.BackreferenceContext;
-import PCREgrammar.PCREgrammarParser.Backreference_or_octalContext;
-import PCREgrammar.PCREgrammarParser.CalloutContext;
 import PCREgrammar.PCREgrammarParser.CaptureContext;
 import PCREgrammar.PCREgrammarParser.Cc_atomContext;
 import PCREgrammar.PCREgrammarParser.Cc_literalContext;
 import PCREgrammar.PCREgrammarParser.Character_classContext;
-import PCREgrammar.PCREgrammarParser.ConditionalContext;
-import PCREgrammar.PCREgrammarParser.DigitContext;
 import PCREgrammar.PCREgrammarParser.ElementContext;
 import PCREgrammar.PCREgrammarParser.ExprContext;
 import PCREgrammar.PCREgrammarParser.LiteralContext;
-import PCREgrammar.PCREgrammarParser.Look_aroundContext;
-import PCREgrammar.PCREgrammarParser.Non_captureContext;
-import PCREgrammar.PCREgrammarParser.ParseContext;
 import PCREgrammar.PCREgrammarParser.QuantifierContext;
-import PCREgrammar.PCREgrammarParser.Quantifier_typeContext;
 import PCREgrammar.PCREgrammarParser.Shared_atomContext;
 import PCREgrammar.PCREgrammarParser.Shared_literalContext;
-import PCREgrammar.PCREgrammarParser.Subroutine_referenceContext;
 import pcreToHLS.CaptureEdge.CaptureType;
 
 public class RegexListener extends PCREgrammarBaseListener {
 
-    private class DoubleWrapper {
-        double value;
-
-        DoubleWrapper(double value) {
-            this.value = value;
-        }
-    }
-
     private LockedStack<EpsilonNFA> stack;
-    private RulesAnalyzer analyzer;
     private String flags;
     private Stack<Fifo> fifos;
     private Map<String, Fifo> fifo_aliases;
 
-    private double expression_length;
-    private Map<Integer, Double> capture_groups_lengths;
-    private Stack<DoubleWrapper> active_capture_groups_lengths;
-
-    public RegexListener(RulesAnalyzer analyzer, String flags)
+    public RegexListener(String flags)
     {
         this.stack = new LockedStack<>();
-        this.analyzer = analyzer;
         this.flags = flags;
         this.fifos = new Stack<>();
         this.fifo_aliases = new HashMap<>();
-        this.expression_length = 0;
-        this.capture_groups_lengths = new LinkedHashMap<>();
-        this.active_capture_groups_lengths = new Stack<>();
         Fifo.resetIdNo();
         Counter.resetIdNo();
     }
@@ -83,12 +55,6 @@ public class RegexListener extends PCREgrammarBaseListener {
     private boolean hasExtendedFlag()
     {
         return this.flags.indexOf('x') != -1;
-    }
-
-    private void addOccurrence(String operation)
-    {
-        if (!this.stack.isLocked())
-            this.analyzer.addOperatorOccurrence(operation);
     }
 
     private void alternate()
@@ -135,12 +101,10 @@ public class RegexListener extends PCREgrammarBaseListener {
             stack.push(new EpsilonNFA(new WildcardEdge()));
         else if (ctx.Caret() != null || ctx.StartOfSubject() != null)
         {
-            addOccurrence("Start Anchor");
             stack.push(new EpsilonNFA(new StartAnchorEdge()));
         }
         else if (ctx.EndOfSubjectOrLine() != null || ctx.EndOfSubjectOrLineEndOfSubject() != null)
         {
-            addOccurrence("End Anchor");
             stack.push(new EpsilonNFA(new EndAnchorEdge()));
         }
     }
@@ -522,63 +486,17 @@ public class RegexListener extends PCREgrammarBaseListener {
         return Arrays.asList(ctx.getText().codePointAt(0));
     }
 
-    private double getElementLength(ElementContext ctx)
-    {
-        AtomContext atom_ctx = ctx.atom();
-        double length = 0;
-        if ((atom_ctx.literal() != null && atom_ctx.literal().shared_literal() != null) || atom_ctx.shared_atom() != null || atom_ctx.character_class() != null)
-            length = 1;
-        
-        if (atom_ctx.backreference() != null)
-        {
-            if (atom_ctx.backreference().backreference_or_octal() != null && (atom_ctx.backreference().backreference_or_octal().OctalChar() != null || (atom_ctx.backreference().backreference_or_octal().digit()!=null && atom_ctx.backreference().backreference_or_octal().digit().getText().equals("0"))))
-                length = 1;
-            else 
-            {
-                int backreference_index = getBackreferenceIndex(atom_ctx.backreference());
-                length = this.capture_groups_lengths.get(backreference_index);
-            }
-        }
-
-        if (ctx.quantifier() == null)
-            return length;
-        else
-        {
-            if (ctx.quantifier().QuestionMark() != null)
-                return length;
-            if (ctx.quantifier().Plus() != null || ctx.quantifier().Star() != null)
-                return Double.POSITIVE_INFINITY;
-         
-            if (ctx.quantifier().number().size() == 1)
-            {
-                if (ctx.quantifier().Comma() != null)
-                    return Double.POSITIVE_INFINITY;
-                else 
-                    return length * Double.parseDouble(ctx.quantifier().number(0).getText());
-            }
-            else 
-                return length * Double.parseDouble(ctx.quantifier().number(1).getText());
-        }
-    }
-
     public void exitElement(ElementContext ctx)
     {
-        double element_length = getElementLength(ctx);
-        this.expression_length += element_length;
-        if (!active_capture_groups_lengths.isEmpty())
-            active_capture_groups_lengths.peek().value += element_length;
-
-        if (concat())
-            addOccurrence("Concatenations");
+        boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
+        if (!is_first)
+            concat();
     }
 
     public void exitAlternation(AlternationContext ctx)
     {
         for(int i = 0; i < ctx.Pipe().size(); i++)
-        {
-            addOccurrence("Alternations");
             alternate();
-        }
     }
 
     public void enterQuantifier(QuantifierContext ctx)
@@ -587,7 +505,6 @@ public class RegexListener extends PCREgrammarBaseListener {
             return;
         
         EpsilonNFA top = stack.pop();
-        addOccurrence("Quantifiers");
 
         if (ctx.Plus() != null) // +
             stack.push(EpsilonNFA.oneOrMore(top)); 
@@ -597,7 +514,6 @@ public class RegexListener extends PCREgrammarBaseListener {
             stack.push(EpsilonNFA.zeroOrMore(top));
         else if (ctx.OpenBrace() != null)
         {
-            addOccurrence("Bounded Quantifiers");
             processBoundedQuantifier(ctx, top);
         }
     }
@@ -621,14 +537,11 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterCapture(CaptureContext ctx)
     {
-        addOccurrence("Capture Groups");
         Fifo fifo = new Fifo();
         fifos.push(fifo);
 
         if (ctx.name() != null)
             this.fifo_aliases.put(ctx.name().getText(), fifo);
-
-        active_capture_groups_lengths.push(new DoubleWrapper(0.0));
     }
 
     public void exitCapture(CaptureContext ctx)
@@ -638,11 +551,6 @@ public class RegexListener extends PCREgrammarBaseListener {
         EpsilonNFA with_start = EpsilonNFA.concat(new EpsilonNFA(new CaptureEdge(CaptureType.START, fifo)), top);
         EpsilonNFA with_start_end = EpsilonNFA.concat(with_start, new EpsilonNFA(new CaptureEdge(CaptureType.END, fifo)));
         stack.push(with_start_end);
-
-        double current_group_length = active_capture_groups_lengths.pop().value;
-        this.capture_groups_lengths.put(fifo.getId_no(), current_group_length);
-        if (!active_capture_groups_lengths.isEmpty())
-            active_capture_groups_lengths.peek().value += current_group_length;
     }
 
     private int getBackreferenceIndex(BackreferenceContext ctx)
@@ -677,17 +585,10 @@ public class RegexListener extends PCREgrammarBaseListener {
         }
         else 
         {
-            addOccurrence("Backreferences");
             int backreference_index = getBackreferenceIndex(ctx);
             stack.push(new EpsilonNFA(new BackreferenceEdge(backreference_index)));
         }
 
-    }
-
-    public void exitParse(ParseContext ctx)
-    {
-        this.analyzer.addExpressionLength(this.expression_length);
-        this.analyzer.addCaptureGroupLengths(new ArrayList<>(this.capture_groups_lengths.values()));
     }
 
     public EpsilonNFA getEpsilonNFA()
@@ -698,50 +599,5 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (this.hasAnchoredFlag())
             top = EpsilonNFA.concat(new EpsilonNFA(new StartAnchorEdge()), top);
         return top;
-    }
-
-    // ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ==== ANALYZER ONLY ====
-    public void enterParse(ParseContext ctx)
-    {
-        addOccurrence("Expressions");
-    }
-
-    public void enterCharacter_class(Character_classContext ctx)
-    {
-        addOccurrence("Character Classes");
-    }
-
-    public void enterQuantifier_type(Quantifier_typeContext ctx)
-    {
-        if (ctx.Plus() != null)
-            addOccurrence("Possessive Quantifiers");
-        else if (ctx.QuestionMark() != null)
-            addOccurrence("Lazy Quantifiers");
-    }
-
-    public void enterNon_capture(Non_captureContext ctx)
-    {
-        addOccurrence("Non-Capture Groups");
-    }
-
-    public void enterLook_around(Look_aroundContext ctx)
-    {
-        addOccurrence("LookArounds");
-    }
-
-    public void enterSubroutine_reference(Subroutine_referenceContext ctx)
-    {
-        addOccurrence("Subroutines");
-    }
-
-    public void enterConditional(ConditionalContext ctx)
-    {
-        addOccurrence("Conditional Patterns");
-    }
-
-    public void enterCallout(CalloutContext ctx)
-    {
-        addOccurrence("Callouts");
-    }
-    
+    }   
 }

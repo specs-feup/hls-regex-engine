@@ -1,0 +1,27 @@
+plugins {
+    // Apply the application plugin to add support for building a CLI application in Java.
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+
+run {
+    standardInput = System.in
+    classpath += files('../common-resources')
+}
+
+dependencies {
+    implementation project(':antlr-grammar')
+
+    // https://mvnrepository.com/artifact/commons-cli/commons-cli
+    implementation 'commons-cli:commons-cli:1.5.0'
+}
+
+application {
+    // Define the main class for the application.
+    mainClass = 'pcreAnalyzer.App'
+}
+
