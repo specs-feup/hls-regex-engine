@@ -392,7 +392,8 @@ public class EpsilonNFA {
                     LabeledEdge<?> transfer_edge = ((LabeledEdge<?>) incoming_to_counter).copy();
                     transfer_edge.addCounterInfos(((LabeledEdge<?>) outgoing_edge).getCounterInfos());
                     to_add.add(new Object[] {transfer_source, counter_target, transfer_edge});
-                    to_remove.add(incoming_to_counter);
+                    // if (this.graph.outgoingEdgesOf(this.graph.getEdgeTarget(incoming_to_counter)).size() == 1)
+                    //     to_remove.add(incoming_to_counter);
                 }
 
                 to_remove.add(outgoing_edge);
@@ -402,6 +403,7 @@ public class EpsilonNFA {
             for (Object[] arr : to_add)
                 this.graph.addEdge((String) arr[0], (String) arr[1], (DefaultEdge) arr[2]);
         }
+
     }
 
     public void removeAnchorEdges(boolean multiline)
@@ -555,6 +557,8 @@ public class EpsilonNFA {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         new_ends = propagateFifos(new_ends);
+        removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        new NFA(this.graph, this.start, new_ends).display();
         removeCounterEdges();
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
