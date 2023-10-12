@@ -552,16 +552,32 @@ public class EpsilonNFA {
         return this.removeEpsilons(current_ends);
     }
 
+   private static void removeDeadends(Graph<String, DefaultEdge> graph, Set<String> starts, Set<String> ends)
+   {
+        AllDirectedPaths<String, DefaultEdge> all_paths = new AllDirectedPaths<>(graph);
+        List<GraphPath<String, DefaultEdge>> paths = all_paths.getAllPaths(starts, ends, true, Integer.MAX_VALUE);
+        Set<String> meaningful_vertices = new HashSet<>();
+
+        for (GraphPath<String, DefaultEdge> path : paths)
+            meaningful_vertices.addAll(path.getVertexList());
+        
+        Set<String> non_meaningful_vertices = new HashSet<>(graph.vertexSet());
+            non_meaningful_vertices.removeAll(meaningful_vertices);
+        
+        for (String vertex : non_meaningful_vertices)
+            graph.removeVertex(vertex);
+   }
+
     public NFA toRegularNFA(boolean multiline) 
     {
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         new_ends = propagateFifos(new_ends);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        new NFA(this.graph, this.start, new_ends).display();
         removeCounterEdges();
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        removeDeadends(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         return new NFA(this.graph, this.start, new_ends);
     }
 
