@@ -451,7 +451,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
     int transitions_occurred;
     bool in_end_state = false;
 
-    for (int stream_offset = 0; stream_offset < stream_size; <#if automaton.has_string_start_anchor>stream_offset += stream_size<#else>stream_offset++</#if>) 
+    for (int stream_offset = 0; stream_offset < stream_size; stream_offset++) 
     {
         memset(current, 0, ${automaton.states?size} * sizeof(State<${template_arguments}>));
         current[${automaton.start_state.id}].setActive(true);
