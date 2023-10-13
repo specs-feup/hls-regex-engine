@@ -219,7 +219,7 @@ class Transition {
     { }
 
     private:
-    bool testStartAnchor(int index, const char *stream, bool multiline) const
+    bool static testStartAnchor(int index, const char *stream, bool multiline)
     {
         if (multiline)
             return index == 0 || stream[index - 1] == '\n';
@@ -227,7 +227,7 @@ class Transition {
             return index == 0;
     }
 
-    bool testEndAnchor(int index, const char *stream, int stream_size, bool multiline) const
+    bool static testEndAnchor(int index, const char *stream, int stream_size, bool multiline)
     {
         if (multiline)
             return index == stream_size || stream[index] == '\n';
@@ -235,26 +235,18 @@ class Transition {
             return index == stream_size;
     }
 
-    bool testTokens(std::array<int, T> tokens, const char *stream, bool insensitive) const
+    bool testTokens(const char *stream, bool insensitive) const
     {
+        int stream_token = insensitive ? toupper(stream[this->current->getStreamIndex()]) : stream[this->current->getStreamIndex()];
         bool has_match = false;
 
         for (size_t i = 0; i < T && !has_match; i++)
         {
-            int token = tokens.at(i);
-            has_match = this->testToken(token, stream, insensitive);
+            int token = insensitive ? toupper(this->tokens[i]) : this->tokens[i];
+            has_match = token == stream_token;
         }
 
         return (this->negated && !has_match) || (!this->negated && has_match);
-    }
-
-    bool testToken(int token, const char *stream, bool insensitive) const
-    {
-        int stream_token = insensitive ? toupper(stream[this->current->getStreamIndex()]) : stream[this->current->getStreamIndex()];
-        if (insensitive)
-            token = toupper(token);
-
-        return token == stream_token;
     }
 
     void transferCounters() const
@@ -328,17 +320,14 @@ class Transition {
         if (!this->current->isActive() || this->current->getStreamIndex() >= stream_size)
             return false;
 
-        if (this->at_start && !this->testStartAnchor(this->current->getStreamIndex(), stream, multiline))
+        if (this->at_start && !Transition::testStartAnchor(this->current->getStreamIndex(), stream, multiline))
             return false;
 
         switch (this->type)
         {
             case TransitionType::Character:
-                if (!this->testToken(this->tokens[0], stream, insensitive))
-                    return false;
-                break;
             case TransitionType::CharacterClass:
-                if (!this->testTokens(this->tokens, stream, insensitive))
+                if (!this->testTokens(stream, insensitive))
                     return false;
                 break;
             case TransitionType::Wildcard:
@@ -349,7 +338,7 @@ class Transition {
                 return false;
         }
 
-        if (this->at_end && !this->testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
+        if (this->at_end && !Transition::testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
             return false;
 
         return true;
@@ -376,13 +365,13 @@ class Transition {
         if (!this->current->isActive() || this->current->getStreamIndex() > stream_size)
             return false;
 
-        if (this->at_start && !this->testStartAnchor(this->current->getStreamIndex(), stream, multiline))
+        if (this->at_start && !Transition::testStartAnchor(this->current->getStreamIndex(), stream, multiline))
             return false;
 
         if (!this->current->getFifo(fifo_index).checkQueue(stream, stream_size, this->current->getStreamIndex(), insensitive, &this->stream_increment))
             return false;
         
-        if (this->at_end && !this->testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
+        if (this->at_end && !Transition::testEndAnchor(this->current->getStreamIndex() + this->stream_increment, stream, stream_size, multiline))
             return false;
 
         return true;
