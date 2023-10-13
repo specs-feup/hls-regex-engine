@@ -237,19 +237,12 @@ class Transition {
 
     bool testTokens(std::array<int, T> tokens, const char *stream, bool insensitive) const
     {
-        int stream_token = insensitive ? toupper(stream[this->current->getStreamIndex()]) : stream[this->current->getStreamIndex()];
         bool has_match = false;
 
-        for (int token : tokens)
+        for (size_t i = 0; i < T && !has_match; i++)
         {
-            if (insensitive)
-                token = toupper(token);
-
-            if (token == stream_token)
-            {
-                has_match = true;
-                break;
-            }
+            int token = tokens.at(i);
+            has_match = this->testToken(token, stream, insensitive);
         }
 
         return (this->negated && !has_match) || (!this->negated && has_match);
