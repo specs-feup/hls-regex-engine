@@ -213,9 +213,9 @@ class Transition {
     const bool at_end;
 
     /* Type Specific */
-    const bool negated = false;
+    const bool negated;
 
-    Transition(TransitionType type, const std::array<int, T> tokens, State<C, F> *current, State<C, F> *next, int stream_increment, bool at_start, bool at_end) : type(type), tokens(tokens), current(current), next(next), stream_increment(stream_increment), at_start(at_start), at_end(at_end)
+    Transition(TransitionType type, const std::array<int, T> tokens, State<C, F> *current, State<C, F> *next, int stream_increment, bool at_start, bool at_end, bool negated = false) : type(type), tokens(tokens), current(current), next(next), stream_increment(stream_increment), at_start(at_start), at_end(at_end), negated(negated)
     { }
 
     private:
@@ -406,10 +406,8 @@ class CharacterTransition : public Transition<1, C, F> {
 template <size_t T, size_t C, size_t F>
 class CharacterClassTransition : public Transition<T, C, F> {
     public:
-    CharacterClassTransition(const std::array<int, T> tokens, bool negated, State<C, F> *current, State<C, F> *next, bool at_start, bool at_end) : Transition<T, C, F>(TransitionType::CharacterClass, tokens, current, next, 1, at_start, at_end)
-    { 
-        this->negated = negated;
-    }
+    CharacterClassTransition(const std::array<int, T> tokens, bool negated, State<C, F> *current, State<C, F> *next, bool at_start, bool at_end) : Transition<T, C, F>(TransitionType::CharacterClass, tokens, current, next, 1, at_start, at_end, negated)
+    { }
 };
 
 template <size_t C, size_t F>
