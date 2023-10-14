@@ -18,6 +18,9 @@ dependencies {
 
     // https://mvnrepository.com/artifact/commons-cli/commons-cli
     implementation 'commons-cli:commons-cli:1.5.0'
+
+    // https://mvnrepository.com/artifact/com.opencsv/opencsv
+    implementation 'com.opencsv:opencsv:5.8'
 }
 
 application {

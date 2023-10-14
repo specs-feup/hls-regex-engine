@@ -38,7 +38,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     private boolean locked;
     private RulesAnalyzer analyzer;
     private String flags;
-    private int fifo_counter = 0;
+    private int fifo_counter;;
     private Stack<Integer> fifos;
     private Map<String, Integer> fifo_aliases;
 
@@ -49,6 +49,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     public RegexListener(RulesAnalyzer analyzer, String flags)
     {
         this.fifo_counter = 0;
+        this.fifos = new Stack<>();
         this.locked = false;
         this.analyzer = analyzer;
         this.flags = flags;
@@ -124,11 +125,6 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void exitElement(ElementContext ctx)
     {
-        double element_length = getElementLength(ctx);
-        this.expression_length += element_length;
-        if (!active_capture_groups_lengths.isEmpty())
-            active_capture_groups_lengths.peek().value += element_length;
-
         boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
         if (!is_first)
             addOccurrence("Concatenations");
@@ -136,6 +132,21 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void exitAlternation(AlternationContext ctx)
     {
+        double biggest_expr_length = 0;
+        for (ExprContext expr_ctx : ctx.expr())
+        {
+            double expr_length = 0;
+            for (ElementContext element_ctx : expr_ctx.element())
+                expr_length += getElementLength(element_ctx);
+
+            if (expr_length > biggest_expr_length)
+                biggest_expr_length = expr_length;
+        }
+
+        this.expression_length += biggest_expr_length;
+        if (!active_capture_groups_lengths.isEmpty())
+            active_capture_groups_lengths.peek().value += biggest_expr_length;
+
         for(int i = 0; i < ctx.Pipe().size(); i++)
             addOccurrence("Alternations");
     }

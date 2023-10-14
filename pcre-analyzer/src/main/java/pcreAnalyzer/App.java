@@ -65,8 +65,11 @@ public class App {
             
             analyzer.add(local_analyzer);
         }
+
+        String report_path = System.getProperty("user.home") + "\\Desktop\\analyzer_report.csv";
         System.out.println("==== ANALYZER REPORT ====");
         analyzer.print();
+        analyzer.export(report_path);
     }
 
     private enum ExpressionSource { STRING, FILE, DIRECTORY};

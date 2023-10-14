@@ -1,11 +1,16 @@
 package pcreAnalyzer;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import com.opencsv.CSVWriter;
 
 public class RulesAnalyzer {
     private Map<String, Integer> total_operator_occurrences;
@@ -94,32 +99,71 @@ public class RulesAnalyzer {
         return count;
     }
 
-    public void print()
+    private Map<String, Double> getDataPairs()
     {
-        System.out.println("Expressions with Unknown Length: " + removeInfinities(this.expression_lengths));
+        Map<String, Double> data_pairs = new LinkedHashMap<>();
+        data_pairs.put("Expressions with unknown length", (double) removeInfinities(this.expression_lengths));
         if (!expression_lengths.isEmpty())
         {
-            System.out.println("Average Expression Length: " + getAverage(this.expression_lengths));
-            System.out.println("Median Expression Length: " + getMedian(this.expression_lengths));
+            data_pairs.put("Average expression length", getAverage(this.expression_lengths));
+            data_pairs.put("Median expression length", getMedian(this.expression_lengths));
         }
-        System.out.println("");
-        System.out.println("Capture Groups with Unknown Length: " + removeInfinities(this.capture_group_lengths));
+
+        data_pairs.put("Capture Groups with unknown Length", (double) removeInfinities(this.capture_group_lengths));
         if (!capture_group_lengths.isEmpty())
         {
-            System.out.println("Average Capture Group Length: " + getAverage(this.capture_group_lengths));
-            System.out.println("Median Capture Group Length: " + getMedian(this.capture_group_lengths));
+            data_pairs.put("Average capture group length", getAverage(this.capture_group_lengths));
+            data_pairs.put("Median capture group length", getMedian(this.capture_group_lengths));
         }
 
-        System.out.println("\nPCRE Flags: ");
         for (Entry<Character, Integer> entry : this.flag_occurrences.entrySet())
-            System.out.println("  -" + entry.getKey() + ": " + entry.getValue());
+            data_pairs.put(entry.getKey().toString() + " flag", entry.getValue().doubleValue());
 
-        System.out.println("\nTotal PCRE Operators: ");
         for (Entry<String, Integer> entry : this.total_operator_occurrences.entrySet())
-            System.out.println("  -" + entry.getKey() + ": " + entry.getValue());
+            data_pairs.put(entry.getKey() + " total occurrences", entry.getValue().doubleValue());
 
-        System.out.println("\nExpression PCRE Operators: ");
         for (Entry<String, Integer> entry : this.expression_operator_occurrences.entrySet())
-            System.out.println("  -" + entry.getKey() + ": in " + entry.getValue() + " expressions");
+            data_pairs.put(entry.getKey() + " expression occurrences", entry.getValue().doubleValue());
+
+        return data_pairs;
+    }
+
+    private String getFormattedValue(Entry<String, Double> data_entry)
+    {
+        String format = data_entry.getValue() == data_entry.getValue().intValue() ? "%.0f" : "%.4f";
+        return String.format(format, data_entry.getValue());
+    }
+
+    public void export(String file_path)
+    {
+        Map<String, Double> data_pairs = this.getDataPairs();
+        try 
+        {
+            FileWriter writer = new FileWriter(file_path);
+            CSVWriter csv_writer = new CSVWriter(writer);
+            for (Entry<String, Double> data_entry : data_pairs.entrySet())
+            {
+                String value =  this.getFormattedValue(data_entry);
+                String[] data = {data_entry.getKey(), value};
+                csv_writer.writeNext(data);
+            }
+            csv_writer.close();
+            writer.close();
+        } 
+        catch (IOException e) 
+        {
+            System.err.print("Failed to export to " + file_path);
+            System.exit(-1);
+        }
+    }
+
+    public void print()
+    {
+        Map<String, Double> data = this.getDataPairs();
+        for (Entry<String, Double> data_entry : data.entrySet())
+        {
+            String value =  this.getFormattedValue(data_entry);
+            System.out.println(data_entry.getKey() + ": " + value);
+        }
     }
 }
