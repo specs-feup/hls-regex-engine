@@ -18,16 +18,21 @@ import PCREgrammar.PCREgrammarBaseListener;
 import PCREgrammar.PCREgrammarParser.AlternationContext;
 import PCREgrammar.PCREgrammarParser.AtomContext;
 import PCREgrammar.PCREgrammarParser.BackreferenceContext;
+import PCREgrammar.PCREgrammarParser.CalloutContext;
 import PCREgrammar.PCREgrammarParser.CaptureContext;
 import PCREgrammar.PCREgrammarParser.Cc_atomContext;
 import PCREgrammar.PCREgrammarParser.Cc_literalContext;
 import PCREgrammar.PCREgrammarParser.Character_classContext;
+import PCREgrammar.PCREgrammarParser.ConditionalContext;
 import PCREgrammar.PCREgrammarParser.ElementContext;
 import PCREgrammar.PCREgrammarParser.ExprContext;
 import PCREgrammar.PCREgrammarParser.LiteralContext;
+import PCREgrammar.PCREgrammarParser.Look_aroundContext;
 import PCREgrammar.PCREgrammarParser.QuantifierContext;
+import PCREgrammar.PCREgrammarParser.Quantifier_typeContext;
 import PCREgrammar.PCREgrammarParser.Shared_atomContext;
 import PCREgrammar.PCREgrammarParser.Shared_literalContext;
+import PCREgrammar.PCREgrammarParser.Subroutine_referenceContext;
 import pcreToHLS.CaptureEdge.CaptureType;
 
 public class RegexListener extends PCREgrammarBaseListener {
@@ -600,4 +605,29 @@ public class RegexListener extends PCREgrammarBaseListener {
             top = EpsilonNFA.concat(new EpsilonNFA(new StartAnchorEdge()), top);
         return top;
     }   
+
+    public void enterQuantifier_type(Quantifier_typeContext ctx)
+    {
+        throw new RuntimeException("Quantifier Types not supported");
+    }
+
+    public void enterLook_around(Look_aroundContext ctx)
+    {
+        throw new RuntimeException("Lookarounds not supported");
+    }
+
+    public void enterSubroutine_reference(Subroutine_referenceContext ctx)
+    {
+        throw new RuntimeException("Subroutines not supported");
+    }
+
+    public void enterConditional(ConditionalContext ctx)
+    {
+        throw new RuntimeException("Conditional Expressions not supported");
+    }
+
+    public void enterCallout(CalloutContext ctx)
+    {
+        throw new RuntimeException("Callouts not supported");
+    }
 }
