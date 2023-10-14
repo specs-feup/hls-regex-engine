@@ -2,6 +2,7 @@
 package pcreAnalyzer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Stack;
@@ -38,7 +39,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     private boolean locked;
     private RulesAnalyzer analyzer;
     private String flags;
-    private int fifo_counter;;
+    private int fifo_counter;
     private Stack<Integer> fifos;
     private Map<String, Integer> fifo_aliases;
 
@@ -50,6 +51,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         this.fifo_counter = 0;
         this.fifos = new Stack<>();
+        this.fifo_aliases = new HashMap<>();
         this.locked = false;
         this.analyzer = analyzer;
         this.flags = flags;
@@ -78,7 +80,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         
         if (atom_ctx.backreference() != null)
         {
-            if (atom_ctx.backreference().backreference_or_octal() != null && (atom_ctx.backreference().backreference_or_octal().OctalChar() != null || (atom_ctx.backreference().backreference_or_octal().digit()!=null && atom_ctx.backreference().backreference_or_octal().digit().getText().equals("0"))))
+            if (atom_ctx.backreference().backreference_or_octal() != null && (atom_ctx.backreference().backreference_or_octal().OctalChar() != null || (atom_ctx.backreference().backreference_or_octal().digit() != null && atom_ctx.backreference().backreference_or_octal().digit().getText().equals("0"))))
                 length = 1;
             else 
             {
@@ -125,6 +127,10 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void exitElement(ElementContext ctx)
     {
+        double element_length = getElementLength(ctx);
+        if (!active_capture_groups_lengths.isEmpty())
+            active_capture_groups_lengths.peek().value += element_length;
+
         boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
         if (!is_first)
             addOccurrence("Concatenations");
@@ -144,8 +150,6 @@ public class RegexListener extends PCREgrammarBaseListener {
         }
 
         this.expression_length += biggest_expr_length;
-        if (!active_capture_groups_lengths.isEmpty())
-            active_capture_groups_lengths.peek().value += biggest_expr_length;
 
         for(int i = 0; i < ctx.Pipe().size(); i++)
             addOccurrence("Alternations");
@@ -162,12 +166,13 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void enterCapture(CaptureContext ctx)
     {
         addOccurrence("Capture Groups");
-        fifos.push(this.fifo_counter++);
+        fifos.push(this.fifo_counter);
 
         if (ctx.name() != null)
             this.fifo_aliases.put(ctx.name().getText(), this.fifo_counter);
 
         active_capture_groups_lengths.push(new DoubleWrapper(0.0));
+        this.fifo_counter++;
     }
 
     public void exitCapture(CaptureContext ctx)

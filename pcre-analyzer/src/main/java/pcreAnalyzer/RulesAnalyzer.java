@@ -1,31 +1,36 @@
 package pcreAnalyzer;
 
-import java.io.FileWriter;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.opencsv.CSVWriter;
 
 public class RulesAnalyzer {
+    private String name;
     private Map<String, Integer> total_operator_occurrences;
     private Map<String, Integer> expression_operator_occurrences;
     private Map<Character, Integer> flag_occurrences;
     private List<Double> expression_lengths;
     private List<Double> capture_group_lengths;
 
-    public RulesAnalyzer()
+    public RulesAnalyzer(String name)
     {
+        this.name = name;
         this.total_operator_occurrences = new HashMap<>();
         this.expression_operator_occurrences = new HashMap<>();
         this.flag_occurrences = new HashMap<>();
         this.expression_lengths = new ArrayList<>();
         this.capture_group_lengths = new ArrayList<>();
+    }
+
+    public RulesAnalyzer()
+    {
+        this("");
     }
 
     public void addOperatorOccurrence(String operator)
@@ -94,76 +99,55 @@ public class RulesAnalyzer {
             {
                 data.remove(i);
                 count++;
+                i--;
             }
         }        
         return count;
     }
 
-    private Map<String, Double> getDataPairs()
+    public Map<String, String> getData()
     {
-        Map<String, Double> data_pairs = new LinkedHashMap<>();
-        data_pairs.put("Expressions with unknown length", (double) removeInfinities(this.expression_lengths));
-        if (!expression_lengths.isEmpty())
+        Map<String, String> data_pairs = new LinkedHashMap<>();
+        List<Double> expression_length_copy = new LinkedList<>(this.expression_lengths);
+        List<Double> capture_groups_length_copy = new LinkedList<>(this.capture_group_lengths);
+
+        data_pairs.put("Ruleset", this.name);
+        data_pairs.put("Expressions with unknown length", this.getFormattedValue((double) removeInfinities(expression_length_copy)));
+        if (!expression_length_copy.isEmpty())
         {
-            data_pairs.put("Average expression length", getAverage(this.expression_lengths));
-            data_pairs.put("Median expression length", getMedian(this.expression_lengths));
+            data_pairs.put("Average expression length", this.getFormattedValue(getAverage(expression_length_copy)));
+            data_pairs.put("Median expression length", this.getFormattedValue(getMedian(expression_length_copy)));
         }
 
-        data_pairs.put("Capture Groups with unknown Length", (double) removeInfinities(this.capture_group_lengths));
-        if (!capture_group_lengths.isEmpty())
+        data_pairs.put("Capture Groups with unknown Length", this.getFormattedValue((double) removeInfinities(capture_groups_length_copy)));
+        if (!capture_groups_length_copy.isEmpty())
         {
-            data_pairs.put("Average capture group length", getAverage(this.capture_group_lengths));
-            data_pairs.put("Median capture group length", getMedian(this.capture_group_lengths));
+            data_pairs.put("Average capture group length", this.getFormattedValue(getAverage(capture_groups_length_copy)));
+            data_pairs.put("Median capture group length", this.getFormattedValue(getMedian(capture_groups_length_copy)));
         }
 
         for (Entry<Character, Integer> entry : this.flag_occurrences.entrySet())
-            data_pairs.put(entry.getKey().toString() + " flag", entry.getValue().doubleValue());
+            data_pairs.put(entry.getKey().toString() + " flag", this.getFormattedValue(entry.getValue().doubleValue()));
 
         for (Entry<String, Integer> entry : this.total_operator_occurrences.entrySet())
-            data_pairs.put(entry.getKey() + " total occurrences", entry.getValue().doubleValue());
+            data_pairs.put(entry.getKey() + " total occurrences", this.getFormattedValue(entry.getValue().doubleValue()));
 
         for (Entry<String, Integer> entry : this.expression_operator_occurrences.entrySet())
-            data_pairs.put(entry.getKey() + " expression occurrences", entry.getValue().doubleValue());
+            data_pairs.put(entry.getKey() + " expression occurrences", this.getFormattedValue(entry.getValue().doubleValue()));
 
         return data_pairs;
     }
 
-    private String getFormattedValue(Entry<String, Double> data_entry)
+    private String getFormattedValue(Double value)
     {
-        String format = data_entry.getValue() == data_entry.getValue().intValue() ? "%.0f" : "%.4f";
-        return String.format(format, data_entry.getValue());
-    }
-
-    public void export(String file_path)
-    {
-        Map<String, Double> data_pairs = this.getDataPairs();
-        try 
-        {
-            FileWriter writer = new FileWriter(file_path);
-            CSVWriter csv_writer = new CSVWriter(writer);
-            for (Entry<String, Double> data_entry : data_pairs.entrySet())
-            {
-                String value =  this.getFormattedValue(data_entry);
-                String[] data = {data_entry.getKey(), value};
-                csv_writer.writeNext(data);
-            }
-            csv_writer.close();
-            writer.close();
-        } 
-        catch (IOException e) 
-        {
-            System.err.print("Failed to export to " + file_path);
-            System.exit(-1);
-        }
+        String format = value == value.intValue() ? "%.0f" : "%.4f";
+        return String.format(format, value);
     }
 
     public void print()
     {
-        Map<String, Double> data = this.getDataPairs();
-        for (Entry<String, Double> data_entry : data.entrySet())
-        {
-            String value =  this.getFormattedValue(data_entry);
-            System.out.println(data_entry.getKey() + ": " + value);
-        }
+        Map<String, String> data = this.getData();
+        for (Entry<String, String> data_entry : data.entrySet())
+            System.out.println(data_entry.getKey() + ": " + data_entry.getValue());
     }
 }
