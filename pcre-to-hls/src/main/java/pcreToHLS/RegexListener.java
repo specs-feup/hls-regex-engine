@@ -41,6 +41,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     private String flags;
     private Stack<Fifo> fifos;
     private Map<String, Fifo> fifo_aliases;
+    private Set<Integer> unused_fifos;
 
     public RegexListener(String flags)
     {
@@ -48,8 +49,14 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.flags = flags;
         this.fifos = new Stack<>();
         this.fifo_aliases = new HashMap<>();
+        this.unused_fifos = new HashSet<>();
         Fifo.resetIdNo();
         Counter.resetIdNo();
+    }
+
+    public Set<Integer> getUnused_fifos() 
+    {
+        return unused_fifos;
     }
 
     private boolean hasAnchoredFlag()
@@ -544,6 +551,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         Fifo fifo = new Fifo();
         fifos.push(fifo);
+        this.unused_fifos.add(fifo.getId_no());
 
         if (ctx.name() != null)
             this.fifo_aliases.put(ctx.name().getText(), fifo);
@@ -592,6 +600,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         {
             int backreference_index = getBackreferenceIndex(ctx);
             stack.push(new EpsilonNFA(new BackreferenceEdge(backreference_index)));
+            this.unused_fifos.remove(backreference_index);
         }
 
     }
@@ -604,7 +613,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (this.hasAnchoredFlag())
             top = EpsilonNFA.concat(new EpsilonNFA(new StartAnchorEdge()), top);
         return top;
-    }   
+    } 
 
     public void enterQuantifier_type(Quantifier_typeContext ctx)
     {

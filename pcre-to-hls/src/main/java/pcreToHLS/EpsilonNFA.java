@@ -30,6 +30,7 @@ public class EpsilonNFA {
     private Graph<String, DefaultEdge> graph = new DirectedMultigraph<>(LabeledEdge.class);
     private String start;
     private String end;
+    private Set<Integer> unused_fifos = new HashSet<>();
 
     public EpsilonNFA(Graph<String, DefaultEdge> graph, String start, String end) {
         this.graph = graph;
@@ -112,6 +113,7 @@ public class EpsilonNFA {
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);
         copy(listener.getEpsilonNFA());
+        this.unused_fifos = listener.getUnused_fifos();
     }
 
     public static EpsilonNFA concat(EpsilonNFA first, EpsilonNFA second) {
@@ -568,8 +570,32 @@ public class EpsilonNFA {
             graph.removeVertex(vertex);
    }
 
+   private void removeUnusedFifos()
+   {
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+
+        for (DefaultEdge edge : this.graph.edgeSet())
+        {
+            if (edge.getClass() != CaptureEdge.class)
+                continue;
+
+            int fifo_no = ((CaptureEdge)edge).getFifo().getId_no();
+            if (this.unused_fifos.contains(fifo_no))
+            {
+                String edge_source = this.graph.getEdgeSource(edge);
+                String edge_target = this.graph.getEdgeTarget(edge);
+                new_graph.removeEdge(edge);
+                new_graph.addEdge(edge_source, edge_target, new EpsilonEdge());
+            }
+        }
+
+        this.graph = new_graph;
+   }
+
     public NFA toRegularNFA(boolean multiline) 
     {
+        removeUnusedFifos();
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         new_ends = propagateFifos(new_ends);
