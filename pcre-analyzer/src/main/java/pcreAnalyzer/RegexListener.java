@@ -45,6 +45,7 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     private double expression_length;
     private Map<Integer, Double> capture_groups_lengths;
+    private Map<Integer, Double> referenced_capture_group_lengths;
     private Stack<DoubleWrapper> active_capture_groups_lengths;
 
     public RegexListener(RulesAnalyzer analyzer, String flags)
@@ -57,6 +58,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.flags = flags;
         this.expression_length = 0;
         this.capture_groups_lengths = new LinkedHashMap<>();
+        this.referenced_capture_group_lengths = new LinkedHashMap<>();
         this.active_capture_groups_lengths = new Stack<>();
     }
 
@@ -163,7 +165,7 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterCapture(CaptureContext ctx)
     {
-        addOccurrence("Capture Groups");
+        // addOccurrence("Capture Groups");
         fifos.push(this.fifo_counter);
 
         if (ctx.name() != null)
@@ -206,6 +208,8 @@ public class RegexListener extends PCREgrammarBaseListener {
             return;
         else 
         {
+            int backreference_index = getBackreferenceIndex(ctx);
+            this.referenced_capture_group_lengths.put(backreference_index, this.capture_groups_lengths.get(backreference_index));
             addOccurrence("Backreferences");
         }
     }
@@ -214,11 +218,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         this.analyzer.addExpressionLength(this.expression_length);
         this.analyzer.addCaptureGroupLengths(new ArrayList<>(this.capture_groups_lengths.values()));
-    }
-
-    public void enterParse(ParseContext ctx)
-    {
-        addOccurrence("Expressions");
+        this.analyzer.addReferencedCaptureGroupLengths(new ArrayList<>(this.referenced_capture_group_lengths.values()));
     }
 
     public void enterCharacter_class(Character_classContext ctx)
