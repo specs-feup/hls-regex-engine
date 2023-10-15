@@ -127,10 +127,6 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void exitElement(ElementContext ctx)
     {
-        double element_length = getElementLength(ctx);
-        if (!active_capture_groups_lengths.isEmpty())
-            active_capture_groups_lengths.peek().value += element_length;
-
         boolean is_first = ((ExprContext)ctx.parent).element(0).equals(ctx);
         if (!is_first)
             addOccurrence("Concatenations");
@@ -150,6 +146,8 @@ public class RegexListener extends PCREgrammarBaseListener {
         }
 
         this.expression_length += biggest_expr_length;
+        if (!active_capture_groups_lengths.isEmpty())
+            active_capture_groups_lengths.peek().value += biggest_expr_length;
 
         for(int i = 0; i < ctx.Pipe().size(); i++)
             addOccurrence("Alternations");
