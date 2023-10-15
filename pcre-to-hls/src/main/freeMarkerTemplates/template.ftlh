@@ -486,7 +486,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
 </#list>
 bool runAutomata(char stream[], int stream_size)
 {
-    return <#list automata as automaton>kernel${automaton?counter}(stream, strlen(stream))<#if !automaton?is_last> || </#if></#list>;
+    return <#list automata as automaton>kernel${automaton?counter}(stream, stream_size)<#if !automaton?is_last> || </#if></#list>;
 }
 
 int main()
