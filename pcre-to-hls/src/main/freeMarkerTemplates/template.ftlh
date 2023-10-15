@@ -409,7 +409,7 @@ class BackreferenceTransition : public Transition<0, C, F> {
 <#list automata as automaton>
 <#assign template_arguments = "${automaton.counter_ids?size}, ${automaton.fifo_ids?size}">
 //kernel for /${automaton.expression}/
-int kernel${automaton?counter}(char stream[], int stream_size)
+bool kernel${automaton?counter}(char stream[], int stream_size)
 {
     State<${template_arguments}> current[${automaton.states?size}];
     State<${template_arguments}> next[${automaton.states?size}];
@@ -419,7 +419,7 @@ int kernel${automaton?counter}(char stream[], int stream_size)
       <#if transition.type == "Character">
     CharacterTransition<${template_arguments}> t${transition_counter}(${transition.token}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "CharacterClass">
-    CharacterClassTransition<${transition.tokens?size}, ${template_arguments}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({${transition.tokens?join(", ")}}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
+    CharacterClassTransition<${transition.tokens?size}, ${template_arguments}> t${transition_counter}(std::array<int, ${transition.tokens?size}>({<#list transition.tokens as token>${token?c}<#if !token?is_last>, </#if></#list>}), ${transition.negated?c}, &current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Wildcard">
     WildcardTransition<${template_arguments}> t${transition_counter}(&current[${transition.source.id}], &next[${transition.target.id}], ${transition.at_start?c}, ${transition.at_end?c});
       <#elseif transition.type == "Backreference">
@@ -484,6 +484,11 @@ int kernel${automaton?counter}(char stream[], int stream_size)
 }
 
 </#list>
+bool runAutomata(char stream[], int stream_size)
+{
+    return <#list automata as automaton>kernel${automaton?counter}(stream, strlen(stream))<#if !automaton?is_last> || </#if></#list>;
+}
+
 int main()
 {
     char stream[256];
@@ -491,9 +496,9 @@ int main()
     {
         printf("Insert a string: ");
         fgets(stream, 256, stdin);
-        if ((strlen(stream) > 0) && (stream[strlen (stream) - 1] == '\n'))
+        if ((strlen(stream) > 0) && (stream[strlen(stream) - 1] == '\n'))
             stream[strlen (stream) - 1] = '\0';
-        int match = <#list automata as automaton>kernel${automaton?counter}(stream, strlen(stream))<#if !automaton?is_last> || </#if></#list>;
+        bool match = runAutomata(stream, strlen(stream));
         match ? printf("\n\033[0;32mIt's a match! :)\n\n\033[0m") : printf("\n\033[0;31mIt's not a match :(\n\n\033[0m");
     }
 

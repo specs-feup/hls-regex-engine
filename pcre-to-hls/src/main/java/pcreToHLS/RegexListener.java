@@ -608,7 +608,8 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void enterQuantifier_type(Quantifier_typeContext ctx)
     {
-        throw new RuntimeException("Quantifier Types not supported");
+        if (ctx.Plus() != null || ctx.QuestionMark() != null)
+            throw new RuntimeException("Quantifier Types not supported");
     }
 
     public void enterLook_around(Look_aroundContext ctx)
