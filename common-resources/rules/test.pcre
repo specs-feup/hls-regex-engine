@@ -8,3 +8,5 @@
 /PASS\s+[^\n]*%/
 /^REGISTER.{5}/
 /^^^^abcd/i
+/(abc)\1/
+/(a|b|c)\1/

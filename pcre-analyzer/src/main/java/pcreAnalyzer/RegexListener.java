@@ -1,9 +1,10 @@
 // Generated from regexParser.g4 by ANTLR 4.12.0
 package pcreAnalyzer;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
@@ -28,11 +29,13 @@ import PCREgrammar.PCREgrammarParser.Subroutine_referenceContext;
 
 public class RegexListener extends PCREgrammarBaseListener {
 
-    private class DoubleWrapper {
+    private class LengthDouble {
         double value;
+        boolean fixed;
 
-        DoubleWrapper(double value) {
+        LengthDouble(double value) {
             this.value = value;
+            this.fixed = true;
         }
     }
 
@@ -44,9 +47,9 @@ public class RegexListener extends PCREgrammarBaseListener {
     private Map<String, Integer> fifo_aliases;
 
     private double expression_length;
-    private Map<Integer, Double> capture_groups_lengths;
-    private Map<Integer, Double> referenced_capture_group_lengths;
-    private Stack<DoubleWrapper> active_capture_groups_lengths;
+    private Map<Integer, LengthDouble> capture_groups_lengths;
+    private Map<Integer, LengthDouble> referenced_capture_group_lengths;
+    private Stack<LengthDouble> active_capture_groups_lengths;
 
     public RegexListener(RulesAnalyzer analyzer, String flags)
     {
@@ -73,6 +76,12 @@ public class RegexListener extends PCREgrammarBaseListener {
             this.analyzer.addOperatorOccurrence(operation);
     }
 
+    private void unfixActiveGroupLength()
+    {
+        if (!this.active_capture_groups_lengths.isEmpty())
+            this.active_capture_groups_lengths.peek().fixed = false;
+    }
+
     private double getElementLength(ElementContext ctx)
     {
         AtomContext atom_ctx = ctx.atom();
@@ -87,7 +96,7 @@ public class RegexListener extends PCREgrammarBaseListener {
             else 
             {
                 int backreference_index = getBackreferenceIndex(atom_ctx.backreference());
-                length = this.capture_groups_lengths.get(backreference_index);
+                length = this.capture_groups_lengths.get(backreference_index).value;
             }
         }
 
@@ -153,6 +162,9 @@ public class RegexListener extends PCREgrammarBaseListener {
 
         for(int i = 0; i < ctx.Pipe().size(); i++)
             addOccurrence("Alternations");
+
+        if (!ctx.Pipe().isEmpty())
+            unfixActiveGroupLength();
     }
 
     public void enterQuantifier(QuantifierContext ctx)
@@ -161,6 +173,9 @@ public class RegexListener extends PCREgrammarBaseListener {
 
         if (ctx.OpenBrace() != null)
             addOccurrence("Bounded Quantifiers");
+
+        if (ctx.OpenBrace() == null || ctx.Comma() != null)
+            unfixActiveGroupLength();
     }
 
     public void enterCapture(CaptureContext ctx)
@@ -171,16 +186,16 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (ctx.name() != null)
             this.fifo_aliases.put(ctx.name().getText(), this.fifo_counter);
 
-        active_capture_groups_lengths.push(new DoubleWrapper(0.0));
+        active_capture_groups_lengths.push(new LengthDouble(0.0));
         this.fifo_counter++;
     }
 
     public void exitCapture(CaptureContext ctx)
     {
-        double current_group_length = active_capture_groups_lengths.pop().value;
+        LengthDouble current_group_length = active_capture_groups_lengths.pop();
         this.capture_groups_lengths.put(fifos.pop(), current_group_length);
         if (!active_capture_groups_lengths.isEmpty())
-            active_capture_groups_lengths.peek().value += current_group_length;
+            active_capture_groups_lengths.peek().value += current_group_length.value;
     }
 
     private int getBackreferenceIndex(BackreferenceContext ctx)
@@ -211,14 +226,29 @@ public class RegexListener extends PCREgrammarBaseListener {
             int backreference_index = getBackreferenceIndex(ctx);
             this.referenced_capture_group_lengths.put(backreference_index, this.capture_groups_lengths.get(backreference_index));
             addOccurrence("Backreferences");
+            unfixActiveGroupLength();
         }
     }
 
     public void exitParse(ParseContext ctx)
     {
         this.analyzer.addExpressionLength(this.expression_length);
-        this.analyzer.addCaptureGroupLengths(new ArrayList<>(this.capture_groups_lengths.values()));
-        this.analyzer.addReferencedCaptureGroupLengths(new ArrayList<>(this.referenced_capture_group_lengths.values()));
+
+        List<Double> group_lengths = new LinkedList<>();
+        for (LengthDouble length : this.capture_groups_lengths.values())
+            group_lengths.add(length.value);
+        this.analyzer.addCaptureGroupLengths(group_lengths);
+
+        List<Double> referenced_group_lengths = new LinkedList<>();
+        List<Double> fixed_referenced_group_lengths = new LinkedList<>();
+        for (LengthDouble length : this.referenced_capture_group_lengths.values())
+        {
+            referenced_group_lengths.add(length.value);
+            if (length.fixed)
+                fixed_referenced_group_lengths.add(length.value);
+        }
+        this.analyzer.addReferencedCaptureGroupLengths(referenced_group_lengths);
+        this.analyzer.addFixedReferencedCaptureGroupLengths(fixed_referenced_group_lengths);
     }
 
     public void enterCharacter_class(Character_classContext ctx)

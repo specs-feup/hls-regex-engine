@@ -19,6 +19,7 @@ public class RulesAnalyzer {
     private List<Double> expression_lengths;
     private List<Double> capture_group_lengths;
     private List<Double> referenced_capture_group_lengths;
+    private List<Double> fixed_referenced_capture_group_lengths;
 
     public RulesAnalyzer(String name)
     {
@@ -30,6 +31,7 @@ public class RulesAnalyzer {
         this.expression_lengths = new ArrayList<>();
         this.capture_group_lengths = new ArrayList<>();
         this.referenced_capture_group_lengths = new ArrayList<>();
+        this.fixed_referenced_capture_group_lengths = new ArrayList<>();
     }
 
     public RulesAnalyzer()
@@ -70,12 +72,18 @@ public class RulesAnalyzer {
         this.referenced_capture_group_lengths.addAll(referenced_group_lengths);
     }
 
+    public void addFixedReferencedCaptureGroupLengths(List<Double> fixed_referenced_group_lengths)
+    {
+        this.fixed_referenced_capture_group_lengths.addAll(fixed_referenced_group_lengths);
+    }
+
     public void add(RulesAnalyzer other)
     {
         this.expression_no += other.expression_no;
         this.expression_lengths.addAll(other.expression_lengths);
         this.capture_group_lengths.addAll(other.capture_group_lengths);
         this.referenced_capture_group_lengths.addAll(other.referenced_capture_group_lengths);
+        this.fixed_referenced_capture_group_lengths.addAll(other.fixed_referenced_capture_group_lengths);
         other.total_operator_occurrences.forEach((key, value) -> this.total_operator_occurrences.merge(key, value, Integer::sum));
         other.expression_operator_occurrences.forEach((key, value) -> this.expression_operator_occurrences.merge(key, value, Integer::sum));
         other.flag_occurrences.forEach((key, value) -> this.flag_occurrences.merge(key, value, Integer::sum));
@@ -149,6 +157,8 @@ public class RulesAnalyzer {
             data_pairs.put("Average referenced capture group length", this.getFormattedValue(getAverage(referenced_capture_groups_length_copy)));
             data_pairs.put("Median referenced capture group length", this.getFormattedValue(getMedian(referenced_capture_groups_length_copy)));
         }
+
+        data_pairs.put("Fixed String Referenced Capture Groups", this.getFormattedValue((double) this.fixed_referenced_capture_group_lengths.size()));
 
         for (Entry<Character, Integer> entry : this.flag_occurrences.entrySet())
             data_pairs.put(entry.getKey().toString() + " flag", this.getFormattedValue(entry.getValue().doubleValue()));
