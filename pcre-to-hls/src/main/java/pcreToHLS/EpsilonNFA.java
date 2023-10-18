@@ -627,7 +627,6 @@ public class EpsilonNFA {
         Map<Fifo, Graph<String, DefaultEdge>> graph_map = new HashMap<>();
         Map<Fifo, String> starts_map = new HashMap<>();
         Map<Fifo, String> ends_map = new HashMap<>();
-        Map<String, String> vertex_map = new HashMap<>();
         for (Entry<Fifo, Set<String>> start_entries : capture_starts.entrySet())
         {
             if (!this.used_fixed_fifos.contains(start_entries.getKey().getId_no()))
@@ -638,6 +637,7 @@ public class EpsilonNFA {
             AllDirectedPaths<String, DefaultEdge> all_paths = new AllDirectedPaths<>(this.graph);
             GraphPath<String, DefaultEdge> path = all_paths.getAllPaths(path_start_vertices, path_end_vertices, true, Integer.MAX_VALUE).get(0);
             Graph<String, DefaultEdge> capture_graph = new DirectedPseudograph<>(LabeledEdge.class);
+
       
             for (int i = 0; i < path.getVertexList().size() - 1; i++)
             {
@@ -645,48 +645,59 @@ public class EpsilonNFA {
                 {
                     String source = this.graph.getEdgeSource(edge);
                     String target = this.graph.getEdgeTarget(edge);
-                    if (!vertex_map.containsKey(source))
-                    {
-                        String new_vertex_name = VertexIDFactory.getNewVertexID();
-                        capture_graph.addVertex(new_vertex_name);
-                        vertex_map.put(source, new_vertex_name);
-                    }
-
-                    if (!vertex_map.containsKey(target))
-                    {
-                        String new_vertex_name = VertexIDFactory.getNewVertexID();
-                        capture_graph.addVertex(new_vertex_name);
-                        vertex_map.put(target, new_vertex_name);
-                    }
+                    if (!capture_graph.containsVertex(source))
+                        capture_graph.addVertex(source);
+                    if (!capture_graph.containsVertex(target))
+                        capture_graph.addVertex(target);
                     DefaultEdge edge_copy = ((LabeledEdge<?>)edge).copy();
-                    capture_graph.addEdge(vertex_map.get(source), vertex_map.get(target), edge_copy);
+                    capture_graph.addEdge(source, target, edge_copy);
                 }
             }
 
-
-            starts_map.put(start_entries.getKey(), vertex_map.get(path.getStartVertex()));
-            ends_map.put(start_entries.getKey(), vertex_map.get(path.getEndVertex()));
+            starts_map.put(start_entries.getKey(), path.getStartVertex());
+            ends_map.put(start_entries.getKey(), path.getEndVertex());
             graph_map.put(start_entries.getKey(), capture_graph);
         }
-
-        for (Entry<Fifo, Graph<String, DefaultEdge>> graph_entry : graph_map.entrySet())
-            Graphs.addGraph(new_graph, graph_entry.getValue());
 
         for (DefaultEdge edge : this.graph.edgeSet())
         {
             if (edge.getClass() != BackreferenceEdge.class)
                 continue;
-            
-            Fifo referenced_fifo = ((BackreferenceEdge)edge).getFifo();
-            if (graph_map.containsKey(referenced_fifo))
-            {
-                String source = this.graph.getEdgeSource(edge);
-                String target = this.graph.getEdgeTarget(edge);
 
-                new_graph.removeEdge(edge);
-                new_graph.addEdge(source, starts_map.get(referenced_fifo), new EpsilonEdge());
-                new_graph.addEdge(ends_map.get(referenced_fifo), target, new EpsilonEdge());
+            Fifo referenced_fifo = ((BackreferenceEdge)edge).getFifo();
+            if (!graph_map.containsKey(referenced_fifo))
+                continue;
+
+            Map<String, String> vertex_map = new HashMap<>();
+            Graph<String, DefaultEdge> capture_graph_copy = new DirectedPseudograph<>(LabeledEdge.class);
+
+            for (DefaultEdge subgraph_edge : graph_map.get(referenced_fifo).edgeSet())
+            {
+                String source = this.graph.getEdgeSource(subgraph_edge);
+                String target = this.graph.getEdgeTarget(subgraph_edge);
+                if (!vertex_map.containsKey(source))
+                {
+                    String new_vertex_name = VertexIDFactory.getNewVertexID();
+                    capture_graph_copy.addVertex(new_vertex_name);
+                    vertex_map.put(source, new_vertex_name);
+                }
+
+                if (!vertex_map.containsKey(target))
+                {
+                    String new_vertex_name = VertexIDFactory.getNewVertexID();
+                    capture_graph_copy.addVertex(new_vertex_name);
+                    vertex_map.put(target, new_vertex_name);
+                }
+
+                DefaultEdge subgraph_edge_copy = ((LabeledEdge<?>)subgraph_edge).copy(); 
+                capture_graph_copy.addEdge(vertex_map.get(source), vertex_map.get(target), subgraph_edge_copy);
             }
+
+            Graphs.addGraph(new_graph, capture_graph_copy);
+            new_graph.removeEdge(edge);
+            new_graph.addEdge(new_graph.getEdgeSource(edge), vertex_map.get(starts_map.get(referenced_fifo)), new EpsilonEdge());
+            new_graph.addEdge(vertex_map.get(ends_map.get(referenced_fifo)), new_graph.getEdgeTarget(edge), new EpsilonEdge());
+
         }
 
         this.graph = new_graph;
