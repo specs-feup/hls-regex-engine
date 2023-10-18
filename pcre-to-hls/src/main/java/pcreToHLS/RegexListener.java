@@ -37,11 +37,22 @@ import pcreToHLS.CaptureEdge.CaptureType;
 
 public class RegexListener extends PCREgrammarBaseListener {
 
+    private class FifoWrapper {
+        Fifo fifo;
+        boolean fixed;
+
+        FifoWrapper(Fifo fifo) {
+            this.fifo = fifo;
+            this.fixed = true;
+        }
+    }
+
     private LockedStack<EpsilonNFA> stack;
     private String flags;
-    private Stack<Fifo> fifos;
+    private Stack<FifoWrapper> fifos;
     private Map<String, Fifo> fifo_aliases;
     private Set<Integer> unused_fifos;
+    private Set<Integer> fixed_fifos;
 
     public RegexListener(String flags)
     {
@@ -50,13 +61,21 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.fifos = new Stack<>();
         this.fifo_aliases = new HashMap<>();
         this.unused_fifos = new HashSet<>();
+        this.fixed_fifos = new HashSet<>();
         Fifo.resetIdNo();
         Counter.resetIdNo();
     }
 
-    public Set<Integer> getUnused_fifos() 
+    public Set<Integer> getUnusedFifos() 
     {
         return unused_fifos;
+    }
+
+    public Set<Integer> getUsedFixedFifos()
+    {
+        Set<Integer> used_fixed_fifos = new HashSet<>(this.fixed_fifos);
+        used_fixed_fifos.removeAll(this.unused_fifos);
+        return used_fixed_fifos;
     }
 
     private boolean hasAnchoredFlag()
@@ -67,6 +86,12 @@ public class RegexListener extends PCREgrammarBaseListener {
     private boolean hasExtendedFlag()
     {
         return this.flags.indexOf('x') != -1;
+    }
+
+    private void unfixActiveFifo()
+    {
+        if (!this.fifos.isEmpty())
+            this.fifos.peek().fixed = false;
     }
 
     private void alternate()
@@ -99,9 +124,13 @@ public class RegexListener extends PCREgrammarBaseListener {
         if (literal != null)
             proccessLiteral(literal);
         else if (character_class != null)
+        {
+            unfixActiveFifo();
             processCharacter_class(character_class);
+        }
         else if (shared_atom != null)
         {
+            unfixActiveFifo();
             AtomicBoolean negated = new AtomicBoolean(false);
             Set<Integer> code_points = new HashSet<>();
             code_points.addAll(getShared_atomCodePoints(shared_atom, negated));
@@ -110,7 +139,10 @@ public class RegexListener extends PCREgrammarBaseListener {
                 stack.push(new EpsilonNFA(new CharacterClassEdge(code_points, negated.get())));
         }
         else if (dot != null)
+        {
+            unfixActiveFifo();
             stack.push(new EpsilonNFA(new WildcardEdge()));
+        }
         else if (ctx.Caret() != null || ctx.StartOfSubject() != null)
         {
             stack.push(new EpsilonNFA(new StartAnchorEdge()));
@@ -509,6 +541,9 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         for(int i = 0; i < ctx.Pipe().size(); i++)
             alternate();
+
+        if (!ctx.Pipe().isEmpty())
+            unfixActiveFifo();
     }
 
     public void enterQuantifier(QuantifierContext ctx)
@@ -528,6 +563,9 @@ public class RegexListener extends PCREgrammarBaseListener {
         {
             processBoundedQuantifier(ctx, top);
         }
+
+        if (ctx.OpenBrace() == null || ctx.Comma() != null)
+            unfixActiveFifo();
     }
 
     private void processBoundedQuantifier(QuantifierContext ctx, EpsilonNFA top) 
@@ -550,7 +588,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void enterCapture(CaptureContext ctx)
     {
         Fifo fifo = new Fifo();
-        fifos.push(fifo);
+        fifos.push(new FifoWrapper(fifo));
         this.unused_fifos.add(fifo.getId_no());
 
         if (ctx.name() != null)
@@ -559,11 +597,15 @@ public class RegexListener extends PCREgrammarBaseListener {
 
     public void exitCapture(CaptureContext ctx)
     {
-        Fifo fifo = fifos.pop();
+        FifoWrapper fifo_wrapper = fifos.pop();
+        Fifo fifo = fifo_wrapper.fifo;
         EpsilonNFA top = this.stack.pop();
         EpsilonNFA with_start = EpsilonNFA.concat(new EpsilonNFA(new CaptureEdge(CaptureType.START, fifo)), top);
         EpsilonNFA with_start_end = EpsilonNFA.concat(with_start, new EpsilonNFA(new CaptureEdge(CaptureType.END, fifo)));
         stack.push(with_start_end);
+
+        if (fifo_wrapper.fixed)
+            this.fixed_fifos.add(fifo.getId_no());
     }
 
     private int getBackreferenceIndex(BackreferenceContext ctx)
@@ -601,6 +643,7 @@ public class RegexListener extends PCREgrammarBaseListener {
             int backreference_index = getBackreferenceIndex(ctx);
             stack.push(new EpsilonNFA(new BackreferenceEdge(backreference_index)));
             this.unused_fifos.remove(backreference_index);
+            unfixActiveFifo();
         }
 
     }

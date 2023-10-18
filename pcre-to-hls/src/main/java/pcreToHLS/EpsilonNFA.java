@@ -31,6 +31,7 @@ public class EpsilonNFA {
     private String start;
     private String end;
     private Set<Integer> unused_fifos = new HashSet<>();
+    private Set<Integer> used_fixed_fifos = new HashSet<>();
 
     public EpsilonNFA(Graph<String, DefaultEdge> graph, String start, String end) {
         this.graph = graph;
@@ -113,7 +114,8 @@ public class EpsilonNFA {
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);
         copy(listener.getEpsilonNFA());
-        this.unused_fifos = listener.getUnused_fifos();
+        this.unused_fifos = listener.getUnusedFifos();
+        this.used_fixed_fifos = listener.getUsedFixedFifos();
     }
 
     public static EpsilonNFA concat(EpsilonNFA first, EpsilonNFA second) {
@@ -488,19 +490,16 @@ public class EpsilonNFA {
         return !not_final.contains(edge.getClass());
     }
 
-    private Set<String> propagateFifos(Set<String> current_ends)
+    private List<CaptureEdge> setCaptureMaps(Map<Fifo, Set<String>> capture_starts, Map<Fifo, Set<String>> capture_ends)
     {
-        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
-        Graphs.addGraph(new_graph, this.graph);
-        Map<Fifo, Set<String>> capture_starts = new HashMap<>();
-        Map<Fifo, Set<String>> capture_ends = new HashMap<>();
-
+        List<CaptureEdge> capture_edges = new LinkedList<>();
         for (DefaultEdge edge : this.graph.edgeSet())
         {
             if (edge.getClass() != CaptureEdge.class)
                     continue;
 
             CaptureEdge capture_edge = (CaptureEdge) edge;
+            capture_edges.add(capture_edge);
             Fifo current_fifo = capture_edge.getFifo();
             Map<Fifo, Set<String>> capture_map = capture_edge.getType() == CaptureType.START ? capture_starts : capture_ends;
             String capture_vertex = capture_edge.getType() == CaptureType.START ? this.graph.getEdgeTarget(capture_edge) : this.graph.getEdgeSource(capture_edge);
@@ -511,9 +510,23 @@ public class EpsilonNFA {
             
             capture_set.add(capture_vertex);
             capture_map.put(current_fifo, capture_set);
+        }
 
-            new_graph.removeEdge(edge);
-            new_graph.addEdge(this.graph.getEdgeSource(edge), this.graph.getEdgeTarget(edge), new EpsilonEdge());
+        return capture_edges;
+    }
+
+    private Set<String> propagateFifos(Set<String> current_ends)
+    {
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+        Map<Fifo, Set<String>> capture_starts = new HashMap<>();
+        Map<Fifo, Set<String>> capture_ends = new HashMap<>();
+        List<CaptureEdge> capture_edges = this.setCaptureMaps(capture_starts, capture_ends);
+
+        for (CaptureEdge capture_edge : capture_edges)
+        {
+            new_graph.removeEdge(capture_edge);
+            new_graph.addEdge(this.graph.getEdgeSource(capture_edge), this.graph.getEdgeTarget(capture_edge), new EpsilonEdge());
         }
 
         for (Entry<Fifo, Set<String>> start_entries : capture_starts.entrySet())
@@ -593,9 +606,96 @@ public class EpsilonNFA {
         this.graph = new_graph;
    }
 
+   private void spliceFixedReferences()
+   {
+        Graph<String, DefaultEdge> new_graph = new DirectedPseudograph<>(LabeledEdge.class);
+        Graphs.addGraph(new_graph, this.graph);
+
+        Map<Fifo, Set<String>> capture_starts = new HashMap<>();
+        Map<Fifo, Set<String>> capture_ends = new HashMap<>();
+        List<CaptureEdge> capture_edges = this.setCaptureMaps(capture_starts, capture_ends);
+
+        for (CaptureEdge capture_edge : capture_edges)
+        {
+            if (this.used_fixed_fifos.contains(capture_edge.getFifo().getId_no()))
+            {
+                new_graph.removeEdge(capture_edge);
+                new_graph.addEdge(this.graph.getEdgeSource(capture_edge), this.graph.getEdgeTarget(capture_edge), new EpsilonEdge());
+            }
+        }
+
+        Map<Fifo, Graph<String, DefaultEdge>> graph_map = new HashMap<>();
+        Map<Fifo, String> starts_map = new HashMap<>();
+        Map<Fifo, String> ends_map = new HashMap<>();
+        Map<String, String> vertex_map = new HashMap<>();
+        for (Entry<Fifo, Set<String>> start_entries : capture_starts.entrySet())
+        {
+            if (!this.used_fixed_fifos.contains(start_entries.getKey().getId_no()))
+                continue;
+
+            Set<String> path_start_vertices = start_entries.getValue();
+            Set<String> path_end_vertices = capture_ends.get(start_entries.getKey());
+            AllDirectedPaths<String, DefaultEdge> all_paths = new AllDirectedPaths<>(this.graph);
+            GraphPath<String, DefaultEdge> path = all_paths.getAllPaths(path_start_vertices, path_end_vertices, true, Integer.MAX_VALUE).get(0);
+            Graph<String, DefaultEdge> capture_graph = new DirectedPseudograph<>(LabeledEdge.class);
+      
+            for (int i = 0; i < path.getVertexList().size() - 1; i++)
+            {
+                for (DefaultEdge edge : this.graph.outgoingEdgesOf(path.getVertexList().get(i)))
+                {
+                    String source = this.graph.getEdgeSource(edge);
+                    String target = this.graph.getEdgeTarget(edge);
+                    if (!vertex_map.containsKey(source))
+                    {
+                        String new_vertex_name = VertexIDFactory.getNewVertexID();
+                        capture_graph.addVertex(new_vertex_name);
+                        vertex_map.put(source, new_vertex_name);
+                    }
+
+                    if (!vertex_map.containsKey(target))
+                    {
+                        String new_vertex_name = VertexIDFactory.getNewVertexID();
+                        capture_graph.addVertex(new_vertex_name);
+                        vertex_map.put(target, new_vertex_name);
+                    }
+                    DefaultEdge edge_copy = ((LabeledEdge<?>)edge).copy();
+                    capture_graph.addEdge(vertex_map.get(source), vertex_map.get(target), edge_copy);
+                }
+            }
+
+
+            starts_map.put(start_entries.getKey(), vertex_map.get(path.getStartVertex()));
+            ends_map.put(start_entries.getKey(), vertex_map.get(path.getEndVertex()));
+            graph_map.put(start_entries.getKey(), capture_graph);
+        }
+
+        for (Entry<Fifo, Graph<String, DefaultEdge>> graph_entry : graph_map.entrySet())
+            Graphs.addGraph(new_graph, graph_entry.getValue());
+
+        for (DefaultEdge edge : this.graph.edgeSet())
+        {
+            if (edge.getClass() != BackreferenceEdge.class)
+                continue;
+            
+            Fifo referenced_fifo = ((BackreferenceEdge)edge).getFifo();
+            if (graph_map.containsKey(referenced_fifo))
+            {
+                String source = this.graph.getEdgeSource(edge);
+                String target = this.graph.getEdgeTarget(edge);
+
+                new_graph.removeEdge(edge);
+                new_graph.addEdge(source, starts_map.get(referenced_fifo), new EpsilonEdge());
+                new_graph.addEdge(ends_map.get(referenced_fifo), target, new EpsilonEdge());
+            }
+        }
+
+        this.graph = new_graph;
+   }
+
     public NFA toRegularNFA(boolean multiline) 
     {
         removeUnusedFifos();
+        spliceFixedReferences();
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         new_ends = propagateFifos(new_ends);

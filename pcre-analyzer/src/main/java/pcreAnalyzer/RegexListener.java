@@ -134,6 +134,9 @@ public class RegexListener extends PCREgrammarBaseListener {
             addOccurrence("Start Anchor");
         else if (ctx.EndOfSubjectOrLine() != null || ctx.EndOfSubjectOrLineEndOfSubject() != null)
             addOccurrence("End Anchor");
+
+        if (ctx.Dot() != null || ctx.shared_atom() != null)
+            unfixActiveGroupLength();
     }
 
     public void exitElement(ElementContext ctx)
@@ -254,6 +257,7 @@ public class RegexListener extends PCREgrammarBaseListener {
     public void enterCharacter_class(Character_classContext ctx)
     {
         addOccurrence("Character Classes");
+        unfixActiveGroupLength();
     }
 
     public void enterQuantifier_type(Quantifier_typeContext ctx)
