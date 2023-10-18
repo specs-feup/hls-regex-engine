@@ -692,10 +692,14 @@ public class EpsilonNFA {
         this.graph = new_graph;
    }
 
-    public NFA toRegularNFA(boolean multiline) 
+    public NFA toRegularNFA(boolean multiline, boolean remove_unused, boolean expand_fixed) 
     {
-        removeUnusedFifos();
-        spliceFixedReferences();
+        if (remove_unused)
+            removeUnusedFifos();
+    
+        if (expand_fixed)
+            spliceFixedReferences();
+            
         Set<String> new_ends = this.removeEpsilons();
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
         new_ends = propagateFifos(new_ends);

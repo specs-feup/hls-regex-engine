@@ -24,7 +24,7 @@ public class NFA extends FinalAutomaton {
         this.ends = ends;
     }
 
-    public NFA(ParseTree root, String flags, boolean debug) throws EmptyStackException
+    public NFA(ParseTree root, String flags, boolean debug, boolean remove_unused, boolean expand_fixed) throws EmptyStackException
     {
         EpsilonNFA eNFA = new EpsilonNFA(root, flags);
         if (debug)
@@ -34,7 +34,7 @@ public class NFA extends FinalAutomaton {
             eNFA.display();
         }
 
-        NFA nfa = eNFA.toRegularNFA(flags.contains("m"));
+        NFA nfa = eNFA.toRegularNFA(flags.contains("m"), remove_unused, expand_fixed);
         if (debug)
         {
             System.out.println("\n=== NFA ===");
