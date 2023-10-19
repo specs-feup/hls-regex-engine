@@ -9,7 +9,7 @@ import freemarker.template.TemplateExceptionHandler;
 
 public enum FreeMarkerConfig {
     INSTANCE();
-    private String template_name = "/template.ftlh";
+    private String template_name = "/template2.ftlh";
     private Configuration cfg;
   
     private FreeMarkerConfig()

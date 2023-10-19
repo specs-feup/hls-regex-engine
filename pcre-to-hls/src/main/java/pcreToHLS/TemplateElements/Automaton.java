@@ -9,7 +9,7 @@ public class Automaton {
     private Set<String> counter_ids;
     private Set<String> fifo_ids;
     private Set<State> states;
-    private List<Transition> transitions;
+    private List<Transition> transitions; //left in for compatibility with older template
     private State start_state;
     private Set<State> end_states;
 

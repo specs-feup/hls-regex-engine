@@ -119,12 +119,13 @@ public class CodeGenerator {
                 String vertex = iterator.next();
                 for (DefaultEdge edge : automaton_graph.outgoingEdgesOf(vertex))
                 {
-                    State source_state = getState(automaton_graph.getEdgeSource(edge), vertex_ids);
+                    State source_state = getState(vertex, vertex_ids);
                     State target_state = getState(automaton_graph.getEdgeTarget(edge), vertex_ids);
                     Transition edge_transition;
                     try {
                         edge_transition = ((LabeledEdge<?>) edge).generateTransition(source_state, target_state);
                         transitions.add(edge_transition);
+                        vertex_ids.get(vertex).addTransition(edge_transition);
 
                         for (FifoInfo fifo_info : edge_transition.getFifos_info())
                             fifo_ids.add(fifo_info.getFifo().getId());
