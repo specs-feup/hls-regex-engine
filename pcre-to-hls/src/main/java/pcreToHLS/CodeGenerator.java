@@ -77,7 +77,7 @@ public class CodeGenerator {
             }
             catch (Exception e) {
                 System.out.println("Failed to parse: " + regex + ". Error: " + e.getMessage());
-                e.printStackTrace();
+                // e.printStackTrace();
             }
             
         }
