@@ -200,13 +200,13 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             <#if (state.outgoing_transitions?size > 0)>
             if (current[${state.id}].isActive() && current[${state.id}].getStreamIndex() < stream_size)
             {
-                int stream_token = stream[current[${state.id}].getStreamIndex()];
+                const int stream_token = stream[current[${state.id}].getStreamIndex()];
                 int stream_increment;
                 <#list state.outgoing_transitions as transition>
                 ${getTransitionComparison(transition, automaton)}
                 {
                     transitions_occurred++;
-                    ${getTransitionBody(transition)}
+                    ${getTransitionBody(transition, automaton)}
                 }
                 </#list>
             }
@@ -328,8 +328,8 @@ int main()
     </#if>
 </#function>
 
-<#function getTransitionBody transition>
-    <#assign default_body = getDefaultBody(transition)>
+<#function getTransitionBody transition automaton>
+    <#assign default_body = getDefaultBody(transition, automaton)>
     <#assign counter_body = getCounterBody(transition)>
     <#assign fifo_body = getFifoBody(transition)>
     <#assign result = default_body>
@@ -342,10 +342,14 @@ int main()
     <#return result>
 </#function>
 
-<#function getDefaultBody transition>
+<#function getDefaultBody transition automaton>
     <#assign result = "next[${transition.target.id}].setStreamIndex(current[${transition.source.id}].getStreamIndex() + stream_increment);">
-    <#assign result = result + "\n\t\t\t\t\ttransferCounters(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
-    <#assign result = result + "\n\t\t\t\t\ttransferFifos(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
+    <#if automaton.counter_ids?size != 0>
+        <#assign result = result + "\n\t\t\t\t\ttransferCounters(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
+    </#if>
+    <#if automaton.fifo_ids?size != 0>
+        <#assign result = result + "\n\t\t\t\t\ttransferFifos(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
+    </#if>
     <#return result>
 </#function>
 
