@@ -7,6 +7,8 @@ import java.io.Writer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -107,7 +109,7 @@ public class CodeGenerator {
             FinalAutomaton automaton = regex_entry.getValue();
             PCRE regex = regex_entry.getKey();
             Graph<String, DefaultEdge> automaton_graph = automaton.getGraph();
-            Map<String, State> vertex_ids = new HashMap<>();
+            Map<String, State> vertex_ids = new LinkedHashMap<>();
             Set<State> end_states = new HashSet<>();
             Set<String> counter_ids = new HashSet<>();
             Set<String> fifo_ids = new HashSet<>();
@@ -153,7 +155,7 @@ public class CodeGenerator {
             for (String end_vertex : automaton.getEnds())
                 end_states.add(getState(end_vertex, vertex_ids));
 
-            Set<State> states = new HashSet<>(vertex_ids.values());
+            Set<State> states = new LinkedHashSet<>(vertex_ids.values());
             State start_state = vertex_ids.get(automaton.getStart());
 
             automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, states, transitions, start_state, end_states));

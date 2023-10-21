@@ -3,29 +3,55 @@
 #include <array>
 #include <ctype.h>
 
-enum CounterOperation { SET, COMPARE_EQUAL, COMPARE_LESS, COMPARE_EQUALMORE, COMPARE_RANGE };
-
-struct CounterCheck {
-    const CounterOperation op;
-    const unsigned int val1;
-    const unsigned int val2;
-};
-
-class Counter {
-    public:
+struct Counter {
     unsigned int value = 0;
     unsigned int value_offset = 0;
-    
-    unsigned int getValue()
+};
+
+bool counterCheckEqual(const Counter &counter, const unsigned int target_value)
+{
+    bool valid = false;
+    for (unsigned int i = 0; i <= counter.value_offset && !valid; i++)
+        valid = (counter.value - i + 1) == target_value;
+
+    return valid;
+}
+
+bool counterCheckLess(const Counter &counter, const unsigned int target_value)
+{
+    bool valid = false;
+    for (unsigned int i = 0; i <= counter.value_offset && !valid; i++)
+        valid = (counter.value - i + 1) < target_value;
+
+    return valid;
+}
+
+bool counterCheckEqualMore(const Counter &counter, const unsigned int target_value)
+{
+    bool valid = false;
+    for (unsigned int i = 0; i <= counter.value_offset && !valid; i++)
+        valid = (counter.value - i + 1) >= target_value;
+
+    return valid;
+}
+
+bool counterCheckRange(const Counter &counter, const unsigned int lower_bound, const unsigned int upper_bound)
+{
+    bool valid = false;
+    for (unsigned int i = 0; i <= counter.value_offset && !valid; i++)
     {
-        return this->value;
+        const unsigned int checked_value = counter.value - i + 1;
+        valid = checked_value >= lower_bound && checked_value <= upper_bound;
     }
 
-    void addOffset() 
-    {
-        this->value_offset++;
-    }
-};
+    return valid;
+}
+
+void counterSet(Counter *counter)
+{
+    counter->value = 1;
+    counter->value_offset = 0;
+}
 
 class Fifo {
     private:
@@ -66,7 +92,7 @@ class Fifo {
         if ((stream_index == stream_size && this->size != 0) || stream_index > stream_size)
             return false;
 
-        for (int i = 0; i <= this->allowed_offsets; i++)
+        for (unsigned int i = 0; i <= this->allowed_offsets; i++)
         {
             bool valid = true;
             for(int j = 0; j + i < this->size && valid; j++)
@@ -113,14 +139,9 @@ class State {
         this->stream_index = stream_index; 
     }
 
-    std::array<Counter, C> getCounters() const
+    Counter* getCounter(unsigned int index)
     {
-        return this->counters; 
-    }
-
-    Counter getCounter(unsigned int index) const
-    {
-        return this->counters[index]; 
+        return &this->counters[index]; 
     }
 
     void setCounter(unsigned int index, Counter counter) 
@@ -147,11 +168,6 @@ class State {
     {
         this->fifos[index].addOffset();
     }
-
-    void addOffsetToCounter(unsigned int index)
-    {
-        this->counters[index].addOffset();
-    }
 };
 
 bool testStartAnchor(int index, const char *stream, bool multiline)
@@ -168,6 +184,13 @@ bool testEndAnchor(int index, const char *stream, int stream_size, bool multilin
         return index == stream_size || stream[index] == '\n';
     else
         return index == stream_size;
+}
+
+template <size_t C, size_t F>
+void transferCounters(State<C,F> *from, State<C,F> *to)
+{
+    for(size_t i = 0; i < C; i++)
+        to->setCounter(i, *from->getCounter(i));
 }
 
 <#list automata as automaton>
@@ -192,7 +215,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
 
             <#list automaton.states as state>
             <#if (state.outgoing_transitions?size > 0)>
-            if (current[${state.id}].isActive())
+            if (current[${state.id}].isActive() && current[${state.id}].getStreamIndex() < stream_size)
             {
                 int stream_token = stream[current[${state.id}].getStreamIndex()];
                 <#list state.outgoing_transitions as transition>
@@ -248,9 +271,13 @@ int main()
 <#function getTransitionComparison transition automaton>
     <#assign token_comp = getTokenComparison(transition, automaton)>
     <#assign anchor_comp = getAnchorComparison(transition, automaton)>
+    <#assign counter_comp = getCounterComparison(transition, automaton)>
     <#assign result = "if (${token_comp})">
     <#if anchor_comp?has_content>
         <#assign result = result + "\n\t\t\t\tif(${anchor_comp})">
+    </#if>
+    <#if counter_comp?has_content>
+        <#assign result = result + "\n\t\t\t\tif(${counter_comp})">
     </#if>
     <#return result>
 </#function>
@@ -266,6 +293,24 @@ int main()
         </#if>
         <#assign result = result + "testEndAnchor(current[${transition.source.id}].getStreamIndex() + stream_increment, stream, stream_size, ${hasMultilineFlag(automaton)?c})">
     </#if>
+    <#return result>
+</#function>
+
+<#function getCounterComparison transition automaton>
+    <#assign result = "">
+    <#list transition.counters_info as counter_info>
+        <#assign current_counter = "*current[${transition.source.id}].getCounter(${counter_info.counter.id_no})">
+        <#if counter_info.operation == "COMPARE_EQUAL">
+            <#assign result = result + "counterCheckEqual(${current_counter}, ${counter_info.counter.target_value1})">
+        <#elseif counter_info.operation == "COMPARE_LESS">
+            <#assign result = result + "counterCheckLess(${current_counter}, ${counter_info.counter.target_value1})">
+        <#elseif counter_info.operation == "COMPARE_EQUALMORE">
+            <#assign result = result + "counterCheckEqualMore(${current_counter}, ${counter_info.counter.target_value1})">
+        <#elseif counter_info.operation == "COMPARE_RANGE">
+            <#assign result = result + "counterCheckRange(${current_counter}, ${counter_info.counter.target_value1}, ${counter_info.counter.target_value2})">
+        </#if>
+        <#if !counter_info?is_last && transition.counters_info[counter_info?index + 1].operation != "SET"><#assign result = result + " && "?no_esc></#if>
+    </#list>
     <#return result>
 </#function>
 
@@ -299,11 +344,34 @@ int main()
 </#function>
 
 <#function getTransitionBody transition>
-    <#if transition.type == "Character" || transition.type == "CharacterClass" || transition.type == "Wildcard">
-    <#return "next[${transition.target.id}].setStreamIndex(current[${transition.source.id}].getStreamIndex() + stream_increment);">
-    <#elseif transition.type == "Backreference">
-    <#return "todo">
+    <#assign default_body = getDefaultBody(transition)>
+    <#assign counter_body = getCounterBody(transition)>
+    <#assign result = default_body>
+    <#if counter_body?has_content>
+        <#assign result = result + "\n\t\t\t\t\t" + counter_body>
     </#if>
+    <#return result>
+</#function>
+
+<#function getDefaultBody transition>
+    <#assign result = "next[${transition.target.id}].setStreamIndex(current[${transition.source.id}].getStreamIndex() + stream_increment);">
+    <#assign result = result + "\n\t\t\t\t\ttransferCounters(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
+    <#return result>
+</#function>
+
+<#function getCounterBody transition>
+    <#assign result = "">
+    <#list transition.counters_info as counter_info>
+        <#assign target_current = "current[${transition.target.id}]"> 
+        <#assign current_counter = "current[${transition.source.id}].getCounter(${counter_info.counter.id_no})">
+        <#assign next_counter = "next[${transition.target.id}].getCounter(${counter_info.counter.id_no})">
+        <#if counter_info.operation == "SET">
+            <#assign result = result + "if (${target_current}.isActive()){${target_current}.getCounter(${counter_info.counter.id_no})->value_offset++; ${next_counter}->value = ${current_counter}->value + 1;}else{counterSet(${next_counter});}"?no_esc>
+        <#else>
+            <#assign result = result + "${next_counter}->value = ${current_counter}->value + 1;"?no_esc>
+        </#if>
+    </#list>
+    <#return result>
 </#function>
 
 <#function hasCaseInsensitiveFlag automaton>
