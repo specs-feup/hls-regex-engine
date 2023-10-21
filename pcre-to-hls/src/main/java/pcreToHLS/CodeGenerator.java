@@ -10,10 +10,12 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Comparator;
 
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
@@ -103,6 +105,23 @@ public class CodeGenerator {
     public void generate(String path)
     {
         Set<Automaton> automata = new HashSet<>();
+        Comparator<State> state_comparator = new Comparator<State>() {
+            @Override
+            public int compare(State state1, State state2) {
+                boolean hasBackreference1 = state1.getOutgoing_transitions().stream()
+                        .anyMatch(transition -> transition instanceof BackreferenceTransition);
+                boolean hasBackreference2 = state2.getOutgoing_transitions().stream()
+                        .anyMatch(transition -> transition instanceof BackreferenceTransition);
+
+                if (hasBackreference1 && !hasBackreference2) {
+                    return -1; // state1 comes first
+                } else if (!hasBackreference1 && hasBackreference2) {
+                    return 1; // state2 comes first
+                } else {
+                    return 0; // maintain the original order if both have or don't have Backreference
+                }
+            }
+        };
 
         for (Entry<PCRE, FinalAutomaton> regex_entry : this.regexes.entrySet())
         {
@@ -155,10 +174,11 @@ public class CodeGenerator {
             for (String end_vertex : automaton.getEnds())
                 end_states.add(getState(end_vertex, vertex_ids));
 
-            Set<State> states = new LinkedHashSet<>(vertex_ids.values());
+            List<State> states = new ArrayList<>(vertex_ids.values());
+            Collections.sort(states, state_comparator);
             State start_state = vertex_ids.get(automaton.getStart());
 
-            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, states, transitions, start_state, end_states));
+            automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, new LinkedHashSet<>(states), transitions, start_state, end_states));
         }
         
         Map<String, Object> root = new HashMap<>();

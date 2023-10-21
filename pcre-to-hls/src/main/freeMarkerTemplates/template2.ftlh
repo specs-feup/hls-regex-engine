@@ -53,65 +53,51 @@ void counterSet(Counter *counter)
     counter->value_offset = 0;
 }
 
-class Fifo {
-    private:
-    std::array<int, 32> data;
-    size_t size;
-    unsigned int allowed_offsets;
-
-    void clear() 
-    {
-        this->size = 0;
-        this->allowed_offsets = 0;
-    }
-
-    public:
-    Fifo() : data({}), size(0)
-    { }
-
-    void addOffset()
-    {
-        this->allowed_offsets++;
-    }
-
-    void enqueue(int element, bool clear) 
-    {
-        if (clear)
-            this->clear();
-        this->data[this->size++] = element;
-    }
-
-    void enqueueFifo(const Fifo &fifo, bool clear)
-    {
-        for (size_t i = 0; i < fifo.size; i++)
-            this->enqueue(fifo.data[i], clear && i == 0);
-    }
-
-    bool checkQueue(const char *stream, int stream_size, int stream_index, bool insensitive, int *transition_increment) const 
-    {
-        if ((stream_index == stream_size && this->size != 0) || stream_index > stream_size)
-            return false;
-
-        for (unsigned int i = 0; i <= this->allowed_offsets; i++)
-        {
-            bool valid = true;
-            for(int j = 0; j + i < this->size && valid; j++)
-            {
-                char stream_char = stream[stream_index + j];
-                char fifo_char = this->data[j + i];
-                valid = insensitive ? toupper(stream_char) == toupper(fifo_char) : stream_char == fifo_char;
-            }
-
-            if (valid)
-            {
-                *transition_increment = this->size - i;
-                return true;
-            }
-        }
-
-        return false;
-    }
+struct Fifo {
+    std::array<int, 32> data = {};
+    size_t size = 0;
+    unsigned int allowed_offsets = 0;
 };
+
+void fifoClear(Fifo *fifo) 
+{
+    fifo->size = 0;
+    fifo->allowed_offsets = 0;
+}
+
+void fifoEnqueue(Fifo *fifo, int element, bool clear)
+{
+    if (clear)
+        fifoClear(fifo);
+    fifo->data[fifo->size++] = element;
+}
+
+void fifoEnqueueFifo(Fifo *dest, const Fifo &source, bool clear)
+{
+    for (size_t i = 0; i < source.size; i++)
+        fifoEnqueue(dest, source.data[i], clear && i == 0);
+}
+
+bool fifoCheck(const Fifo &fifo, const char *stream, int stream_size, int stream_index, int *stream_increment)
+{
+    if ((stream_index == stream_size && fifo.size != 0) || stream_index > stream_size)
+        return false;
+
+    for (unsigned int i = 0; i <= fifo.allowed_offsets; i++)
+    {
+        bool valid = true;
+        for(int j = 0; j + i < fifo.size && valid; j++)
+            valid = stream[stream_index + j] == fifo.data[j + i];
+
+        if (valid)
+        {
+            *stream_increment = fifo.size - i;
+            return true;
+        }
+    }
+
+    return false;
+}
 
 template <size_t C, size_t F>
 class State {
@@ -149,24 +135,14 @@ class State {
         this->counters[index] = counter;
     }
 
-    std::array<Fifo, F> getFifos() const
+    Fifo* getFifo(unsigned int index)
     {
-        return this->fifos; 
-    }
-
-    Fifo getFifo(unsigned int index) const
-    {
-        return this->fifos[index]; 
+        return &this->fifos[index]; 
     }
 
     void setFifo(unsigned int index, Fifo fifo) 
     {
         this->fifos[index] = fifo; 
-    }
-
-    void addOffsetToFifo(unsigned int index)
-    {
-        this->fifos[index].addOffset();
     }
 };
 
@@ -191,6 +167,13 @@ void transferCounters(State<C,F> *from, State<C,F> *to)
 {
     for(size_t i = 0; i < C; i++)
         to->setCounter(i, *from->getCounter(i));
+}
+
+template <size_t C, size_t F>
+void transferFifos(State<C,F> *from, State<C,F> *to)
+{
+    for(size_t i = 0; i < F; i++)
+        to->setFifo(i, *from->getFifo(i));
 }
 
 <#list automata as automaton>
@@ -218,6 +201,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             if (current[${state.id}].isActive() && current[${state.id}].getStreamIndex() < stream_size)
             {
                 int stream_token = stream[current[${state.id}].getStreamIndex()];
+                int stream_increment;
                 <#list state.outgoing_transitions as transition>
                 ${getTransitionComparison(transition, automaton)}
                 {
@@ -316,7 +300,7 @@ int main()
 
 <#function getTokenComparison transition automaton>
     <#if transition.type == "Character">
-        <#return "int stream_increment = stream_token == ${transition.token}">
+        <#return "(stream_increment = stream_token == ${transition.token})">
     <#elseif transition.type == "CharacterClass">
         <#assign comparator = "=="?no_esc>
         <#assign separator = "||"?no_esc>
@@ -324,31 +308,36 @@ int main()
             <#assign comparator = "!="?no_esc>
             <#assign separator = "&&"?no_esc>           
         </#if>
-        <#assign result = "int stream_increment = (">
+        <#assign result = "(stream_increment = (">
         <#list transition.tokens as token>
             <#assign result = result + " stream_token ${comparator} ${token?c}">
             <#if !token?is_last>
             <#assign result = result + " ${separator}">
             </#if>
         </#list>
-        <#return result + ")">
+        <#return result + "))">
     <#elseif transition.type == "Wildcard">
         <#if hasSinglelineFlag(automaton)>
-            <#return "int stream_increment = 1">
+            <#return "(stream_increment = 1)">
         <#else>
-            <#return "int stream_increment = stream_token != '\\n'"?no_esc>
+            <#return "(stream_increment = stream_token != '\\n')"?no_esc>
         </#if>
     <#elseif transition.type == "Backreference">
-        <#return "TODO">
+        <#assign backreference_fifo = "*current[${transition.source.id}].getFifo(${transition.fifo_to_match.id_no})">
+        <#return "fifoCheck(${backreference_fifo}, stream, stream_size, current[${transition.source.id}].getStreamIndex(), &stream_increment)"?no_esc>
     </#if>
 </#function>
 
 <#function getTransitionBody transition>
     <#assign default_body = getDefaultBody(transition)>
     <#assign counter_body = getCounterBody(transition)>
+    <#assign fifo_body = getFifoBody(transition)>
     <#assign result = default_body>
     <#if counter_body?has_content>
         <#assign result = result + "\n\t\t\t\t\t" + counter_body>
+    </#if>
+    <#if fifo_body?has_content>
+        <#assign result = result + "\n\t\t\t\t\t" + fifo_body>
     </#if>
     <#return result>
 </#function>
@@ -356,6 +345,7 @@ int main()
 <#function getDefaultBody transition>
     <#assign result = "next[${transition.target.id}].setStreamIndex(current[${transition.source.id}].getStreamIndex() + stream_increment);">
     <#assign result = result + "\n\t\t\t\t\ttransferCounters(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
+    <#assign result = result + "\n\t\t\t\t\ttransferFifos(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
     <#return result>
 </#function>
 
@@ -369,6 +359,30 @@ int main()
             <#assign result = result + "if (${target_current}.isActive()){${target_current}.getCounter(${counter_info.counter.id_no})->value_offset++; ${next_counter}->value = ${current_counter}->value + 1;}else{counterSet(${next_counter});}"?no_esc>
         <#else>
             <#assign result = result + "${next_counter}->value = ${current_counter}->value + 1;"?no_esc>
+        </#if>
+    </#list>
+    <#return result>
+</#function>
+
+<#function getFifoBody transition>
+    <#assign result = "">
+    <#list transition.fifos_info as fifo_info>
+        <#assign target_current = "current[${transition.target.id}]"> 
+        <#assign current_fifo = "current[${transition.source.id}].getFifo(${fifo_info.fifo.id_no})">
+        <#assign next_fifo = "next[${transition.target.id}].getFifo(${fifo_info.fifo.id_no})">
+        <#if transition.type == "Backreference">
+            <#assign source_fifo = "*current[${transition.source.id}].getFifo(${transition.fifo_to_match.id_no})">
+            <#if fifo_info.clear>
+                <#assign result = result + "if (${target_current}.isActive()){${target_current}.getFifo(${fifo_info.fifo.id_no})->allowed_offsets++;fifoEnqueueFifo(${next_fifo}, ${source_fifo}, false);}else{fifoEnqueueFifo(${next_fifo}, ${source_fifo}, true);}"?no_esc>
+            <#else>
+                <#assign result = result + "fifoEnqueueFifo(${next_fifo}, ${source_fifo}, false);">
+            </#if>
+        <#else>
+            <#if fifo_info.clear>
+                <#assign result = result + "if (${target_current}.isActive()){${target_current}.getFifo(${fifo_info.fifo.id_no})->allowed_offsets++;fifoEnqueue(${next_fifo}, stream_token, false);}else{fifoEnqueue(${next_fifo}, stream_token, true);}"?no_esc>
+            <#else>
+                <#assign result = result + "fifoEnqueue(${next_fifo}, stream_token, false);">
+            </#if>
         </#if>
     </#list>
     <#return result>
