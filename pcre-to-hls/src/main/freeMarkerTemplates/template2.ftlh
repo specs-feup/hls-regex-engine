@@ -170,7 +170,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             <#if (state.outgoing_transitions?size > 0)>
             if (${currentVarActive(state.id)})
             {
-                const int stream_token = current[${state.id}].stream_index < stream_size ? stream[current[${state.id}].stream_index] : -1;
+                const int stream_token = stream[current[${state.id}].stream_index];
                 int stream_increment;
                 <#list state.outgoing_transitions as transition>
                 ${getTransitionComparison(transition, automaton)}
