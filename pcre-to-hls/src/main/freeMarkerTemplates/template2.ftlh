@@ -197,8 +197,12 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             transitions_occurred = 0;
 
             <#list automaton.states as state>
+            const bool ${currentVarActive(state.id)} = current[${state.id}].isActive();
+            </#list>
+
+            <#list automaton.states as state>
             <#if (state.outgoing_transitions?size > 0)>
-            if (current[${state.id}].isActive() && current[${state.id}].getStreamIndex() < stream_size)
+            if (${currentVarActive(state.id)} && current[${state.id}].getStreamIndex() < stream_size)
             {
                 const int stream_token = stream[current[${state.id}].getStreamIndex()];
                 int stream_increment;
@@ -213,13 +217,10 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             </#if>
             </#list>
 
-            if (transitions_occurred)
-            {
-                memcpy(current, next, ${automaton.states?size} * sizeof(State<${template_arguments}>));
-                for (int i = 0; i < ${automaton.states?size}; i++)
-                    next[i] = State<${template_arguments}>();
-                in_end_state = <#list automaton.end_states as end_state>current[${end_state.id}].isActive()<#if !end_state?is_last> || </#if></#list>;
-            }
+            in_end_state = <#list automaton.end_states as end_state>${currentVarActive(end_state.id)}<#if !end_state?is_last> || </#if></#list>;
+            memcpy(current, next, ${automaton.states?size} * sizeof(State<${template_arguments}>));
+            for (int i = 0; i < ${automaton.states?size}; i++)
+                next[i] = State<${template_arguments}>();
       
         } while (transitions_occurred && !in_end_state);
 
@@ -251,6 +252,10 @@ int main()
 
     return 0;
 }
+
+<#function currentVarActive id>
+    <#return "is_current${id}_active">
+</#function>
 
 <#function getTransitionComparison transition automaton>
     <#assign token_comp = getTokenComparison(transition, automaton)>
@@ -360,7 +365,7 @@ int main()
         <#assign current_counter = "current[${transition.source.id}].getCounter(${counter_info.counter.id_no})">
         <#assign next_counter = "next[${transition.target.id}].getCounter(${counter_info.counter.id_no})">
         <#if counter_info.operation == "SET">
-            <#assign result = result + "if (${target_current}.isActive()){${target_current}.getCounter(${counter_info.counter.id_no})->value_offset++; ${next_counter}->value = ${current_counter}->value + 1;}else{counterSet(${next_counter});}"?no_esc>
+            <#assign result = result + "if (${currentVarActive(transition.target.id)}){${target_current}.getCounter(${counter_info.counter.id_no})->value_offset++; ${next_counter}->value = ${current_counter}->value + 1;}else{counterSet(${next_counter});}"?no_esc>
         <#else>
             <#assign result = result + "${next_counter}->value = ${current_counter}->value + 1;"?no_esc>
         </#if>
@@ -377,13 +382,13 @@ int main()
         <#if transition.type == "Backreference">
             <#assign source_fifo = "*current[${transition.source.id}].getFifo(${transition.fifo_to_match.id_no})">
             <#if fifo_info.clear>
-                <#assign result = result + "if (${target_current}.isActive()){${target_current}.getFifo(${fifo_info.fifo.id_no})->allowed_offsets++;fifoEnqueueFifo(${next_fifo}, ${source_fifo}, false);}else{fifoEnqueueFifo(${next_fifo}, ${source_fifo}, true);}"?no_esc>
+                <#assign result = result + "if (${currentVarActive(transition.target.id)}){${target_current}.getFifo(${fifo_info.fifo.id_no})->allowed_offsets++;fifoEnqueueFifo(${next_fifo}, ${source_fifo}, false);}else{fifoEnqueueFifo(${next_fifo}, ${source_fifo}, true);}"?no_esc>
             <#else>
                 <#assign result = result + "fifoEnqueueFifo(${next_fifo}, ${source_fifo}, false);">
             </#if>
         <#else>
             <#if fifo_info.clear>
-                <#assign result = result + "if (${target_current}.isActive()){${target_current}.getFifo(${fifo_info.fifo.id_no})->allowed_offsets++;fifoEnqueue(${next_fifo}, stream_token, false);}else{fifoEnqueue(${next_fifo}, stream_token, true);}"?no_esc>
+                <#assign result = result + "if (${currentVarActive(transition.target.id)}){${target_current}.getFifo(${fifo_info.fifo.id_no})->allowed_offsets++;fifoEnqueue(${next_fifo}, stream_token, false);}else{fifoEnqueue(${next_fifo}, stream_token, true);}"?no_esc>
             <#else>
                 <#assign result = result + "fifoEnqueue(${next_fifo}, stream_token, false);">
             </#if>
