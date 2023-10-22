@@ -112,6 +112,18 @@ bool stateIsActive(const State<C,F> &state)
     return state.stream_index >= 0; 
 }
 
+template <size_t C, size_t F>
+void transferCounters(State<C,F> &from, State<C,F> &to)
+{
+    to.counters = from.counters;
+}
+
+template <size_t C, size_t F>
+void transferFifos(State<C,F> &from, State<C,F> &to)
+{
+    to.fifos = from.fifos;
+}
+
 bool testStartAnchor(int index, const char *stream, bool multiline)
 {
     if (multiline)
@@ -128,16 +140,11 @@ bool testEndAnchor(int index, const char *stream, int stream_size, bool multilin
         return index == stream_size;
 }
 
-template <size_t C, size_t F>
-void transferCounters(State<C,F> &from, State<C,F> &to)
+int toUpper(int token)
 {
-    to.counters = from.counters;
-}
-
-template <size_t C, size_t F>
-void transferFifos(State<C,F> &from, State<C,F> &to)
-{
-    to.fifos = from.fifos;
+    if (token >= 'a' && token <= 'z')
+        return token - 32;
+    return token;
 }
 
 <#list automata as automaton>
@@ -168,7 +175,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             <#if (state.outgoing_transitions?size > 0)>
             if (${currentVarActive(state.id)})
             {
-                const int stream_token = stream[current[${state.id}].stream_index];
+                const int stream_token = ${getTransitionToken("stream[current[${state.id}].stream_index]", automaton)};
                 int stream_increment;
                 <#list state.outgoing_transitions as transition>
                 ${getTransitionComparison(transition, automaton)}
@@ -267,9 +274,17 @@ int main()
     <#return result>
 </#function>
 
-<#function getTokenComparison transition automaton>
+<#function getTransitionToken token automaton>
+    <#if hasCaseInsensitiveFlag(automaton)>
+        <#return "toUpper(${token})">
+    <#else>
+        <#return "${token}">
+    </#if>
+</#function>
+
+<#function getTokenComparison transition automaton>  
     <#if transition.type == "Character">
-        <#return "(stream_increment = stream_token == ${transition.token})">
+        <#return "(stream_increment = stream_token == ${getTransitionToken(transition.token, automaton)})">
     <#elseif transition.type == "CharacterClass">
         <#assign result = "">
         <#assign comparator = "=="?no_esc>
@@ -281,7 +296,7 @@ int main()
         </#if>
         <#assign result = result + "(stream_increment = (">
         <#list transition.tokens as token>
-            <#assign result = result + "stream_token ${comparator} ${token?c}">
+            <#assign result = result + "stream_token ${comparator} ${getTransitionToken(token?c, automaton)}">
             <#if !token?is_last>
             <#assign result = result + " ${separator}">
             </#if>
