@@ -47,10 +47,10 @@ bool counterCheckRange(const Counter &counter, const unsigned int lower_bound, c
     return valid;
 }
 
-void counterSet(Counter *counter)
+void counterSet(Counter &counter)
 {
-    counter->value = 1;
-    counter->value_offset = 0;
+    counter.value = 1;
+    counter.value_offset = 0;
 }
 
 struct Fifo {
@@ -103,8 +103,8 @@ template <size_t C, size_t F>
 class State {
     public:
     int stream_index;
-    private:
     std::array<Counter, C> counters;
+    private:
     std::array<Fifo, F> fifos;
 
     public:
@@ -114,16 +114,6 @@ class State {
     bool isActive() const
     { 
         return this->stream_index >= 0; 
-    }
-
-    Counter* getCounter(unsigned int index)
-    {
-        return &this->counters[index]; 
-    }
-
-    void setCounter(unsigned int index, Counter counter) 
-    {
-        this->counters[index] = counter;
     }
 
     Fifo* getFifo(unsigned int index)
@@ -157,7 +147,7 @@ template <size_t C, size_t F>
 void transferCounters(State<C,F> *from, State<C,F> *to)
 {
     for(size_t i = 0; i < C; i++)
-        to->setCounter(i, *from->getCounter(i));
+        to->counters[i] = from->counters[i];
 }
 
 template <size_t C, size_t F>
@@ -279,7 +269,7 @@ int main()
 <#function getCounterComparison transition automaton>
     <#assign result = "">
     <#list transition.counters_info as counter_info>
-        <#assign current_counter = "*current[${transition.source.id}].getCounter(${counter_info.counter.id_no})">
+        <#assign current_counter = "current[${transition.source.id}].counters[${counter_info.counter.id_no}]">
         <#if counter_info.operation == "COMPARE_EQUAL">
             <#assign result = result + "counterCheckEqual(${current_counter}, ${counter_info.counter.target_value1})">
         <#elseif counter_info.operation == "COMPARE_LESS">
@@ -353,12 +343,12 @@ int main()
     <#assign result = "">
     <#list transition.counters_info as counter_info>
         <#assign target_current = "current[${transition.target.id}]"> 
-        <#assign current_counter = "current[${transition.source.id}].getCounter(${counter_info.counter.id_no})">
-        <#assign next_counter = "next[${transition.target.id}].getCounter(${counter_info.counter.id_no})">
+        <#assign current_counter = "current[${transition.source.id}].counters[${counter_info.counter.id_no}]">
+        <#assign next_counter = "next[${transition.target.id}].counters[${counter_info.counter.id_no}]">
         <#if counter_info.operation == "SET">
-            <#assign result = result + "if (${currentVarActive(transition.target.id)}){${target_current}.getCounter(${counter_info.counter.id_no})->value_offset++; ${next_counter}->value = ${current_counter}->value + 1;}else{counterSet(${next_counter});}"?no_esc>
+            <#assign result = result + "if (${currentVarActive(transition.target.id)}){\n\t\t\t\t\t\t${target_current}.counters[${counter_info.counter.id_no}].value_offset++; ${next_counter}.value++;\n\t\t\t\t\t}else { counterSet(${next_counter}); }"?no_esc>
         <#else>
-            <#assign result = result + "${next_counter}->value = ${current_counter}->value + 1;"?no_esc>
+            <#assign result = result + "${next_counter}.value++;"?no_esc>
         </#if>
     </#list>
     <#return result>
