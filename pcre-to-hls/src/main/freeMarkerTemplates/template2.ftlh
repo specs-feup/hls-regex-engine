@@ -101,8 +101,9 @@ bool fifoCheck(const Fifo &fifo, const char *stream, int stream_size, int stream
 
 template <size_t C, size_t F>
 class State {
-    private:
+    public:
     int stream_index;
+    private:
     std::array<Counter, C> counters;
     std::array<Fifo, F> fifos;
 
@@ -113,16 +114,6 @@ class State {
     bool isActive() const
     { 
         return this->stream_index >= 0; 
-    }
-
-    int getStreamIndex() const
-    {
-        return this->stream_index; 
-    }
-
-    void setStreamIndex(int stream_index) 
-    {
-        this->stream_index = stream_index; 
     }
 
     Counter* getCounter(unsigned int index)
@@ -191,7 +182,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
     {
         for (int i = 0; i < ${automaton.states?size}; i++)
             current[i] = State<${template_arguments}>();
-        current[${automaton.start_state.id}].setStreamIndex(stream_offset);
+        current[${automaton.start_state.id}].stream_index = stream_offset;
 
         do {
             transitions_occurred = 0;
@@ -202,9 +193,9 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
 
             <#list automaton.states as state>
             <#if (state.outgoing_transitions?size > 0)>
-            if (${currentVarActive(state.id)} && current[${state.id}].getStreamIndex() < stream_size)
+            if (${currentVarActive(state.id)} && current[${state.id}].stream_index < stream_size)
             {
-                const int stream_token = stream[current[${state.id}].getStreamIndex()];
+                const int stream_token = stream[current[${state.id}].stream_index];
                 int stream_increment;
                 <#list state.outgoing_transitions as transition>
                 ${getTransitionComparison(transition, automaton)}
@@ -274,13 +265,13 @@ int main()
 <#function getAnchorComparison transition automaton>
     <#assign result = "">
     <#if transition.at_start>
-        <#assign result = result + "testStartAnchor(current[${transition.source.id}].getStreamIndex(), stream, ${hasMultilineFlag(automaton)?c})">
+        <#assign result = result + "testStartAnchor(current[${transition.source.id}].stream_index, stream, ${hasMultilineFlag(automaton)?c})">
     </#if>
     <#if transition.at_end>
         <#if result?has_content>
             <#assign result = result + " && "?no_esc>
         </#if>
-        <#assign result = result + "testEndAnchor(current[${transition.source.id}].getStreamIndex() + stream_increment, stream, stream_size, ${hasMultilineFlag(automaton)?c})">
+        <#assign result = result + "testEndAnchor(current[${transition.source.id}].stream_index + stream_increment, stream, stream_size, ${hasMultilineFlag(automaton)?c})">
     </#if>
     <#return result>
 </#function>
@@ -329,7 +320,7 @@ int main()
         </#if>
     <#elseif transition.type == "Backreference">
         <#assign backreference_fifo = "*current[${transition.source.id}].getFifo(${transition.fifo_to_match.id_no})">
-        <#return "fifoCheck(${backreference_fifo}, stream, stream_size, current[${transition.source.id}].getStreamIndex(), &stream_increment)"?no_esc>
+        <#return "fifoCheck(${backreference_fifo}, stream, stream_size, current[${transition.source.id}].stream_index, &stream_increment)"?no_esc>
     </#if>
 </#function>
 
@@ -348,7 +339,7 @@ int main()
 </#function>
 
 <#function getDefaultBody transition automaton>
-    <#assign result = "next[${transition.target.id}].setStreamIndex(current[${transition.source.id}].getStreamIndex() + stream_increment);">
+    <#assign result = "next[${transition.target.id}].stream_index = current[${transition.source.id}].stream_index + stream_increment;">
     <#if automaton.counter_ids?size != 0>
         <#assign result = result + "\n\t\t\t\t\ttransferCounters(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
     </#if>
