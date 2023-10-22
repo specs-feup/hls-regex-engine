@@ -100,21 +100,17 @@ bool fifoCheck(const Fifo &fifo, const char *stream, int stream_size, int stream
 }
 
 template <size_t C, size_t F>
-class State {
-    public:
-    int stream_index;
-    std::array<Counter, C> counters;
-    std::array<Fifo, F> fifos;
-
-    public:
-    State() : stream_index(-1), counters({}), fifos({}) 
-    { }
-
-    bool isActive() const
-    { 
-        return this->stream_index >= 0; 
-    }
+struct State {
+    int stream_index = -1;
+    std::array<Counter, C> counters = {};
+    std::array<Fifo, F> fifos = {};
 };
+
+template <size_t C, size_t F>
+bool stateIsActive(const State<C,F> &state)
+{ 
+    return state.stream_index >= 0; 
+}
 
 bool testStartAnchor(int index, const char *stream, bool multiline)
 {
@@ -167,7 +163,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             transitions_occurred = 0;
 
             <#list automaton.states as state>
-            const bool ${currentVarActive(state.id)} = current[${state.id}].isActive();
+            const bool ${currentVarActive(state.id)} = stateIsActive(current[${state.id}]);
             </#list>
 
             <#list automaton.states as state>
