@@ -129,17 +129,15 @@ bool testEndAnchor(int index, const char *stream, int stream_size, bool multilin
 }
 
 template <size_t C, size_t F>
-void transferCounters(State<C,F> *from, State<C,F> *to)
+void transferCounters(State<C,F> &from, State<C,F> &to)
 {
-    for(size_t i = 0; i < C; i++)
-        to->counters[i] = from->counters[i];
+    to.counters = from.counters;
 }
 
 template <size_t C, size_t F>
-void transferFifos(State<C,F> *from, State<C,F> *to)
+void transferFifos(State<C,F> &from, State<C,F> &to)
 {
-    for(size_t i = 0; i < F; i++)
-        to->fifos[i] = from->fifos[i];
+    to.fifos = from.fifos;
 }
 
 <#list automata as automaton>
@@ -318,10 +316,10 @@ int main()
 <#function getDefaultBody transition automaton>
     <#assign result = "next[${transition.target.id}].stream_index = current[${transition.source.id}].stream_index + stream_increment;">
     <#if automaton.counter_ids?size != 0>
-        <#assign result = result + "\n\t\t\t\t\ttransferCounters(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
+        <#assign result = result + "\n\t\t\t\t\ttransferCounters(current[${transition.source.id}], next[${transition.target.id}]);"?no_esc>
     </#if>
     <#if automaton.fifo_ids?size != 0>
-        <#assign result = result + "\n\t\t\t\t\ttransferFifos(&current[${transition.source.id}], &next[${transition.target.id}]);"?no_esc>
+        <#assign result = result + "\n\t\t\t\t\ttransferFifos(current[${transition.source.id}], next[${transition.target.id}]);"?no_esc>
     </#if>
     <#return result>
 </#function>
