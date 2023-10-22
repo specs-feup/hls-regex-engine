@@ -273,15 +273,17 @@ int main()
     <#if transition.type == "Character">
         <#return "(stream_increment = stream_token == ${transition.token})">
     <#elseif transition.type == "CharacterClass">
+        <#assign result = "">
         <#assign comparator = "=="?no_esc>
         <#assign separator = "||"?no_esc>
         <#if transition.negated>
             <#assign comparator = "!="?no_esc>
-            <#assign separator = "&&"?no_esc>           
+            <#assign separator = "&&"?no_esc>
+            <#assign result = result + "current[${transition.source.id}].stream_index < stream_size && "?no_esc>           
         </#if>
-        <#assign result = "(stream_increment = (">
+        <#assign result = result + "(stream_increment = (">
         <#list transition.tokens as token>
-            <#assign result = result + " stream_token ${comparator} ${token?c}">
+            <#assign result = result + "stream_token ${comparator} ${token?c}">
             <#if !token?is_last>
             <#assign result = result + " ${separator}">
             </#if>
@@ -289,9 +291,9 @@ int main()
         <#return result + "))">
     <#elseif transition.type == "Wildcard">
         <#if hasSinglelineFlag(automaton)>
-            <#return "(stream_increment = 1)">
+            <#return "current[${transition.source.id}].stream_index < stream_size && (stream_increment = 1)"?no_esc>
         <#else>
-            <#return "(stream_increment = stream_token != '\\n')"?no_esc>
+            <#return "current[${transition.source.id}].stream_index < stream_size && (stream_increment = stream_token != '\\n')"?no_esc>
         </#if>
     <#elseif transition.type == "Backreference">
         <#assign backreference_fifo = "current[${transition.source.id}].fifos[${transition.fifo_to_match.id_no}]">
