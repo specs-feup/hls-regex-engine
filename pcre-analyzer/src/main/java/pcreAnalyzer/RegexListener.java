@@ -3,8 +3,6 @@ package pcreAnalyzer;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Stack;
 
@@ -251,21 +249,15 @@ public class RegexListener extends PCREgrammarBaseListener {
     {
         this.analyzer.addExpressionLength(this.expression_length);
 
-        List<Double> group_lengths = new LinkedList<>();
         for (LengthDouble length : this.capture_groups_lengths.values())
-            group_lengths.add(length.value);
-        this.analyzer.addCaptureGroupLengths(group_lengths);
+            this.analyzer.addCaptureGroupLength(length.value);
 
-        List<Double> referenced_group_lengths = new LinkedList<>();
-        List<Double> fixed_referenced_group_lengths = new LinkedList<>();
         for (LengthDouble length : this.referenced_capture_group_lengths.values())
         {
-            referenced_group_lengths.add(length.value);
+            this.analyzer.addReferencedCaptureGroupLength(length.value);
             if (length.fixed)
-                fixed_referenced_group_lengths.add(length.value);
+                this.analyzer.addFixedReferencedCaptureGroupLength(length.value);
         }
-        this.analyzer.addReferencedCaptureGroupLengths(referenced_group_lengths);
-        this.analyzer.addFixedReferencedCaptureGroupLengths(fixed_referenced_group_lengths);
     }
 
     public void enterCharacter_class(Character_classContext ctx)

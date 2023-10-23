@@ -83,9 +83,8 @@ public class App {
             aggregator.addAnalyzer(analyzer);
         }
 
-        String report_path = System.getProperty("user.home") + "\\Desktop\\rulesets_report.csv";
-        System.out.println("==== RULESETS REPORT ====");
-        aggregator.print();
+        String report_path = System.getProperty("user.home") + "\\Desktop\\rulesets_report";
+        System.out.println("Generated rulesets report in " + report_path);
         aggregator.export(report_path);
     }
 
