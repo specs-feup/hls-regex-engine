@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.Map.Entry;
 
 
@@ -16,6 +17,7 @@ public class RulesAnalyzer {
     private Map<String, Integer> total_operator_occurrences;
     private Map<String, Integer> expression_operator_occurrences;
     private Map<Character, Integer> flag_occurrences;
+    private Map<Integer, Integer> bounded_quantifier_occurrences;
     private List<Double> expression_lengths;
     private List<Double> capture_group_lengths;
     private List<Double> referenced_capture_group_lengths;
@@ -28,6 +30,7 @@ public class RulesAnalyzer {
         this.total_operator_occurrences = new HashMap<>();
         this.expression_operator_occurrences = new HashMap<>();
         this.flag_occurrences = new HashMap<>();
+        this.bounded_quantifier_occurrences = new TreeMap<>();
         this.expression_lengths = new ArrayList<>();
         this.capture_group_lengths = new ArrayList<>();
         this.referenced_capture_group_lengths = new ArrayList<>();
@@ -55,6 +58,11 @@ public class RulesAnalyzer {
     {
         for (char flag : flags.toCharArray())
             addFlagOccurrence(flag);
+    }
+
+    public void addQuantifierOccurence(int repetitions)
+    {
+        this.bounded_quantifier_occurrences.merge(repetitions, 1, Integer::sum);
     }
 
     public void addExpressionLength(double expression_length)
@@ -87,6 +95,7 @@ public class RulesAnalyzer {
         other.total_operator_occurrences.forEach((key, value) -> this.total_operator_occurrences.merge(key, value, Integer::sum));
         other.expression_operator_occurrences.forEach((key, value) -> this.expression_operator_occurrences.merge(key, value, Integer::sum));
         other.flag_occurrences.forEach((key, value) -> this.flag_occurrences.merge(key, value, Integer::sum));
+        other.bounded_quantifier_occurrences.forEach((key, value) -> this.bounded_quantifier_occurrences.merge(key, value, Integer::sum));
     }
 
     private static double getAverage(List<Double> data)
@@ -168,6 +177,9 @@ public class RulesAnalyzer {
 
         for (Entry<String, Integer> entry : this.expression_operator_occurrences.entrySet())
             data_pairs.put(entry.getKey() + " expression occurrences", this.getFormattedValue(entry.getValue().doubleValue()));
+
+        for (Entry<Integer, Integer> entry : this.bounded_quantifier_occurrences.entrySet())
+            data_pairs.put(entry.getKey() + " repetitions quantifier occurences", this.getFormattedValue(entry.getValue().doubleValue()));
 
         return data_pairs;
     }

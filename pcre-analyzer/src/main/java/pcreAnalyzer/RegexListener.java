@@ -76,6 +76,12 @@ public class RegexListener extends PCREgrammarBaseListener {
             this.analyzer.addOperatorOccurrence(operation);
     }
 
+    private void addQuantifierOccurrence(int repetitions)
+    {
+        if (!this.locked)
+            this.analyzer.addQuantifierOccurence(repetitions);
+    }
+
     private void unfixActiveGroupLength()
     {
         if (!this.active_capture_groups_lengths.isEmpty())
@@ -175,7 +181,15 @@ public class RegexListener extends PCREgrammarBaseListener {
         addOccurrence("Quantifiers");
 
         if (ctx.OpenBrace() != null)
+        {
             addOccurrence("Bounded Quantifiers");
+            int repetitions;
+            if (ctx.number().size() == 1) 
+                repetitions = Integer.parseInt(ctx.number(0).getText());
+            else
+                repetitions = Integer.parseInt(ctx.number(1).getText());
+            this.addQuantifierOccurrence(repetitions);
+        }
 
         if (ctx.OpenBrace() == null || ctx.Comma() != null)
             unfixActiveGroupLength();
