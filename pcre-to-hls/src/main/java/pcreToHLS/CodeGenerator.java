@@ -51,7 +51,7 @@ public class CodeGenerator {
 
     private Map<PCRE, FinalAutomaton> regexes;
 
-    public CodeGenerator(Map<String, String> expressions, boolean debug, boolean dfas, boolean remove_unused, boolean expand_fixed)
+    public CodeGenerator(Map<String, String> expressions, boolean debug, boolean dfas, boolean remove_unused, boolean expand_fixed, boolean expand_quantifiers)
     {
         this.regexes = new HashMap<>();
         for (Entry<String, String> expression_entry : expressions.entrySet())
@@ -74,9 +74,9 @@ public class CodeGenerator {
             try {
                 FinalAutomaton automaton;
                 if (dfas)
-                    automaton = new DFA(tree, regex.flags, debug, remove_unused, expand_fixed);
+                    automaton = new DFA(tree, regex.flags, debug, remove_unused, expand_fixed, expand_quantifiers);
                 else 
-                    automaton = new NFA(tree, regex.flags, debug, remove_unused, expand_fixed);
+                    automaton = new NFA(tree, regex.flags, debug, remove_unused, expand_fixed, expand_quantifiers);
                 this.regexes.put(regex, automaton);
             }
             catch (Exception e) {

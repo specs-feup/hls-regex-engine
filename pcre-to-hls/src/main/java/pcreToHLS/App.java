@@ -47,6 +47,7 @@ public class App extends TApplication {
         TCheckBox dfa_check_box = window.addCheckBox(group.getWidth() + 1, 2, "DFAs instead of NFAs", false);
         TCheckBox remove_unused_fifos_check_box = window.addCheckBox(group.getWidth() + 1, 3, "Transform unused capture groups into non-capture", false);
         TCheckBox expand_fixed_fifos_check_box = window.addCheckBox(group.getWidth() + 1, 4, "Expand constant group references", false);
+        TCheckBox expand_quantifiers_check_box = window.addCheckBox(group.getWidth() + 1, 5, "Expand bounded quantifiers", false);
         int input_y = group.getHeight() + 1;
         TLabel input_label = window.addLabel("Input:", 0, input_y);
         int input_x_offset = input_label.getWidth() + 1; 
@@ -61,7 +62,7 @@ public class App extends TApplication {
                 String input_string = input_field.getText();
                 ExpressionSource source = getExpressionSource(group);
                 Map<String, String> expressions = getExpressions(source, input_string);
-                CodeGenerator generator = new CodeGenerator(expressions, debug_check_box.isChecked(), dfa_check_box.isChecked(), remove_unused_fifos_check_box.isChecked(), expand_fixed_fifos_check_box.isChecked());
+                CodeGenerator generator = new CodeGenerator(expressions, debug_check_box.isChecked(), dfa_check_box.isChecked(), remove_unused_fifos_check_box.isChecked(), expand_fixed_fifos_check_box.isChecked(), expand_quantifiers_check_box.isChecked());
                 generator.generate(generation_path);
                 System.out.println("\nMatcher generated in " + generation_path);
             }

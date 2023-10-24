@@ -17,9 +17,9 @@ public class DFA extends FinalAutomaton {
         this.ends = ends;
     }
 
-    public DFA(ParseTree root, String flags, boolean debug, boolean remove_unused, boolean expand_fixed) throws EmptyStackException 
+    public DFA(ParseTree root, String flags, boolean debug, boolean remove_unused, boolean expand_fixed, boolean expand_quantifiers) throws EmptyStackException 
     {
-        EpsilonNFA eNFA = new EpsilonNFA(root, flags);
+        EpsilonNFA eNFA = new EpsilonNFA(root, flags, expand_quantifiers);
         NFA nfa = eNFA.toRegularNFA(flags.contains("m"), remove_unused, expand_fixed);
         DFA dfa = nfa.toDFA();
         if (debug)

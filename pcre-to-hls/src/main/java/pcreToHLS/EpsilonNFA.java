@@ -108,9 +108,9 @@ public class EpsilonNFA {
     }
 
     /* Creates EpsilonNFA from a regex parseTree */
-    EpsilonNFA(ParseTree tree, String flags) throws EmptyStackException
+    EpsilonNFA(ParseTree tree, String flags, boolean expand_quantifiers) throws EmptyStackException
     {
-        RegexListener listener = new RegexListener(flags);
+        RegexListener listener = new RegexListener(flags, expand_quantifiers);
         ParseTreeWalker walker = new ParseTreeWalker();
         walker.walk(listener, tree);
         copy(listener.getEpsilonNFA());
@@ -189,6 +189,30 @@ public class EpsilonNFA {
         return new EpsilonNFA(automata.graph, new_start, new_end);
     }
 
+    public static EpsilonNFA repeatExactly(EpsilonNFA automata, int repetitions, boolean expanded)
+    {
+        if (expanded)
+            return repeatExactlyExpanded(automata, repetitions);
+        
+        return repeatExactly(automata, repetitions);
+    }
+
+    public static EpsilonNFA repeatAtLeast(EpsilonNFA automata, int repetitions, boolean expanded)
+    {
+        if (expanded)
+            return repeatAtLeastExpanded(automata, repetitions);
+        
+        return repeatAtLeast(automata, repetitions);
+    }
+
+    public static EpsilonNFA repeatRange(EpsilonNFA automata, int min_repetitions, int max_repetitions, boolean expanded)
+    {
+        if (expanded)
+            return repeatRangeExpanded(automata, min_repetitions, max_repetitions);
+        
+        return repeatRange(automata, min_repetitions, max_repetitions);
+    }
+
     private static Graph<String, DefaultEdge> prepareBoundedQuantifierDuplicate(EpsilonNFA automata, Counter counter, String new_start, String new_mid, String new_end, boolean read_on_zero)
     {
         EpsilonNFA duplicated = duplicate(automata);
@@ -219,7 +243,7 @@ public class EpsilonNFA {
         return new_graph;
     }
 
-    public static EpsilonNFA repeatExactly(EpsilonNFA automata, int repetitions) 
+    private static EpsilonNFA repeatExactly(EpsilonNFA automata, int repetitions) 
     {
         Counter counter = new Counter(repetitions);
         String new_start = VertexIDFactory.getNewVertexID();
@@ -233,7 +257,19 @@ public class EpsilonNFA {
         return new EpsilonNFA(new_graph, new_start, new_end);
     }
 
-    public static EpsilonNFA repeatAtLeast(EpsilonNFA automata, int repetitions)
+    private static EpsilonNFA repeatExactlyExpanded(EpsilonNFA automata, int repetitions)
+    {
+        EpsilonNFA res = duplicate(automata);
+        for (int i = 1; i < repetitions; i++)
+        {
+            EpsilonNFA duplicated = duplicate(automata);
+            res = concat(res, duplicated);
+        }
+
+        return res;
+    }
+
+    private static EpsilonNFA repeatAtLeast(EpsilonNFA automata, int repetitions)
     {
         Counter counter = new Counter(repetitions);
         String new_start = VertexIDFactory.getNewVertexID();
@@ -248,7 +284,13 @@ public class EpsilonNFA {
         return new EpsilonNFA(new_graph, new_start, new_end);
     }
 
-    public static EpsilonNFA repeatRange(EpsilonNFA automata, int min_repetitions, int max_repetitions)
+    private static EpsilonNFA repeatAtLeastExpanded(EpsilonNFA automata, int repetitions)
+    {
+        EpsilonNFA res = repeatExactlyExpanded(automata, repetitions);
+        return concat(res, zeroOrMore(automata));
+    }
+
+    private static EpsilonNFA repeatRange(EpsilonNFA automata, int min_repetitions, int max_repetitions)
     {
         Counter counter = new Counter(min_repetitions, max_repetitions);
         String new_start = VertexIDFactory.getNewVertexID();
@@ -261,6 +303,16 @@ public class EpsilonNFA {
         new_graph.addEdge(automata.end, new_end, new CounterEdge(new CounterInfo(counter, CounterOperation.COMPARE_RANGE)));
         
         return new EpsilonNFA(new_graph, new_start, new_end);
+    }
+
+    private static EpsilonNFA repeatRangeExpanded(EpsilonNFA automata, int min_repetitions, int max_repetitions)
+    {
+        EpsilonNFA res = repeatExactlyExpanded(automata, min_repetitions);
+        final int optional_repetitions = max_repetitions - min_repetitions;
+        for (int i = 0; i < optional_repetitions; i++)
+            res = concat(res, zeroOrOne(duplicate(automata)));
+
+        return res;
     }
 
     private static void getEpsilonClosure(Graph<String, DefaultEdge> graph, String vertex, Set<String> closure) {

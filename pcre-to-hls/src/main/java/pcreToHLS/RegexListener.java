@@ -53,8 +53,9 @@ public class RegexListener extends PCREgrammarBaseListener {
     private Map<String, Fifo> fifo_aliases;
     private Set<Integer> unused_fifos;
     private Set<Integer> fixed_fifos;
+    private boolean expand_quantifiers;
 
-    public RegexListener(String flags)
+    public RegexListener(String flags, boolean expand_quantifiers)
     {
         this.stack = new LockedStack<>();
         this.flags = flags;
@@ -62,6 +63,7 @@ public class RegexListener extends PCREgrammarBaseListener {
         this.fifo_aliases = new HashMap<>();
         this.unused_fifos = new HashSet<>();
         this.fixed_fifos = new HashSet<>();
+        this.expand_quantifiers = expand_quantifiers;
         Fifo.resetIdNo();
         Counter.resetIdNo();
     }
@@ -574,14 +576,14 @@ public class RegexListener extends PCREgrammarBaseListener {
         {
             int repetitions = Integer.parseInt(ctx.number(0).getText());
             if (ctx.Comma() != null)
-                stack.push(EpsilonNFA.repeatAtLeast(top, repetitions));
+                stack.push(EpsilonNFA.repeatAtLeast(top, repetitions, this.expand_quantifiers));
             else
-                stack.push(EpsilonNFA.repeatExactly(top, repetitions));
+                stack.push(EpsilonNFA.repeatExactly(top, repetitions, this.expand_quantifiers));
         } 
         else {
             int min_repetitions = Integer.parseInt(ctx.number(0).getText());
             int max_repetitions = Integer.parseInt(ctx.number(1).getText());
-            stack.push(EpsilonNFA.repeatRange(top, min_repetitions, max_repetitions));
+            stack.push(EpsilonNFA.repeatRange(top, min_repetitions, max_repetitions, this.expand_quantifiers));
         }
     }
 
