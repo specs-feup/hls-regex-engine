@@ -94,53 +94,53 @@ public class RulesAnalyzer {
         other.bounded_quantifier_occurrences.forEach((key, value) -> this.bounded_quantifier_occurrences.merge(key, value, Integer::sum));
     }
 
-    private <T> Map<String, String> getData(String header_append, Map<T, Integer> data)
+    private <T> Map<String, String> getData(Map<T, Integer> data)
     {
         Map<String, String> data_pairs = new LinkedHashMap<>();
         data_pairs.put("Ruleset", this.name);
         data_pairs.put("Number of Expressions", Integer.toString(this.expression_no));
         for (Entry<T, Integer> entry : data.entrySet())
-            data_pairs.put(entry.getKey().toString() + " " + header_append, Integer.toString(entry.getValue()));
+            data_pairs.put(entry.getKey().toString(), Integer.toString(entry.getValue()));
         return data_pairs;
     }
 
     public Map<String, String> getFlagOccurrenceData()
     {
-        return this.getData("flag", this.flag_occurrences);
+        return this.getData(this.flag_occurrences);
     }
 
     public Map<String, String> getTotalOperatorOccurenceData()
     {
-        return this.getData("total occurrences", this.total_operator_occurrences);
+        return this.getData(this.total_operator_occurrences);
     }
 
     public Map<String, String> getExpressionOperatorOccurenceData()
     {
-        return this.getData("expression occurrences", this.expression_operator_occurrences);
+        return this.getData(this.expression_operator_occurrences);
     }
 
     public Map<String, String> getBoundedQuantifierRepetitionData()
     {
-        return this.getData("repetitions quantifier occurrences", this.bounded_quantifier_occurrences);
+        return this.getData(this.bounded_quantifier_occurrences);
     }
 
     public Map<String, String> getExpressionLengthData()
     {
-        return this.getData("length expressions", this.expression_lengths);
+        return this.getData(this.expression_lengths);
     }
 
     public Map<String, String> getCaptureGroupLengthData()
     {
-        return this.getData("length capture groups", this.capture_group_lengths);
+        return this.getData(this.capture_group_lengths);
     }
 
     public Map<String, String> getReferencedCaptureGroupLengthData()
     {
-        return this.getData("length referenced capture groups", this.referenced_capture_group_lengths);
+        return this.getData(this.referenced_capture_group_lengths);
     }
 
     public Map<String, String> getFixedReferencedCaptureGroupLengthData()
     {
-        return this.getData("length fixed referenced capture groups", this.fixed_referenced_capture_group_lengths);
+        return this.getData(this.fixed_referenced_capture_group_lengths);
     }
 }
