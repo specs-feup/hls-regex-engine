@@ -619,14 +619,13 @@ public class EpsilonNFA {
         return this.removeEpsilons(current_ends);
     }
 
-   private static void removeDeadends(Graph<String, DefaultEdge> graph, Set<String> starts, Set<String> ends)
+   private static void removeDeadends(Graph<String, DefaultEdge> graph, Set<String> ends)
    {
         AllDirectedPaths<String, DefaultEdge> all_paths = new AllDirectedPaths<>(graph);
-        List<GraphPath<String, DefaultEdge>> paths = all_paths.getAllPaths(starts, ends, true, Integer.MAX_VALUE);
         Set<String> meaningful_vertices = new HashSet<>();
-
-        for (GraphPath<String, DefaultEdge> path : paths)
-            meaningful_vertices.addAll(path.getVertexList());
+        for (String vertex : graph.vertexSet())
+            if (!all_paths.getAllPaths(Set.of(vertex), ends, true, Integer.MAX_VALUE).isEmpty())
+                meaningful_vertices.add(vertex);
         
         Set<String> non_meaningful_vertices = new HashSet<>(graph.vertexSet());
             non_meaningful_vertices.removeAll(meaningful_vertices);
@@ -770,7 +769,7 @@ public class EpsilonNFA {
         removeCounterEdges();
         removeAnchorEdges(multiline);
         removeDeadStates(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
-        removeDeadends(this.graph, new HashSet<>(Arrays.asList(this.start)), new_ends);
+        removeDeadends(this.graph, new_ends);
         return new NFA(this.graph, this.start, new_ends);
     }
 
