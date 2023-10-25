@@ -124,20 +124,24 @@ void transferFifos(State<C,F> &from, State<C,F> &to)
     to.fifos = from.fifos;
 }
 
-bool testStartAnchor(int index, const char *stream, bool multiline)
+bool testStartAnchor(int index)
 {
-    if (multiline)
-        return index == 0 || stream[index - 1] == '\n';
-    else
-        return index == 0;
+    return index == 0;
 }
 
-bool testEndAnchor(int index, const char *stream, int stream_size, bool multiline)
+bool testStartAnchorMultiline(int index, const char *stream)
 {
-    if (multiline)
-        return index == stream_size || stream[index] == '\n';
-    else
-        return index == stream_size;
+    return index == 0 || stream[index - 1] == '\n';
+}
+
+bool testEndAnchor(int index, int stream_size)
+{
+    return index == stream_size;
+}
+
+bool testEndAnchorMultiline(int index, const char *stream, int stream_size)
+{
+    return index == stream_size || stream[index] == '\n';
 }
 
 int toUpper(int token)
@@ -245,13 +249,21 @@ int main()
 <#function getAnchorComparison transition automaton>
     <#assign result = "">
     <#if transition.at_start>
-        <#assign result = result + "testStartAnchor(current[${transition.source.id}].stream_index, stream, ${hasMultilineFlag(automaton)?c})">
+        <#if hasMultilineFlag(automaton)>
+            <#assign result = result + "testStartAnchorMultiline(current[${transition.source.id}].stream_index, stream)">
+        <#else>
+            <#assign result = result + "testStartAnchor(current[${transition.source.id}].stream_index)">
+        </#if>
     </#if>
     <#if transition.at_end>
         <#if result?has_content>
             <#assign result = result + " && "?no_esc>
         </#if>
-        <#assign result = result + "testEndAnchor(current[${transition.source.id}].stream_index + stream_increment, stream, stream_size, ${hasMultilineFlag(automaton)?c})">
+        <#if hasMultilineFlag(automaton)>
+            <#assign result = result + "testEndAnchorMultiline(current[${transition.source.id}].stream_index + stream_increment, stream, stream_size)">
+        <#else>
+            <#assign result = result + "testEndAnchor(current[${transition.source.id}].stream_index + stream_increment, stream_size)">
+        </#if>
     </#if>
     <#return result>
 </#function>
