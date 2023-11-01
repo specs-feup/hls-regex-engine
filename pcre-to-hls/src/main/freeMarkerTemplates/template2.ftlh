@@ -159,7 +159,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
     State<${template_arguments}> current[${automaton.states?size}];
     State<${template_arguments}> next[${automaton.states?size}];
 
-    int transitions_occurred;
+    bool transition_occurred;
     bool in_end_state = false;
 
     for (int stream_offset = 0; stream_offset < stream_size; stream_offset++) 
@@ -169,7 +169,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
         current[${automaton.start_state.id}].stream_index = stream_offset;
 
         do {
-            transitions_occurred = 0;
+            transition_occurred = false;
 
             <#list automaton.states as state>
             const bool ${currentVarActive(state.id)} = stateIsActive(current[${state.id}]);
@@ -184,7 +184,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
                 <#list state.outgoing_transitions as transition>
                 ${getTransitionComparison(transition, automaton)}
                 {
-                    transitions_occurred++;
+                    transition_occurred = true;
                     ${getTransitionBody(transition, automaton)}
                 }
                 </#list>
@@ -197,7 +197,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
             for (int i = 0; i < ${automaton.states?size}; i++)
                 next[i] = State<${template_arguments}>();
       
-        } while (transitions_occurred && !in_end_state);
+        } while (transition_occurred && !in_end_state);
 
         if (in_end_state)
             return true;
