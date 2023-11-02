@@ -164,8 +164,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
 
     for (int stream_offset = 0; stream_offset < stream_size; stream_offset++) 
     {
-        for (int i = 0; i < ${automaton.states?size}; i++)
-            current[i] = State<${template_arguments}>();
+        std::fill(current, current + ${automaton.states?size}, State<${template_arguments}>());
         current[${automaton.start_state.id}].stream_index = stream_offset;
 
         do {
@@ -194,8 +193,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
 
             in_end_state = <#list automaton.end_states as end_state>${currentVarActive(end_state.id)}<#if !end_state?is_last> || </#if></#list>;
             memcpy(current, next, ${automaton.states?size} * sizeof(State<${template_arguments}>));
-            for (int i = 0; i < ${automaton.states?size}; i++)
-                next[i] = State<${template_arguments}>();
+            std::fill(next, next + ${automaton.states?size}, State<${template_arguments}>());
       
         } while (transition_occurred && !in_end_state);
 
