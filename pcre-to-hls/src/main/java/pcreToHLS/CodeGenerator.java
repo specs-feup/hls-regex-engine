@@ -16,7 +16,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
 import java.util.Comparator;
+import java.util.Arrays;
 
+import org.antlr.v4.gui.TreeViewer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -68,6 +70,8 @@ public class CodeGenerator {
             {
                 System.out.println("\n=== Parse Tree ===");
                 System.out.println(TreeUtils.toPrettyTree(tree, parser));
+                TreeViewer viewr = new TreeViewer(Arrays.asList(parser.getRuleNames()),tree);
+                viewr.open();
             }
 
 
