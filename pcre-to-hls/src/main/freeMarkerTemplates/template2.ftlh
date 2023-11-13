@@ -154,7 +154,7 @@ int toUpper(int token)
 <#list automata as automaton>
 <#assign template_arguments = "${automaton.counter_ids?size}, ${automaton.fifo_ids?size}">
 //kernel for /${automaton.expression}/
-bool kernel${automaton?counter}(char stream[], int stream_size)
+bool kernel${automaton?counter}(char stream[1024], int stream_size)
 {
     State<${template_arguments}> current[${automaton.states?size}];
     State<${template_arguments}> next[${automaton.states?size}];
@@ -205,7 +205,7 @@ bool kernel${automaton?counter}(char stream[], int stream_size)
 }
 
 </#list>
-bool runAutomata(char stream[], int stream_size)
+bool runAutomata(char stream[1024], int stream_size)
 {
     #pragma HLS interface s_axilite port=stream
     <#list automata as automaton>const bool k${automaton?counter} = kernel${automaton?counter}(stream, stream_size);</#list>
