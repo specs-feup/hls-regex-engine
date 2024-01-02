@@ -182,6 +182,10 @@ public class CodeGenerator {
             Collections.sort(states, state_comparator);
             State start_state = vertex_ids.get(automaton.getStart());
 
+            System.out.println("\n== DATA FOR " + regex.expression + " ==");
+            System.out.println("State no: " + states.size());
+            System.out.println("Transition no: " + transitions.size() + "\n");
+
             automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, new LinkedHashSet<>(states), transitions, start_state, end_states));
         }
         
