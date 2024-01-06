@@ -1,0 +1,6 @@
+/\x81\x7c\x79\x60\xea\x77\xe8\x83\x7c\x79/
+/<title>\s*(?:log\s*in|sign\s*in)/i
+/^\/(?:kas|ser|mac)[0-9]+\.png$/i
+/\x3C\x3C[^>]*\x2FJavaScript/smi
+/awstats.pl?[^\r\n]*logfile=\x7C/i
+/\$mysql_key\s*=\s*@?base64_decode/

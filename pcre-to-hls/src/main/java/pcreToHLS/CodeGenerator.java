@@ -184,7 +184,8 @@ public class CodeGenerator {
 
             System.out.println("\n== DATA FOR " + regex.expression + " ==");
             System.out.println("State no: " + states.size());
-            System.out.println("Transition no: " + transitions.size() + "\n");
+            System.out.println("Transition no: " + transitions.size());
+            System.out.println("Accept State no: " + end_states.size() + "\n");
 
             automata.add(new Automaton(regex.expression, regex.flags, counter_ids, fifo_ids, new LinkedHashSet<>(states), transitions, start_state, end_states));
         }
