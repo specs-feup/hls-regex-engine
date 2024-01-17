@@ -164,7 +164,12 @@ bool kernel${automaton?counter}(char stream[256], int stream_size)
 
     for (int stream_offset = 0; stream_offset < stream_size; stream_offset++) 
     {
-        std::fill(current, current + ${automaton.states?size}, State<${template_arguments}>());
+        #pragma HLS loop_tripcount min=256 max=256
+        for (int i = 0; i < ${automaton.states?size}; i++)
+        {
+            #pragma HLS loop_tripcount min=${automaton.states?size} max=${automaton.states?size}
+            current[i] = State<${template_arguments}>();
+        }
         current[${automaton.start_state.id}].stream_index = stream_offset;
 
         do {
@@ -193,7 +198,11 @@ bool kernel${automaton?counter}(char stream[256], int stream_size)
 
             in_end_state = <#list automaton.end_states as end_state>${currentVarActive(end_state.id)}<#if !end_state?is_last> || </#if></#list>;
             memcpy(current, next, ${automaton.states?size} * sizeof(State<${template_arguments}>));
-            std::fill(next, next + ${automaton.states?size}, State<${template_arguments}>());
+            for (int i = 0; i < ${automaton.states?size}; i++)
+            {
+                #pragma HLS loop_tripcount min=${automaton.states?size} max=${automaton.states?size}
+                next[i] = State<${template_arguments}>();
+            }
       
         } while (transition_occurred && !in_end_state);
 
